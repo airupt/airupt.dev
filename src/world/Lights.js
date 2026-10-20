@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { shared } from './shading.js'
-import { islandHeight } from './Islands.js'
+import { islandHeight } from './terrain.js'
 
 // Bright enough to pass the bloom threshold; scaled by how dark it is
 const GLOW_STRENGTH = 5

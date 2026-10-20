@@ -3,18 +3,8 @@ import * as RAPIER from '@dimforge/rapier3d'
 import { createRandom } from '../utils/noise.js'
 import { createSparBuoy } from './Structures.js'
 import { Buoy } from './Buoy.js'
-import { arch, rockClusters, spawn } from './layout.js'
+import { arch, moorings, rockClusters, spawn, wreck } from './layout.js'
 import { instanceStatic } from './instancing.js'
-
-// Boats riding at anchor near the islands: [model, x, z, heading]
-const moorings = [
-  ['sailboat', -6, 16, 2.2],
-  ['fishing-boat', 26, -41, 0.6],
-  ['houseboat', -26, 28, -1.1],
-]
-
-// Out in open water between Contact and Skills, a reward for exploring
-const wreck = { x: 31, z: 41, yaw: 0.9 }
 
 // A pair of channel marks halfway along the run from the start to each
 // section's dock: sail between them and you are on your way there

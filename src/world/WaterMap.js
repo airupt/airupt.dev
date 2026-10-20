@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { islandHeight } from './Islands.js'
+import { islandHeight } from './terrain.js'
 import { MAP_EXTENT } from './layout.js'
 
 export const MAP_SIZE = 512

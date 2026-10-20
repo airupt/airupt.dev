@@ -193,6 +193,29 @@ export const rockClusters = [
   [-70, 35],
 ]
 
+// Boats riding at anchor near the islands: [model, x, z, heading]
+export const moorings = [
+  ['sailboat', -6, 16, 2.2],
+  ['fishing-boat', 26, -41, 0.6],
+  ['houseboat', -26, 28, -1.1],
+]
+
+// Out in open water between Contact and Skills, a reward for exploring
+export const wreck = { x: 31, z: 41, yaw: 0.9 }
+
+// Messages in bottles, hidden around the archipelago, some behind islands so
+// finding them all means exploring the whole map
+export const bottleSpots = [
+  [22, 22],
+  [-38, -33], // by the landing on Mount Airupt
+  [-64, 22], // under the rock arch
+  [28, -72],
+  [72, 2],
+  [-32, 74],
+  [-84, -18],
+  [40, 46],
+]
+
 // A natural arch out west, wide enough to sail through
 export const arch = { x: -64, z: 22, yaw: 0.5, span: 10 }
 

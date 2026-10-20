@@ -1,22 +1,10 @@
 import * as THREE from 'three'
 import { waveHeight } from './waves.js'
 import { bottles as messages } from '../content/portfolio.js'
+import { bottleSpots as spots } from './layout.js'
 
 const STORAGE_KEY = 'airupt-bottles'
 const PICKUP_DISTANCE = 2.2
-
-// Hidden around the archipelago, some behind islands so finding them all
-// means exploring the whole map
-const spots = [
-  [22, 22],
-  [-38, -33], // by the landing on Mount Airupt
-  [-64, 22], // under the rock arch
-  [28, -72],
-  [72, 2],
-  [-32, 74],
-  [-84, -18],
-  [40, 46],
-]
 
 function readCollected() {
   try {

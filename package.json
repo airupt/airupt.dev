@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "vite build && wrangler deploy",
-    "models": "node scripts/build-models.mjs"
+    "models": "node scripts/build-models.mjs",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@dimforge/rapier3d": "^0.21.0",
