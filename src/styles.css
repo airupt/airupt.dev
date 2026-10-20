@@ -541,6 +541,13 @@ body:has(dialog[open]) .hud > * {
 }
 
 /* Controls legend: keycaps that fade once the visitor is sailing */
+/* While an Explore prompt is up, the legend steps aside so the two never stack */
+.hud:has(.hud-prompt:not([hidden])) .controls {
+  opacity: 0;
+  transform: translateX(-50%) translateY(0.5rem);
+  pointer-events: none;
+}
+
 .controls {
   position: absolute;
   left: 50%;

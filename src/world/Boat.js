@@ -119,6 +119,23 @@ export class Boat {
 
     this.inWater = applyBuoyancy(body, FLOAT_POINTS, dt, time, { restDepth: 0.22, damping: 5 })
 
+    // Coming in alongside a dock: glide to the berth, the waves still
+    // lifting the hull, then drift free again
+    if (this.mooring) {
+      const mooring = this.mooring
+      mooring.t = Math.min(mooring.t + dt / mooring.duration, 1)
+      const t = mooring.t * mooring.t * (3 - 2 * mooring.t)
+      const now = body.translation()
+      body.setTranslation({ x: mooring.from.x + (mooring.x - mooring.from.x) * t, y: now.y, z: mooring.from.z + (mooring.z - mooring.from.z) * t }, true)
+      quaternion.slerpQuaternions(mooring.fromRotation, mooring.rotation, t)
+      body.setRotation(quaternion, true)
+      const velocity = body.linvel()
+      body.setLinvel({ x: 0, y: velocity.y, z: 0 }, true)
+      body.setAngvel({ x: 0, y: 0, z: 0 }, true)
+      if (mooring.t === 1) this.mooring = null
+      return
+    }
+
     quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
     forward.set(0, 0, -1).applyQuaternion(quaternion).setY(0).normalize()
     right.set(-forward.z, 0, forward.x)
@@ -180,6 +197,21 @@ export class Boat {
     if (this.capsizedTime > 2 || translation.y < -5) this.respawn()
   }
 
+  // Glide alongside a dock (bow toward yaw) over a moment
+  moor(x, z, yaw, duration = 0.7) {
+    const from = this.body.translation()
+    const rotation = this.body.rotation()
+    this.mooring = {
+      x,
+      z,
+      from: { x: from.x, z: from.z },
+      fromRotation: new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w),
+      rotation: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw),
+      duration,
+      t: 0,
+    }
+  }
+
   // Before the intro the boat is parked out of sight, so it can arrive on cue
   hide() {
     this.hidden = true
@@ -201,6 +233,7 @@ export class Boat {
 
   // Jump straight to a spot (map travel), hidden behind the same wipe as a respawn
   teleport(x, z, yaw) {
+    this.mooring = null
     this.onRespawn?.()
     this.body.setTranslation({ x, y: 0.4, z }, true)
     this.body.setRotation(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw), true)
@@ -210,6 +243,7 @@ export class Boat {
   }
 
   respawn() {
+    this.mooring = null
     this.onRespawn?.()
     this.body.setTranslation({ x: spawn.x, y: 0.4, z: spawn.z }, true)
     this.body.setRotation(spawnRotation, true)
@@ -226,5 +260,8 @@ export class Boat {
     const speedFactor = THREE.MathUtils.clamp(Math.abs(this.speed) / 10, 0, 1)
     const targetLean = -this.app.inputs.state.steer * tuning.lean * speedFactor
     this.lean.rotation.z += (targetLean - this.lean.rotation.z) * (1 - Math.exp(-4 * delta))
+    // Under boost the bow lifts a few degrees and the boat sits back on its stern
+    const boosting = this.app.inputs.state.boost && this.app.inputs.state.throttle > 0 && this.speed > 6
+    this.lean.rotation.x += ((boosting ? 0.075 : 0) - this.lean.rotation.x) * (1 - Math.exp(-3 * delta))
   }
 }

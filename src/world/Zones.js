@@ -1,26 +1,34 @@
 import * as THREE from 'three'
 import { Buoy } from './Buoy.js'
-import { DOCK_TILE, DOCK_TILES } from './Decor.js'
+import { DOCK_INLAND, DOCK_LENGTH, DOCK_WIDTH } from './Dock.js'
 
-const RADIUS = 9
+const RADIUS = 7.5
 
-// Each section island has a zone at the end of its dock, marked by a buoy
-// in the section colour. Sailing into it offers to open that section.
+// Each section island has a berth alongside its dock, marked by a buoy in
+// the section colour just off the dock's end. Sailing up to it offers to
+// open that section; opening it brings the boat in alongside the dock.
 export class Zones {
   constructor(app, islands) {
     this.app = app
     this.active = null
     this.list = []
 
+    const right = app.cameraRig.screenRight
     for (const island of islands.list) {
       if (!island.section) continue
       const { shore, out } = island
-      const reach = DOCK_TILES * DOCK_TILE + 4
-      const x = shore.x + out.x * reach
-      const z = shore.z + out.z * reach
-      // Buoy sits beside the dock end so the boat can pull right up to it
-      const buoy = new Buoy(app, { x: x + out.z * 3, z: z - out.x * 3, color: island.color })
-      this.list.push({ section: island.section, island, x, z, buoy })
+      // The berth is on the dock's right as seen on screen
+      const side = Math.sign(out.z * right.x - out.x * right.z) || 1
+      const across = { x: out.z * side, z: -out.x * side }
+      const offset = DOCK_WIDTH / 2 + 1.45
+      const reach = (DOCK_LENGTH - DOCK_INLAND) * 0.55
+      const x = shore.x + out.x * reach + across.x * offset
+      const z = shore.z + out.z * reach + across.z * offset
+      // Moored parallel to the dock, bow out to sea, ready to leave
+      const yaw = Math.atan2(-out.x, -out.z)
+      const buoyReach = DOCK_LENGTH - DOCK_INLAND + 1.6
+      const buoy = new Buoy(app, { x: shore.x + out.x * buoyReach + across.x * (offset + 0.6), z: shore.z + out.z * buoyReach + across.z * (offset + 0.6), color: island.color })
+      this.list.push({ section: island.section, island, x, z, yaw, buoy })
     }
 
     app.inputs.on('interact', () => this.open())
@@ -29,7 +37,10 @@ export class Zones {
   }
 
   open() {
-    if (this.active) this.app.overlay.openSection(this.active.section)
+    if (!this.active) return
+    const { x, z, yaw, section } = this.active
+    this.app.world.boat.moor(x, z, yaw)
+    this.app.overlay.openSection(section)
   }
 
   // While a section is open the camera glides over to its island

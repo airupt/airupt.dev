@@ -155,8 +155,8 @@ export class MapView {
     this.dialog.close()
     const zone = this.app.world.zones.list.find(candidate => candidate.island.id === island.id)
     if (zone) {
-      // Arrive at the zone, bow pointing at the island
-      this.app.world.boat.teleport(zone.x, zone.z, Math.atan2(zone.x - island.x, zone.z - island.z))
+      // Arrive moored at the island's dock
+      this.app.world.boat.teleport(zone.x, zone.z, zone.yaw)
     } else if (island.label === 'name') {
       this.app.world.boat.respawn()
     } else {
