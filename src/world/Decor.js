@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import * as RAPIER from '@dimforge/rapier3d'
 import { createRandom } from '../utils/noise.js'
+import { instanceStatic } from './instancing.js'
 
 export const DOCK_TILES = 2
 export const DOCK_TILE = 2.5 // metres per dock model
@@ -75,35 +76,9 @@ export class Decor {
     }
 
     foliage.build()
-    this.instance(new Set(['lantern', 'tower', 'campfire']))
-  }
-
-  // Every placed copy of a model shares geometry and material, so each
-  // (geometry, material) pair can become one instanced draw call. Models
-  // that other systems attach things to are left as they are.
-  instance(keep) {
-    this.group.updateMatrixWorld(true)
-    const buckets = new Map()
-
-    for (const { id, model } of this.placed) {
-      if (keep.has(id)) continue
-      model.traverse(child => {
-        if (!child.isMesh) return
-        const key = `${child.geometry.uuid}:${child.material.uuid}`
-        if (!buckets.has(key)) buckets.set(key, { geometry: child.geometry, material: child.material, matrices: [] })
-        buckets.get(key).matrices.push(child.matrixWorld.clone())
-      })
-      this.group.remove(model)
-    }
-
-    for (const { geometry, material, matrices } of buckets.values()) {
-      const mesh = new THREE.InstancedMesh(geometry, material, matrices.length)
-      matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix))
-      mesh.castShadow = true
-      mesh.receiveShadow = true
-      mesh.computeBoundingSphere()
-      this.group.add(mesh)
-    }
+    // Models other systems attach things to (lights, smoke) stay separate
+    const keep = new Set(['lantern', 'tower', 'campfire'])
+    instanceStatic(this.group, this.placed.filter(({ id }) => !keep.has(id)).map(({ model }) => model))
   }
 
   add(id, x, y, z, rotation = 0, scale = 1) {

@@ -4,6 +4,7 @@ import { applyBuoyancy } from './buoyancy.js'
 import { createRandom } from '../utils/noise.js'
 import { worldRadius } from './layout.js'
 import { createStylizedMaterial } from './shading.js'
+import { DynamicInstances } from './instancing.js'
 
 const box = new THREE.Box3()
 const size = new THREE.Vector3()
@@ -70,6 +71,8 @@ export class Props {
   constructor(app, models, islands) {
     this.app = app
     this.floaters = []
+    // Every floater of the same model is drawn in one call (built once all are added)
+    this.instances = new DynamicInstances(app.scene)
     const { world } = app.physics
 
     const rampMaterial = createStylizedMaterial({ map: createStripeTexture(), flatShading: true })
@@ -112,7 +115,9 @@ export class Props {
     const object = new THREE.Group()
     model.position.y = -half.y
     object.add(model)
-    this.app.scene.add(object)
+    object.position.set(x, 0.3, z)
+    object.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw)
+    this.instances.register(object, model)
 
     const body = world.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()
@@ -136,7 +141,7 @@ export class Props {
     ].map(([sx, sz]) => new THREE.Vector3(sx * half.x * 1.3, -half.y * 0.4, sz * half.z * 1.3))
 
     this.app.physics.sync(body, object)
-    const floater = { body, points, restDepth: half.y * 0.7, anchor: anchored ? { x, z } : null }
+    const floater = { body, points, restDepth: half.y * 0.45, anchor: anchored ? { x, z } : null }
     this.floaters.push(floater)
     this.app.physics.beforeStep.push((dt, time) => this.step(floater, dt, time))
   }

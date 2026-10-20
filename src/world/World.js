@@ -117,6 +117,7 @@ export class World {
     this.fish = new Fish(this.app, this.models, this.splashes, this.islands)
     this.props = new Props(this.app, this.models, this.islands)
     this.seascape = new Seascape(this.app, this.models, this.props, this.zones)
+    this.props.instances.build()
     this.bottles = new Bottles(this.app, this.models, this.splashes)
 
     // Signs and boards are painted with the site fonts, so wait until they have loaded
@@ -154,6 +155,7 @@ export class World {
     this.smoke?.update(delta)
     this.updateVolcano(delta)
     this.seascape?.update()
+    this.props?.instances.update()
     this.ocean.update(focus)
     this.sky.update(focus, this.app.cameraRig.distance)
     this.zones.update()

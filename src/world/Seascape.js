@@ -3,6 +3,7 @@ import * as RAPIER from '@dimforge/rapier3d'
 import { createRandom } from '../utils/noise.js'
 import { waveHeight } from './waves.js'
 import { spawn } from './layout.js'
+import { instanceStatic } from './instancing.js'
 
 const rocks = ['rocks-a', 'rocks-b', 'rocks-c', 'rocks-sand-a', 'rocks-sand-b', 'rocks-sand-c']
 
@@ -40,6 +41,9 @@ export class Seascape {
     this.markers = []
     const { world } = app.physics
     const random = createRandom(2024)
+    const group = new THREE.Group()
+    app.scene.add(group)
+    const statics = []
 
     for (const [cx, cz] of rockClusters) {
       const count = 2 + Math.floor(random() * 3)
@@ -52,7 +56,8 @@ export class Seascape {
         rock.scale.multiplyScalar(scale)
         rock.position.set(x, y, z)
         rock.rotation.y = random() * Math.PI * 2
-        app.scene.add(rock)
+        group.add(rock)
+        statics.push(rock)
 
         const halfHeight = 1.8 * scale
         const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x, y + halfHeight, z))
@@ -67,11 +72,14 @@ export class Seascape {
     ship.scale.multiplyScalar(0.8)
     ship.position.set(wreck.x, -2.4, wreck.z)
     ship.rotation.set(0.12, wreck.yaw, 0.32)
-    app.scene.add(ship)
+    group.add(ship)
+    statics.push(ship)
     const shipBody = world.createRigidBody(
       RAPIER.RigidBodyDesc.fixed().setTranslation(wreck.x, -0.5, wreck.z).setRotation(new THREE.Quaternion().setFromEuler(ship.rotation))
     )
     world.createCollider(RAPIER.ColliderDesc.cuboid(1.8, 2.2, 4.2), shipBody)
+
+    instanceStatic(group, statics)
 
     for (const zone of zones.list) {
       const midX = (zone.x + spawn.x) / 2
