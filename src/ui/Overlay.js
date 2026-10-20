@@ -45,7 +45,17 @@ export class Overlay {
     this.promptButton.addEventListener('click', () => {
       if (this.activeSection) this.openSection(this.activeSection)
     })
-    this.panel.addEventListener('close', () => this.setSailing(true))
+    this.panel.addEventListener('close', () => {
+      this.app?.sounds.play('click', 0.4, 0.85)
+      this.setSailing(true)
+    })
+
+    this.soundToggle = document.querySelector('#sound-toggle')
+    this.soundToggle.addEventListener('click', () => {
+      const muted = !this.app.sounds.muted
+      this.app.sounds.setMuted(muted)
+      this.updateSoundToggle()
+    })
     this.panel.addEventListener('click', event => {
       if (event.target === this.panel) this.panel.close()
     })
@@ -68,10 +78,17 @@ export class Overlay {
         this.hud.hidden = false
         this.joystick.hidden = !this.app.viewport.isTouch
         onStart()
+        this.updateSoundToggle()
         setTimeout(() => this.hint.classList.add('is-faded'), 15000)
       },
       { once: true }
     )
+  }
+
+  updateSoundToggle() {
+    const on = !this.app.sounds.muted
+    this.soundToggle.textContent = on ? 'Sound on' : 'Sound off'
+    this.soundToggle.setAttribute('aria-pressed', String(on))
   }
 
   get isClassicOpen() {
@@ -89,6 +106,7 @@ export class Overlay {
     if (!section || this.panel.open) return
     this.panelBody.replaceChildren(renderSection(section, profile, 'panel'))
     this.panel.showModal()
+    this.app.sounds.play('click', 0.5)
     this.setSailing(false)
   }
 
@@ -105,6 +123,7 @@ export class Overlay {
     this.classic.classList.toggle('is-fallback', fallback)
     document.body.classList.add('is-classic')
     if (this.app) this.app.paused = true
+    this.app?.sounds?.setSuspended(true)
     this.setSailing(false)
   }
 
@@ -113,6 +132,7 @@ export class Overlay {
     document.body.classList.remove('is-classic')
     document.activeElement?.blur()
     if (this.app) this.app.paused = false
+    this.app?.sounds?.setSuspended(false)
     this.setSailing(true)
   }
 

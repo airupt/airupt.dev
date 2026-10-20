@@ -8,9 +8,6 @@ import { dedup, getBounds, mergeDocuments, prune, quantize, unpartition } from '
 // id → [kit folder, file name]
 const models = {
   boat: ['watercraft-kit', 'boat-speed-i'],
-  'boat-speed-a': ['watercraft-kit', 'boat-speed-a'],
-  'boat-speed-j': ['watercraft-kit', 'boat-speed-j'],
-  'boat-fishing': ['watercraft-kit', 'boat-fishing-small'],
   buoy: ['watercraft-kit', 'buoy'],
   'buoy-flag': ['watercraft-kit', 'buoy-flag'],
 

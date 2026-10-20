@@ -5,6 +5,7 @@ import { Viewport } from './Viewport.js'
 import { Inputs } from './Inputs.js'
 import { Physics } from './Physics.js'
 import { CameraRig } from './CameraRig.js'
+import { Sounds } from './Sounds.js'
 import { World } from '../world/World.js'
 
 // Owns the renderer and wires every system together. Systems receive this
@@ -35,6 +36,7 @@ export class Experience {
     this.physics = new Physics()
     this.cameraRig = new CameraRig(this)
     this.world = new World(this)
+    this.sounds = new Sounds(this)
 
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFShadowMap
@@ -42,18 +44,24 @@ export class Experience {
     this.resize()
     this.viewport.onResize(() => this.resize())
 
-    await this.world.load(progress => this.overlay.setProgress(0.2 + progress * 0.8))
+    await Promise.all([
+      this.world.load(progress => this.overlay.setProgress(0.2 + progress * 0.75)),
+      this.sounds.load(),
+    ])
+    this.overlay.setProgress(1)
 
     this.ticker.add(() => this.inputs.update(), 0)
     this.ticker.add(delta => this.physics.update(delta), 10)
     this.ticker.add(delta => this.world.update(delta), 20)
     this.ticker.add(delta => this.cameraRig.update(delta), 30)
+    this.ticker.add(delta => this.sounds.update(delta), 35)
     this.ticker.add(() => this.overlay.update(), 40)
     this.ticker.add(() => this.render(), 100)
     this.ticker.start()
 
     this.overlay.ready(() => {
       this.inputs.enabled = true
+      this.sounds.start()
       this.cameraRig.zoomTo(this.cameraRig.limits.start)
     })
   }

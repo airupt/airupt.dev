@@ -7,6 +7,8 @@
     <meta name="description" content="Developer portfolio. Sail a little boat between islands to explore projects, skills and more." />
     <meta name="theme-color" content="#0d3558" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/figtree.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <canvas id="scene" aria-hidden="true"></canvas>
@@ -30,6 +32,7 @@
         <button class="button button-primary" id="prompt-button"></button>
       </div>
       <div class="hud-corner">
+        <button class="button" id="sound-toggle" aria-pressed="true">Sound on</button>
         <button class="button" data-open-classic>Classic view</button>
       </div>
       <div class="joystick" id="joystick" hidden><div class="joystick-knob"></div></div>

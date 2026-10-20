@@ -1,3 +1,17 @@
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('/fonts/bricolage-grotesque.woff2') format('woff2');
+  font-weight: 500 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Figtree';
+  src: url('/fonts/figtree.woff2') format('woff2');
+  font-weight: 300 900;
+  font-display: swap;
+}
+
 :root {
   --ink: #0d2b45;
   --ink-soft: #3d5a73;
@@ -8,8 +22,8 @@
   --mist: #eef7fd;
   --radius: 10px;
   --lift: 0 4px 0 var(--ink);
-  --font-display: ui-rounded, 'Avenir Next', system-ui, sans-serif;
-  --font-text: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-text: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 *,
@@ -229,6 +243,8 @@ body {
   position: absolute;
   top: max(1rem, env(safe-area-inset-top));
   right: 1rem;
+  display: flex;
+  gap: 0.6rem;
 }
 
 .joystick {
