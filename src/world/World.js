@@ -24,6 +24,7 @@ import { Smoke } from './Smoke.js'
 import { Seascape } from './Seascape.js'
 import { RockField } from './Rocks.js'
 import { bakeContactShadows } from './ContactShadows.js'
+import { Reactions } from './Reactions.js'
 import { ProjectBoards } from './ProjectBoards.js'
 import { profile, sections } from '../content/portfolio.js'
 
@@ -75,6 +76,16 @@ export class World {
   updateVolcano(delta) {
     if (!this.smoke || !this.app.overlay.started) return
     this.eruptionTimer = (this.eruptionTimer ?? 12) - delta
+
+    // Coming in to Mount Airupt's landing wakes it up
+    const landing = this.islands.list.find(island => island.landing)
+    if (landing) {
+      const boat = this.boat.object.position
+      const near = Math.hypot(boat.x - landing.shore.x, boat.z - landing.shore.z) < 10
+      if (near && !this.atLanding && this.eruptionTimer < 30) this.eruptionTimer = 0
+      this.atLanding = near
+    }
+
     if (this.eruptionTimer > 0) return
     this.eruptionTimer = 35 + Math.random() * 20
 
@@ -149,6 +160,8 @@ export class World {
         }))
     )
 
+    this.reactions = new Reactions(this.app, this)
+
     // Now everything stands where it will stay: darken the ground under it
     this.islands.uniforms.uContactMap.value = bakeContactShadows([
       ...this.decor.contacts,
@@ -178,6 +191,7 @@ export class World {
     this.updateVolcano(delta)
     this.projectBoards?.update(delta)
     this.signs?.update(delta)
+    this.reactions?.update(delta)
     this.props?.instances.update()
     this.ocean.update(focus)
     this.sky.update(focus, this.app.cameraRig.distance)

@@ -94,6 +94,29 @@ export class Sounds {
     source.start()
   }
 
+  // A small brass bell, made on the spot: a few inharmonic partials that
+  // ring out and fade. Panned and faded like play() when given a position.
+  bell(volume = 0.25, position = null) {
+    if (this.context.state !== 'running') return
+    if (position) {
+      const rig = this.app.cameraRig
+      volume *= Math.max(0, 1 - Math.hypot(position.x - rig.focus.x, position.z - rig.focus.z) / 70)
+      if (volume < 0.01) return
+    }
+    const now = this.context.currentTime
+    for (const [ratio, level, decay] of [[1, 1, 2.2], [2.76, 0.45, 1.2], [5.4, 0.25, 0.6], [8.9, 0.12, 0.35]]) {
+      const oscillator = this.context.createOscillator()
+      oscillator.frequency.value = 660 * ratio
+      const gain = this.context.createGain()
+      gain.gain.setValueAtTime(0, now)
+      gain.gain.linearRampToValueAtTime(volume * level, now + 0.005)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + decay)
+      oscillator.connect(gain).connect(this.master)
+      oscillator.start(now)
+      oscillator.stop(now + decay + 0.05)
+    }
+  }
+
   setSuspended(suspended) {
     if (!this.started) return
     if (suspended) this.context.suspend()

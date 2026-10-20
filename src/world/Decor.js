@@ -114,7 +114,7 @@ export class Decor {
 
     foliage.build()
     // Models other systems attach things to (lights, smoke) stay separate
-    const keep = new Set(['lantern', 'lighthouse', 'campfire'])
+    const keep = new Set(['lantern', 'lighthouse', 'campfire', 'mailbox', 'lookout', 'signpost-hub'])
     instanceStatic(this.group, this.placed.filter(({ id }) => !keep.has(id)).map(({ model }) => model))
   }
 
@@ -232,7 +232,7 @@ export class Decor {
   createHub(island) {
     const arrows = this.islands.list
       .filter(other => other.section)
-      .map(other => [Math.atan2(-(other.z - island.z), other.x - island.x), other.color, sections.find(section => section.id === other.section)?.title ?? other.section])
+      .map(other => [Math.atan2(-(other.z - island.z), other.x - island.x), other.color, sections.find(section => section.id === other.section)?.title ?? other.section, other.section])
     return createSignpostHub(arrows)
   }
 

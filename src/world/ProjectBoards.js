@@ -81,27 +81,35 @@ export class ProjectBoards {
 
     const color = island.color
     const frameMaterial = createStylizedMaterial({ color: '#7a4f33', flatShading: true }, { waterLine: false })
-    const frames = []
-    const posts = []
-    const placement = new THREE.Object3D()
+    const frameGeometry = new THREE.BoxGeometry(BOARD.width + 0.3, BOARD.height + 0.3, 0.14)
+    // One stout post each: the board turns on top of it (see update())
+    const postGeometry = new THREE.CylinderGeometry(0.14, 0.17, 2.3, 8)
+    postGeometry.translate(0, 0.55, 0)
     projects.slice(0, 3).forEach((project, index) => {
-      // A gentle arc at the back of the market square (see IslandScenes.js)
+      // A gentle arc at the back of the square (see IslandScenes.js)
       const spot = island.plan.boards[index]
       if (!spot) return
       const { x, z, rotation } = spot
       const surface = islands.surfaceAt(island, x, z)
       if (!surface) return
 
-      placement.position.set(x, surface.y, z)
-      placement.rotation.set(0, rotation, 0)
-      placement.updateMatrix()
+      const post = new THREE.Mesh(postGeometry, frameMaterial)
+      post.position.set(x, surface.y, z)
+      post.castShadow = true
+      post.receiveShadow = true
+      app.scene.add(post)
+      this.contacts.push({ x, z, radius: 0.4 })
 
-      frames.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 2.6, -0.08)))
-      for (const side of [-1, 1]) {
-        posts.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(side * BOARD.width * 0.42, 1, -0.12)))
-        const foot = new THREE.Vector3(side * BOARD.width * 0.42, 0, -0.12).applyMatrix4(placement.matrix)
-        this.contacts.push({ x: foot.x, z: foot.z, radius: 0.32 })
-      }
+      const pivot = new THREE.Group()
+      pivot.position.set(x, surface.y + 2.6, z)
+      pivot.rotation.y = rotation
+      app.scene.add(pivot)
+
+      const frame = new THREE.Mesh(frameGeometry, frameMaterial)
+      frame.position.z = -0.08
+      frame.castShadow = true
+      frame.receiveShadow = true
+      pivot.add(frame)
 
       const canvas = document.createElement('canvas')
       canvas.width = TEXTURE.width
@@ -140,25 +148,11 @@ export class ProjectBoards {
           }
         )
       )
-      face.applyMatrix4(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 2.6, 0.02)))
+      face.position.z = 0.02
       face.receiveShadow = true
-      app.scene.add(face)
-      this.boards.push({ highlight, face, rest: face.position.clone(), normal: new THREE.Vector3(0, 0, 1).applyQuaternion(face.quaternion), position: new THREE.Vector3(x, surface.y + 2.6, z) })
+      pivot.add(face)
+      this.boards.push({ highlight, face, pivot, rest: rotation, turn: 0, position: new THREE.Vector3(x, surface.y + 2.6, z) })
     })
-
-    for (const [geometry, matrices] of [
-      [new THREE.BoxGeometry(BOARD.width + 0.3, BOARD.height + 0.3, 0.14), frames],
-      // Posts reach 0.6 m into the ground
-      [new THREE.BoxGeometry(0.2, 3.2, 0.2), posts],
-    ]) {
-      if (!matrices.length) continue
-      const mesh = new THREE.InstancedMesh(geometry, frameMaterial, matrices.length)
-      matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix))
-      mesh.castShadow = true
-      mesh.receiveShadow = true
-      mesh.computeBoundingSphere()
-      app.scene.add(mesh)
-    }
   }
 
   // Called by the panel: which project card is under the pointer (or null).
@@ -172,15 +166,24 @@ export class ProjectBoards {
   }
 
   // The hovered board brightens and steps forward off its frame; the others
-  // dim, so it's obvious which one the card belongs to
+  // dim, so it's obvious which one the card belongs to. As the boat passes
+  // close by, each board turns on its post to face it, as if to show itself.
   update(delta) {
     const anyActive = this.active !== null && this.active !== undefined
-    this.boards.forEach(({ highlight, face, rest, normal }, index) => {
+    const boat = this.app.world.boat.object.position
+    this.boards.forEach(({ highlight, face, pivot, rest, position }, index) => {
       const target = index === this.active ? 1 : anyActive ? -1 : 0
       highlight.value += (target - highlight.value) * (1 - Math.exp(-8 * delta))
       const lift = Math.max(highlight.value, 0)
-      face.position.copy(rest).addScaledVector(normal, lift * 0.12)
+      face.position.z = 0.02 + lift * 0.12
       face.scale.setScalar(1 + lift * 0.05)
+
+      const board = this.boards[index]
+      const distance = Math.hypot(boat.x - position.x, boat.z - position.z)
+      const toBoat = Math.atan2(boat.x - position.x, boat.z - position.z) - rest
+      const wanted = distance < 32 && !anyActive ? THREE.MathUtils.clamp(Math.atan2(Math.sin(toBoat), Math.cos(toBoat)), -0.5, 0.5) : 0
+      board.turn += (wanted - board.turn) * (1 - Math.exp(-2.5 * delta))
+      pivot.rotation.y = rest + board.turn
     })
   }
 }

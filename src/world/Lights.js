@@ -255,6 +255,16 @@ export class Lights {
     ]
   }
 
+  // The campfire roars up for a moment
+  flare() {
+    this.flareAmount = 1
+  }
+
+  // The lighthouse lamp flashes once
+  flash() {
+    this.flashAmount = 1
+  }
+
   update(delta, night) {
     this.time += delta
     const strength = THREE.MathUtils.smoothstep(night, 0.25, 0.85) * GLOW_STRENGTH
@@ -263,17 +273,21 @@ export class Lights {
     for (const glow of this.glows) glow.set(0.45 + strength)
     for (const glow of this.boatLights) glow.set(strength * 1.3)
     for (const pool of this.pools) pool.set((strength / GLOW_STRENGTH) * 0.55)
+    this.flareAmount = Math.max(0, (this.flareAmount ?? 0) - delta * 0.6)
+    this.flashAmount = Math.max(0, (this.flashAmount ?? 0) - delta * 1.5)
     for (const flame of this.flames) {
       // The campfire burns all day but only really shows in the dark
       const flicker = 0.75 + Math.sin(this.time * 13) * 0.12 + Math.sin(this.time * 31) * 0.1
-      flame.set((0.6 + strength) * flicker)
+      flame.set((0.6 + strength + this.flareAmount * 4) * flicker)
+      flame.mesh.scale.setScalar(1 + this.flareAmount * 0.8)
     }
     for (const { glow, phase } of this.blinkers) {
       const on = (this.time * 0.5 + phase) % 1 < 0.35 ? 1 : 0.08
       glow.set(Math.max(strength, 0.6) * on)
     }
 
-    this.lamp?.set(strength * 0.9)
+    // A flash of the lamp, day or night, when someone arrives
+    this.lamp?.set(strength * 0.9 + Math.sin(Math.min(this.flashAmount, 1) * Math.PI) * 4)
     this.lava?.update(this.time, strength / GLOW_STRENGTH)
     this.beam?.update(delta, strength / GLOW_STRENGTH)
   }

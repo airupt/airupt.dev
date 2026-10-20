@@ -46,6 +46,7 @@ export class Zones {
 
   // While a section is open the camera glides over to its island
   frame(id) {
+    this.app.world.reactions?.visit(id)
     const zone = this.list.find(candidate => candidate.section === id)
     if (!zone) return
     const rig = this.app.cameraRig
@@ -94,6 +95,7 @@ export class Zones {
       if (nearest) {
         this.app.sounds.play('chime', 0.45)
         this.app.world.signs?.pop(nearest.island)
+        this.app.world.reactions?.arrive(nearest.island)
       }
       this.active = nearest
       this.app.overlay.setPrompt(nearest?.section ?? null)

@@ -37,6 +37,10 @@ const box = (w, h, d) => new THREE.BoxGeometry(w, h, d)
 const cylinder = (top, bottom, h, sides = 8) => new THREE.CylinderGeometry(top, bottom, h, sides)
 
 let material = null
+let doubleSided = null
+// Thin flat pieces (pennants) are seen from both sides
+const pennantMaterial = () => (doubleSided ??= createStylizedMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide }, { waterLine: false, key: 'double' }))
+
 function mesh(parts) {
   material ??= createStylizedMaterial({ vertexColors: true, flatShading: true }, { waterLine: false })
   const object = new THREE.Mesh(mergeGeometries(parts), material)
@@ -109,7 +113,23 @@ export function createLookout() {
   parts.push(part(box(0.08, deck + 0.4, 0.08), wood, [-0.3, (deck + 0.4) / 2, half + 0.45], [0.12, 0, 0]))
   parts.push(part(box(0.08, deck + 0.4, 0.08), wood, [0.3, (deck + 0.4) / 2, half + 0.45], [0.12, 0, 0]))
   for (let y = 0.4; y < deck; y += 0.4) parts.push(part(box(0.6, 0.06, 0.08), wood, [0, y, half + 0.65 - y * 0.12]))
-  return mesh(parts)
+  // A cross beam under the roof for the bell to hang from
+  parts.push(part(box(half * 2 + 0.2, 0.1, 0.1), darkWood, [0, deck + 1.32, 0]))
+
+  const group = new THREE.Group()
+  group.add(mesh(parts))
+  // The bell swings from its pivot when someone arrives (see Reactions.js)
+  const bell = new THREE.Group()
+  bell.position.set(0, deck + 1.27, 0)
+  bell.add(mesh([
+    part(cylinder(0.03, 0.03, 0.12, 6), iron, [0, -0.06, 0]),
+    part(new THREE.CylinderGeometry(0.16, 0.3, 0.42, 10, 1, true), '#d8a33a', [0, -0.33, 0]),
+    part(cylinder(0.16, 0.16, 0.04, 10), '#d8a33a', [0, -0.13, 0]),
+    part(new THREE.SphereGeometry(0.06, 6, 4), iron, [0, -0.52, 0]),
+  ]))
+  group.add(bell)
+  group.userData.bell = bell
+  return group
 }
 
 // An A-frame canvas tent with a darker opening at the front
@@ -228,8 +248,43 @@ export function createSignpostHub(arrows) {
     }
   })
 
+  // A garland strung from the post to a short pole: a pennant for every
+  // section you've opened appears on it (see Reactions.js)
+  const pole = new THREE.Vector3(-2.3, 0, 0.9)
+  parts.push(part(box(0.12, 2.5, 0.12), darkWood, [pole.x, 1.25, pole.z]))
+  const from = new THREE.Vector3(0, 3.1, 0)
+  const to = new THREE.Vector3(pole.x, 2.4, pole.z)
+  const sag = t => from.clone().lerp(to, t).add(new THREE.Vector3(0, -Math.sin(Math.PI * t) * 0.45, 0))
+  for (let i = 0; i < 6; i++) {
+    const a = sag(i / 6)
+    const b = sag((i + 1) / 6)
+    const rope = new THREE.CylinderGeometry(0.015, 0.015, a.distanceTo(b), 4)
+    rope.translate(0, a.distanceTo(b) / 2, 0)
+    rope.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()))
+    rope.translate(a.x, a.y, a.z)
+    parts.push(part(rope, '#3a2a24'))
+  }
+  const pennants = {}
+  const pennantShape = new THREE.Shape()
+  pennantShape.moveTo(-0.16, 0)
+  pennantShape.lineTo(0.16, 0)
+  pennantShape.lineTo(0, -0.4)
+  pennantShape.closePath()
+
   const group = new THREE.Group()
   group.add(mesh(parts))
+  arrows.forEach(([, hex, , id], index) => {
+    const spot = sag((index + 1) / (arrows.length + 1))
+    const pennant = mesh([part(new THREE.ShapeGeometry(pennantShape), hex)])
+    pennant.material = pennantMaterial()
+    pennant.position.copy(spot)
+    // Flat along the rope, hanging down from it
+    pennant.rotation.y = Math.atan2(-(to.z - from.z), to.x - from.x)
+    pennant.visible = false
+    group.add(pennant)
+    pennants[id] = pennant
+  })
+  group.userData.pennants = pennants
   const lettering = new THREE.Mesh(
     mergeGeometries(labels),
     createStylizedMaterial({ map: texture, transparent: true, alphaTest: 0.5 }, { waterLine: false, key: 'hub-labels' })
@@ -241,13 +296,21 @@ export function createSignpostHub(arrows) {
 // A post box for the Contact island
 export function createMailbox() {
   const top = new THREE.CylinderGeometry(0.22, 0.22, 0.5, 10, 1, false, 0, Math.PI)
-  return mesh([
+  const group = new THREE.Group()
+  group.add(mesh([
     part(box(0.1, 1.05, 0.1), darkWood, [0, 0.52, 0]),
     part(box(0.44, 0.26, 0.5), red, [0, 1.16, 0]),
     // Half a cylinder lying front to back makes the rounded lid
     part(top, red, [0, 1.29, 0], [Math.PI / 2, 0, Math.PI / 2, 'ZXY']),
-    part(box(0.06, 0.24, 0.04), '#f5c542', [0.24, 1.38, 0.1]),
-  ])
+  ]))
+  // The flag lies flat until there's post, then swings up (see Reactions.js)
+  const flag = new THREE.Group()
+  flag.position.set(0.25, 1.12, 0.12)
+  flag.rotation.x = Math.PI / 2
+  flag.add(mesh([part(box(0.03, 0.32, 0.03), iron, [0, 0.16, 0]), part(box(0.03, 0.12, 0.16), '#f5c542', [0, 0.28, -0.08])]))
+  group.add(flag)
+  group.userData.flag = flag
+  return group
 }
 
 // A bench to look out over the sea from
