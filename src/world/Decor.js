@@ -88,7 +88,7 @@ export class Decor {
     for (const island of islands.list) {
       const random = createRandom(island.seed * 7919)
       const occupied = []
-      if (island.section || island.id === 'home') this.placeDock(island, occupied)
+      if (island.section || island.id === 'home' || island.landing) this.placeDock(island, occupied)
       if (island.plan) this.placeScene(island, occupied)
       // Nothing grows on the footpaths, and trees keep a little back from
       // them so their crowns don't hang over the trail

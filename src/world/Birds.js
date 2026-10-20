@@ -57,7 +57,7 @@ export class Birds {
     // A gull on each of the two posts at the end of every dock
     this.perched = []
     for (const island of islands.list) {
-      if (!island.section && island.label !== 'name') continue
+      if (!island.section && island.label !== 'name' && !island.landing) continue
       const reach = DOCK_LENGTH - DOCK_INLAND - 0.12
       for (const side of [-1, 1].map(direction => direction * (DOCK_WIDTH / 2 + 0.03))) {
         this.perched.push({

@@ -9,7 +9,7 @@ const PICKUP_DISTANCE = 2.2
 // means exploring the whole map
 const spots = [
   [22, 22],
-  [-20, -30],
+  [-38, -33], // by the landing on Mount Airupt
   [-64, 22], // under the rock arch
   [28, -72],
   [72, 2],

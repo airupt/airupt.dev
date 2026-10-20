@@ -141,11 +141,11 @@ export class World {
       this.app,
       this.islands,
       this.islands.list
-        .filter(island => island.section || island.label === 'name')
+        .filter(island => island.section || island.label === 'name' || island.landing)
         .map(island => ({
           island,
-          text: island.label === 'name' ? profile.name : sections.find(section => section.id === island.section).title,
-          color: island.color ?? '#ff6b4a',
+          text: island.label === 'name' ? profile.name : island.section ? sections.find(section => section.id === island.section).title : island.label,
+          color: island.color ?? (island.volcano ? '#ff8a3d' : '#ff6b4a'),
         }))
     )
 

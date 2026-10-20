@@ -65,7 +65,7 @@ export function islandHeight(island, x, z) {
 // inland, half width across]. Found once and kept on the island.
 function yardOf(island) {
   if (island.yardShape !== undefined) return island.yardShape
-  if (!island.section && island.label !== 'name') return (island.yardShape = null)
+  if (!island.section && island.label !== 'name' && !island.landing) return (island.yardShape = null)
   const out = facingDirection(island)
   let shore = 0
   for (let distance = 0; distance < island.radius * 1.3; distance += 0.25) {
