@@ -1,8 +1,12 @@
 import { profile, sections } from '../content/portfolio.js'
+import { islands } from '../world/layout.js'
 import { renderSection, renderClassic } from './render.js'
 
+// Each section takes the colour of its island's buoy
+const sectionColors = Object.fromEntries(islands.filter(island => island.section).map(island => [island.section, island.color]))
+
 const hints = {
-  keyboard: 'WASD or arrow keys to sail · Shift to boost · E to explore · R to reset',
+  keyboard: 'WASD or arrow keys to sail · Shift to boost · E to explore · M for the map · R to reset',
   gamepad: 'Stick or triggers to sail · RB to boost · A to explore',
   touch: 'Drag the joystick to sail',
 }
@@ -37,7 +41,7 @@ export class Overlay {
     }
     document.title = `${profile.name} · ${profile.role}`
 
-    this.classic.append(renderClassic(profile, sections, () => this.hideClassic()))
+    this.classic.append(renderClassic(profile, sections, sectionColors, () => this.hideClassic()))
     for (const button of document.querySelectorAll('[data-open-classic]')) {
       button.addEventListener('click', () => this.showClassic())
     }
@@ -129,14 +133,15 @@ export class Overlay {
 
   setSailing(enabled) {
     if (!this.app?.inputs) return
-    this.app.inputs.enabled = enabled && this.started && this.classic.hidden && !this.panel.open
+    this.app.inputs.enabled = enabled && this.started && this.classic.hidden && !document.querySelector('dialog[open]')
   }
 
   openSection(id) {
     const section = sections.find(candidate => candidate.id === id)
     // Enter on the prompt button fires both the interact key and a click
     if (!section || this.panel.open) return
-    this.panelBody.replaceChildren(renderSection(section, profile, 'panel'))
+    this.panelBody.replaceChildren(renderSection(section, profile, 'panel', sectionColors[id]))
+    this.panel.style.setProperty('--section-color', sectionColors[id] ?? 'var(--accent)')
     this.panel.showModal()
     this.app.sounds.play('click', 0.5)
     this.onSectionOpen?.(id)

@@ -37,6 +37,7 @@
         <button class="button button-primary" id="prompt-button"></button>
       </div>
       <div class="hud-corner">
+        <button class="button" id="open-map" aria-keyshortcuts="M">Map</button>
         <button class="button" id="sound-toggle" aria-pressed="true">Sound on</button>
         <button class="button" data-open-classic>Classic view</button>
       </div>
@@ -48,6 +49,17 @@
         <button class="button panel-close" aria-label="Close">Close</button>
       </form>
       <div class="panel-body"></div>
+    </dialog>
+
+    <dialog id="map" class="map" aria-labelledby="map-title">
+      <form method="dialog" class="map-header">
+        <h2 id="map-title">Where to?</h2>
+        <button class="button" aria-label="Close map">Close</button>
+      </form>
+      <div class="map-layout">
+        <div class="map-chart"></div>
+        <div class="map-list"></div>
+      </div>
     </dialog>
 
     <div id="classic" class="classic" hidden></div>

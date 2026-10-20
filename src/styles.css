@@ -245,6 +245,10 @@ body {
   transform: translateX(-50%);
 }
 
+body:has(dialog[open]) .hud-prompt {
+  visibility: hidden;
+}
+
 .hud-prompt .button {
   font-size: 1.05rem;
   white-space: nowrap;
@@ -345,37 +349,104 @@ body {
   }
 }
 
-/* Section panel */
+/* Section panel: slides in from the right so the island stays in view;
+   on narrow screens it becomes a sheet rising from the bottom */
 
 .panel {
-  width: min(640px, calc(100% - 2rem));
-  max-height: min(80vh, 760px);
+  --section-color: var(--accent);
+  position: fixed;
+  inset: 1rem 1rem 1rem auto;
+  margin: 0;
+  width: min(520px, calc(100% - 2rem));
+  height: auto;
+  max-height: none;
   padding: 0;
   border: 2px solid var(--ink);
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: 0 8px 0 var(--ink);
   background: var(--paper);
   color: var(--ink);
   overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.panel[open] {
+  animation: panel-in 0.45s cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+
+@keyframes panel-in {
+  from {
+    transform: translateX(110%);
+  }
 }
 
 .panel::backdrop {
-  background: rgb(13 43 69 / 0.35);
+  background: linear-gradient(90deg, rgb(13 43 69 / 0) 40%, rgb(13 43 69 / 0.3));
 }
 
 .panel-close-form {
   position: sticky;
   top: 0;
+  z-index: 1;
   display: flex;
   justify-content: flex-end;
   padding: 1rem 1rem 0;
+  pointer-events: none;
+}
+
+.panel-close-form .button {
+  pointer-events: auto;
 }
 
 .panel-body {
-  padding: 0 2rem 2rem;
+  padding: 0 1.75rem 2rem;
+}
+
+.panel .section h2 {
+  margin-top: -2.4rem;
+  padding-bottom: 0.9rem;
+  margin-bottom: 1.4rem;
+  border-bottom: 6px solid var(--section-color);
+  font-size: clamp(2rem, 5vw, 2.6rem);
+}
+
+@media (max-width: 720px) {
+  .panel {
+    inset: auto 0 0 0;
+    width: 100%;
+    max-height: 78vh;
+    border-radius: 18px 18px 0 0;
+    border-bottom: 0;
+  }
+
+  .panel[open] {
+    animation-name: sheet-in;
+  }
+
+  .panel::backdrop {
+    background: rgb(13 43 69 / 0.3);
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.button-small {
+  display: inline-block;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.85rem;
+  text-decoration: none;
+  box-shadow: 0 3px 0 var(--ink);
 }
 
 /* Section content, shared by panel and classic view */
+
+.section {
+  --section-color: var(--accent);
+}
 
 .section h2 {
   font: 800 2rem/1.1 var(--font-display);
@@ -392,9 +463,14 @@ body {
   margin: 0 0 1rem;
 }
 
-.section a {
+.section a:not(.button) {
   color: var(--sea);
   font-weight: 700;
+}
+
+.section .button-small {
+  color: var(--ink);
+  background: var(--section-color);
 }
 
 .projects {
@@ -402,13 +478,36 @@ body {
   padding: 0;
   margin: 0;
   display: grid;
-  gap: 1rem;
+  gap: 1.1rem;
 }
 
 .project {
   border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  padding: 1.1rem 1.2rem;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.project-visual {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-bottom: 2px solid var(--ink);
+}
+
+.project-visual-placeholder {
+  display: grid;
+  place-items: center;
+  font: 800 3rem/1 var(--font-display);
+  color: rgb(13 43 69 / 0.75);
+  background:
+    radial-gradient(circle at 25% 30%, rgb(255 255 255 / 0.45), transparent 45%),
+    linear-gradient(135deg, var(--section-color), #2fd6cf);
+}
+
+.project-body {
+  padding: 1rem 1.2rem 1.2rem;
 }
 
 .project-meta {
@@ -434,13 +533,127 @@ body {
   font-weight: 600;
 }
 
+.skill-group {
+  border-left: 4px solid var(--section-color);
+  padding-left: 0.9rem;
+}
+
 .skill-group + .skill-group {
-  margin-top: 1rem;
+  margin-top: 1.2rem;
 }
 
 .links {
   padding-left: 1.2rem;
   line-height: 1.9;
+}
+
+/* Map */
+
+.map {
+  width: min(760px, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  padding: 1.2rem 1.4rem 1.6rem;
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 0 8px 0 var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  overflow: auto;
+}
+
+.map[open] {
+  animation: map-in 0.35s cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+
+@keyframes map-in {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+}
+
+.map::backdrop {
+  background: rgb(13 43 69 / 0.35);
+}
+
+.map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.map-header h2 {
+  margin: 0;
+  font: 800 1.8rem/1 var(--font-display);
+}
+
+.map-layout {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 1.2rem;
+  align-items: center;
+}
+
+.map-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.map-sea {
+  fill: #1f86cc;
+}
+
+.map-edge {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.35);
+  stroke-width: 0.8;
+  stroke-dasharray: 3 3;
+}
+
+.map-sand {
+  fill: #efd69c;
+}
+
+.map-land {
+  fill: #6cbf4f;
+}
+
+.map-pin {
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.map-label {
+  font: 800 7px var(--font-display);
+  fill: #fff;
+  stroke: var(--ink);
+  stroke-width: 2px;
+  paint-order: stroke;
+  text-anchor: middle;
+}
+
+.map-boat {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 1;
+}
+
+.map-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.map-button {
+  text-align: left;
+  border-left: 10px solid var(--pin, var(--paper));
+}
+
+@media (max-width: 640px) {
+  .map-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Classic view */

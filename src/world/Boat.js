@@ -184,6 +184,16 @@ export class Boat {
     this.sync.reset()
   }
 
+  // Jump straight to a spot (map travel), hidden behind the same wipe as a respawn
+  teleport(x, z, yaw) {
+    this.onRespawn?.()
+    this.body.setTranslation({ x, y: 0.4, z }, true)
+    this.body.setRotation(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw), true)
+    this.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+    this.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
+    this.sync.reset()
+  }
+
   respawn() {
     this.onRespawn?.()
     this.body.setTranslation({ x: spawn.x, y: 0.4, z: spawn.z }, true)

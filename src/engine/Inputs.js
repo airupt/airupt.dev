@@ -10,6 +10,7 @@ const axes = {
 const actions = {
   interact: ['KeyE', 'Enter'],
   reset: ['KeyR'],
+  map: ['KeyM'],
 }
 
 const gamepadActions = { interact: 0, reset: 3 }

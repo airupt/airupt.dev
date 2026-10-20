@@ -9,6 +9,7 @@ import { Sounds } from './Sounds.js'
 import { PostProcessing } from './PostProcessing.js'
 import { World } from '../world/World.js'
 import { shared } from '../world/shading.js'
+import { MapView } from '../ui/MapView.js'
 
 // Owns the renderer and wires every system together. Systems receive this
 // object and read what they need from it instead of importing each other.
@@ -39,6 +40,7 @@ export class Experience {
     this.cameraRig = new CameraRig(this)
     this.world = new World(this)
     this.sounds = new Sounds(this)
+    this.map = new MapView(this)
 
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFShadowMap
@@ -56,6 +58,7 @@ export class Experience {
     this.ticker.add(delta => this.cameraRig.update(delta), 30)
     this.ticker.add(delta => this.sounds.update(delta), 35)
     this.ticker.add(() => this.overlay.update(), 40)
+    this.ticker.add(() => this.map.update(), 41)
     this.ticker.add(delta => this.render(delta), 100)
     this.ticker.start()
     requestAnimationFrame(() => this.overlay.showLiveScene())

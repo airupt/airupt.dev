@@ -38,8 +38,14 @@ export class Zones {
     if (!zone) return
     const rig = this.app.cameraRig
     this.returnDistance = rig.targetDistance
-    rig.override = new THREE.Vector3((zone.x + zone.island.x) / 2, 0, (zone.z + zone.island.z) / 2)
-    rig.zoomTo(rig.limits.min + 8)
+    const distance = rig.limits.min + 18
+    const target = new THREE.Vector3((zone.x + zone.island.x) / 2, 0, (zone.z + zone.island.z) / 2)
+    // Shift the view so the island sits beside the panel rather than under it:
+    // panel on the right on wide screens, a bottom sheet on narrow ones
+    if (this.app.viewport.width > 720) target.addScaledVector(rig.screenRight, distance * 0.2)
+    else target.addScaledVector(rig.screenUp, -distance * 0.22)
+    rig.override = target
+    rig.zoomTo(distance)
   }
 
   release() {

@@ -9,7 +9,22 @@ function element(tag, attributes = {}, children = []) {
   return node
 }
 
-const externalLink = (url, text) => element('a', { href: url, target: '_blank', rel: 'noopener', text })
+const externalLink = (url, text, className) =>
+  element('a', { href: url, target: '_blank', rel: 'noopener', text, ...(className && { class: className }) })
+
+// A project's screenshot, or a coloured tile with its initials until there is one
+function projectVisual(project) {
+  if (project.image) {
+    return element('img', { class: 'project-visual', src: project.image, alt: project.imageAlt ?? '', loading: 'lazy' })
+  }
+  const initials = project.title
+    .split(/\s+/)
+    .map(word => word[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+  return element('div', { class: 'project-visual project-visual-placeholder', 'aria-hidden': 'true', text: initials })
+}
 
 const renderers = {
   about: section => section.paragraphs.map(text => element('p', { text })),
@@ -20,11 +35,14 @@ const renderers = {
       { class: 'projects' },
       section.projects.map(project =>
         element('li', { class: 'project' }, [
-          element('h3', { text: project.title }),
-          element('p', { class: 'project-meta', text: [project.year, project.role].filter(Boolean).join(' · ') }),
-          element('p', { text: project.description }),
-          project.tags?.length && element('ul', { class: 'tags' }, project.tags.map(tag => element('li', { text: tag }))),
-          project.url && externalLink(project.url, project.linkLabel ?? 'View project'),
+          projectVisual(project),
+          element('div', { class: 'project-body' }, [
+            element('h3', { text: project.title }),
+            element('p', { class: 'project-meta', text: [project.year, project.role].filter(Boolean).join(' · ') }),
+            element('p', { text: project.description }),
+            project.tags?.length && element('ul', { class: 'tags' }, project.tags.map(tag => element('li', { text: tag }))),
+            project.url && externalLink(project.url, project.linkLabel ?? 'View project', 'button button-small'),
+          ]),
         ])
       )
     ),
@@ -47,15 +65,17 @@ const renderers = {
   ],
 }
 
-export function renderSection(section, profile, idPrefix) {
+export function renderSection(section, profile, idPrefix, color) {
   const headingId = `${idPrefix}-${section.id}`
-  return element('section', { class: `section section-${section.kind}`, 'aria-labelledby': headingId }, [
+  const node = element('section', { class: `section section-${section.kind}`, 'aria-labelledby': headingId }, [
     element('h2', { id: headingId, text: section.title }),
     ...renderers[section.kind](section, profile),
   ])
+  if (color) node.style.setProperty('--section-color', color)
+  return node
 }
 
-export function renderClassic(profile, sections, onBack) {
+export function renderClassic(profile, sections, colors, onBack) {
   const back = element('button', { class: 'button button-primary classic-back', text: 'Back to the sea' })
   back.addEventListener('click', onBack)
 
@@ -65,6 +85,6 @@ export function renderClassic(profile, sections, onBack) {
       element('p', { class: 'classic-role', text: `${profile.role}. ${profile.tagline}` }),
       back,
     ]),
-    element('main', {}, sections.map(section => renderSection(section, profile, 'classic'))),
+    element('main', {}, sections.map(section => renderSection(section, profile, 'classic', colors[section.id]))),
   ])
 }
