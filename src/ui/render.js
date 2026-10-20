@@ -75,12 +75,25 @@ export function renderSection(section, profile, idPrefix, color) {
   return node
 }
 
+// The airupt mark from the icon sprite in index.html, plus the wordmark
+function brand() {
+  const mark = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  mark.setAttribute('class', 'brand-mark')
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use')
+  use.setAttribute('href', '#icon-mark')
+  mark.append(use)
+  const node = element('p', { class: 'brand' }, [mark])
+  node.append('airupt')
+  return node
+}
+
 export function renderClassic(profile, sections, colors, onBack) {
   const back = element('button', { class: 'button button-primary classic-back', text: 'Back to the sea' })
   back.addEventListener('click', onBack)
 
   return element('div', { class: 'classic-inner' }, [
     element('header', { class: 'classic-header' }, [
+      brand(),
       element('h1', { text: profile.name }),
       element('p', { class: 'classic-role', text: `${profile.role}. ${profile.tagline}` }),
       back,

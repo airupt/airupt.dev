@@ -27,6 +27,8 @@ export class Ocean {
       uMid: { value: new THREE.Color('#2a9fcf') },
       uDeep: { value: new THREE.Color('#1d61a3') },
       uCrest: { value: new THREE.Color('#7ccdee') },
+      // Turned off when the map photographs the sea from straight above
+      uGlint: { value: 3 },
     }
 
     const material = createStylizedMaterial(
@@ -72,6 +74,7 @@ export class Ocean {
         uniform vec3 uMid;
         uniform vec3 uDeep;
         uniform vec3 uCrest;
+        uniform float uGlint;
         varying float vWave;
         varying vec2 vOceanPosition;
         ${waterMapGLSL}`
@@ -117,7 +120,7 @@ export class Ocean {
         // It goes above 1.0, so only these sparkles reach the bloom threshold.
         vec3 viewDirection = normalize(cameraPosition - vStylizedWorld);
         float glint = pow(max(dot(stylizedNormal, normalize(uSunDirection + viewDirection)), 0.0), 260.0);
-        stylizedColor += uLightColor * glint * 3.0 * (1.0 - shade) * smoothstep(0.2, 0.6, depth);`
+        stylizedColor += uLightColor * glint * uGlint * (1.0 - shade) * smoothstep(0.2, 0.6, depth);`
       )
   }
 

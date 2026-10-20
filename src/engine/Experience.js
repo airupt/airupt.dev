@@ -73,6 +73,7 @@ export class Experience {
 
     // Compile every shader now rather than the first time each thing comes into view
     await this.renderer.compileAsync(this.scene, this.cameraRig.camera)
+    this.map.capture()
     this.overlay.setProgress(1)
 
     this.overlay.ready(() => {

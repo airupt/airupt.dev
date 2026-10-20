@@ -5,11 +5,23 @@ import { renderSection, renderClassic } from './render.js'
 // Each section takes the colour of its island's buoy
 const sectionColors = Object.fromEntries(islands.filter(island => island.section).map(island => [island.section, island.color]))
 
-const hints = {
-  keyboard: 'WASD or arrow keys to sail · Shift to boost · E to explore · M for the map · R to reset',
-  gamepad: 'Stick or triggers to sail · RB to boost · A to explore',
-  touch: 'Drag the joystick to sail',
+// Controls legend per input device: [keys, label] groups shown as keycaps
+const controls = {
+  keyboard: [
+    [['W', 'A', 'S', 'D'], 'Sail'],
+    [['Shift'], 'Boost'],
+    [['E'], 'Explore'],
+    [['M'], 'Map'],
+  ],
+  gamepad: [
+    [['Stick'], 'Sail'],
+    [['RB'], 'Boost'],
+    [['A'], 'Explore'],
+  ],
+  touch: [[[], 'Drag the stick to sail, tap a prompt to explore']],
 }
+
+const interactKey = { keyboard: 'E', gamepad: 'A' }
 
 // All HTML on top of the canvas: loader, HUD, island labels, section panel
 // and the classic (no-3D) view. It runs before the 3D code has downloaded;
@@ -24,12 +36,14 @@ export class Overlay {
     this.labels = []
 
     this.loader = document.querySelector('#loader')
-    this.progress = this.loader.querySelector('.loader-bar')
+    this.progress = this.loader.querySelector('.loader-progress')
     this.startButton = document.querySelector('#start')
     this.hud = document.querySelector('#hud')
-    this.hint = document.querySelector('#hint')
+    this.controls = document.querySelector('#controls')
     this.prompt = document.querySelector('#prompt')
     this.promptButton = document.querySelector('#prompt-button')
+    this.promptKey = document.querySelector('#prompt-key')
+    this.promptText = document.querySelector('#prompt-text')
     this.joystick = document.querySelector('#joystick')
     this.panel = document.querySelector('#panel')
     this.panelBody = this.panel.querySelector('.panel-body')
@@ -75,7 +89,7 @@ export class Overlay {
   setBottleCount(count, total) {
     const counter = document.querySelector('#bottle-counter')
     counter.hidden = count === 0
-    counter.textContent = `Bottles ${count} / ${total}`
+    counter.querySelector('span').textContent = `${count} / ${total}`
   }
 
   // Message card that slides in at the bottom left and leaves on its own
@@ -105,6 +119,7 @@ export class Overlay {
   ready(onStart) {
     this.startButton.disabled = false
     this.startButton.textContent = 'Set sail'
+    this.loader.classList.add('is-ready')
     this.startButton.addEventListener(
       'click',
       () => {
@@ -115,7 +130,8 @@ export class Overlay {
         this.joystick.hidden = !this.app.viewport.isTouch
         onStart()
         this.updateSoundToggle()
-        setTimeout(() => this.hint.classList.add('is-faded'), 15000)
+        // The legend leaves once the visitor has had time to read it and get moving
+        setTimeout(() => this.controls.classList.add('is-faded'), 9000)
       },
       { once: true }
     )
@@ -123,8 +139,8 @@ export class Overlay {
 
   updateSoundToggle() {
     const on = !this.app.sounds.muted
-    this.soundToggle.textContent = on ? 'Sound on' : 'Sound off'
     this.soundToggle.setAttribute('aria-pressed', String(on))
+    this.soundToggle.dataset.tooltip = on ? 'Sound on' : 'Sound off'
   }
 
   get isClassicOpen() {
@@ -153,7 +169,11 @@ export class Overlay {
     this.prompt.hidden = !id
     if (!id) return
     const title = sections.find(section => section.id === id)?.title ?? id
-    this.promptButton.textContent = this.device === 'keyboard' ? `Press E · Explore ${title}` : `Explore ${title}`
+    const key = interactKey[this.device]
+    this.promptKey.hidden = !key
+    this.promptKey.textContent = key ?? ''
+    this.promptText.textContent = `Explore ${title}`
+    this.prompt.style.setProperty('--prompt-color', sectionColors[id] ?? 'var(--accent)')
   }
 
   showClassic({ fallback = false } = {}) {
@@ -174,6 +194,24 @@ export class Overlay {
     this.setSailing(true)
   }
 
+  renderControls(device) {
+    const groups = (controls[device] ?? controls.keyboard).map(([keys, label]) => {
+      const group = document.createElement('span')
+      group.className = 'controls-group'
+      for (const key of keys) {
+        const cap = document.createElement('kbd')
+        cap.className = 'key'
+        cap.textContent = key
+        group.append(cap)
+      }
+      const text = document.createElement('span')
+      text.textContent = label
+      group.append(text)
+      return group
+    })
+    this.controls.replaceChildren(...groups)
+  }
+
   addLabel(text, position, variant, color) {
     const element = document.createElement('div')
     element.className = `label label-${variant}`
@@ -187,7 +225,7 @@ export class Overlay {
     const device = this.app.inputs.lastDevice
     if (device !== this.device) {
       this.device = device
-      this.hint.textContent = hints[device]
+      this.renderControls(device)
       this.setPrompt(this.activeSection)
     }
 
