@@ -92,7 +92,9 @@ export class CameraRig {
     }
     desired.y = 0
 
-    this.focus.lerp(desired, 1 - Math.exp(-3 * delta))
+    // The camera trails a little further behind under boost, which sells the speed
+    const boosting = this.app.inputs.state.boost && Math.abs(boat.speed) > 10
+    this.focus.lerp(desired, 1 - Math.exp(-(boosting ? 2.2 : 3) * delta))
     this.distance += (this.targetDistance - this.distance) * (1 - Math.exp(-1.6 * delta))
 
     this.camera.position.copy(this.focus).addScaledVector(this.direction, this.distance)
@@ -107,8 +109,7 @@ export class CameraRig {
     }
 
     // Boosting at speed widens the view slightly, which reads as acceleration
-    const boosting = this.app.inputs.state.boost && Math.abs(boat.speed) > 10
-    this.fovBoost += ((boosting ? 3 : 0) - this.fovBoost) * (1 - Math.exp(-3 * delta))
+    this.fovBoost += ((boosting ? 5 : 0) - this.fovBoost) * (1 - Math.exp(-3 * delta))
     const fov = this.baseFov + this.fovBoost
     if (Math.abs(this.camera.fov - fov) > 0.01) {
       this.camera.fov = fov
