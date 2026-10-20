@@ -164,7 +164,7 @@ export class Decor {
       Math.round(island.radius * 0.45),
       0.15,
       0.75,
-      surface => surface.y > 0.4 && surface.normalY > 0.8,
+      surface => surface.y > 0.4 && surface.normalY > 0.8 && !(island.volcano && surface.y > 5),
       (x, y, z) => this.add(palms[Math.floor(random() * palms.length)], x, y - 0.1, z, random() * Math.PI * 2, 0.75 + random() * 0.4)
     )
 
@@ -181,7 +181,8 @@ export class Decor {
     )
 
     const pick = list => list[Math.floor(random() * list.length)]
-    const onGrass = surface => surface.y > 0.6 && surface.normalY > 0.75
+    // Nothing grows on the volcano's ash cone
+    const onGrass = surface => surface.y > 0.6 && surface.normalY > 0.75 && !(island.volcano && surface.y > 5)
 
     tryPlace(Math.round(island.radius * 0.15), 0.1, 0.6, onGrass, (x, y, z) => {
       this.foliage.addTree(new THREE.Vector3(x, y - 0.1, z), 2.2 + random() * 1.2, 1.3 + random() * 0.6, pick(treeColors), random)

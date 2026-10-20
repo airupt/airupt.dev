@@ -10,9 +10,9 @@ const size = new THREE.Vector3()
 
 // Jump ramps in open water; each rises along `direction`
 const ramps = [
-  { x: 25, z: -1, width: 5, direction: [-0.6, -0.8] },
-  { x: -20, z: -12, width: 3.5, direction: [0.7, -0.7] },
-  { x: 10, z: 26, width: 3.5, direction: [0.95, 0.3] },
+  { x: 27, z: -4, width: 5, direction: [-0.6, -0.8] },
+  { x: -24, z: 31, width: 3.5, direction: [0.7, -0.7] },
+  { x: 30, z: 40, width: 3.5, direction: [0.95, 0.3] },
 ]
 
 const RAMP = { length: 6, low: -0.7, high: 1.5, bottom: -1.6 }
@@ -58,11 +58,11 @@ function createRampGeometry(width) {
 
 // Clusters of floating cargo near the islands
 const flotsam = [
-  { x: 22, z: -30, count: 4 },
-  { x: -18, z: -32, count: 3 },
-  { x: -36, z: 0, count: 4 },
-  { x: 30, z: 30, count: 3 },
-  { x: 2, z: 10, count: 3 },
+  { x: 24, z: -32, count: 4 },
+  { x: -24, z: -6, count: 3 },
+  { x: -36, z: 40, count: 4 },
+  { x: 36, z: 12, count: 3 },
+  { x: 10, z: 32, count: 3 },
 ]
 
 // Floating crates and barrels the boat can shove around, and jump ramps
@@ -95,18 +95,20 @@ export class Props {
         const px = cluster.x + (random() - 0.5) * 8
         const pz = cluster.z + (random() - 0.5) * 8
         if (!isOpenWater(px, pz)) continue
-        this.addFloater(models, random() < 0.5 ? 'barrel' : 'crate', px, pz, random() * Math.PI * 2)
+        this.addFloater(models, random() < 0.6 ? 'barrel' : 'crate-bottles', px, pz, random() * Math.PI * 2)
       }
     }
   }
 
-  addFloater(models, id, x, z, yaw) {
+  // `hull` limits the floating box to the hull for tall models (masts, cabins);
+  // anchored floaters drift back to where they were placed
+  addFloater(models, id, x, z, yaw, { hull = null, anchored = false, density = 35 } = {}) {
     const { world } = this.app.physics
     const model = models.get(id)
     box.setFromObject(model).getSize(size)
-    const half = { x: size.x / 2, y: size.y / 2, z: size.z / 2 }
+    const half = { x: size.x / 2, y: (hull ?? size.y) / 2, z: size.z / 2 }
 
-    // The model stands on y = 0; centre it on the body
+    // The model stands on y = 0; put its base at the bottom of the body box
     const object = new THREE.Group()
     model.position.y = -half.y
     object.add(model)
@@ -123,7 +125,7 @@ export class Props {
       id === 'barrel'
         ? RAPIER.ColliderDesc.cylinder(half.y, Math.min(half.x, half.z))
         : RAPIER.ColliderDesc.cuboid(half.x, half.y, half.z)
-    world.createCollider(desc.setDensity(35).setRestitution(0.3), body)
+    world.createCollider(desc.setDensity(density).setRestitution(0.3), body)
 
     // Wide, low float points keep them upright but let them rock
     const points = [
@@ -134,13 +136,19 @@ export class Props {
     ].map(([sx, sz]) => new THREE.Vector3(sx * half.x * 1.3, -half.y * 0.4, sz * half.z * 1.3))
 
     this.app.physics.sync(body, object)
-    const floater = { body, points, restDepth: half.y * 0.7 }
+    const floater = { body, points, restDepth: half.y * 0.7, anchor: anchored ? { x, z } : null }
     this.floaters.push(floater)
     this.app.physics.beforeStep.push((dt, time) => this.step(floater, dt, time))
   }
 
-  step({ body, points, restDepth }, dt, time) {
+  step({ body, points, restDepth, anchor }, dt, time) {
     applyBuoyancy(body, points, dt, time, { restDepth, damping: 3 })
+
+    if (anchor) {
+      const translation = body.translation()
+      const pull = 0.6 * body.mass() * dt
+      body.applyImpulse({ x: (anchor.x - translation.x) * pull, y: 0, z: (anchor.z - translation.z) * pull }, true)
+    }
 
     const translation = body.translation()
     const distance = Math.hypot(translation.x, translation.z)

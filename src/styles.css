@@ -194,6 +194,11 @@ body {
   color: var(--ink);
 }
 
+.label-landmark {
+  color: var(--paper);
+  background: #4f4440;
+}
+
 .label-home {
   font-size: 1.35rem;
   background: var(--paper);
@@ -618,6 +623,10 @@ body:has(dialog[open]) .hud-prompt {
 
 .map-land {
   fill: #6cbf4f;
+}
+
+.map-crater {
+  fill: #4f4440;
 }
 
 .map-pin {

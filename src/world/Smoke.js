@@ -1,0 +1,84 @@
+import * as THREE from 'three'
+import { createStylizedMaterial, shared } from './shading.js'
+
+const matrix = new THREE.Matrix4()
+const rotation = new THREE.Quaternion()
+const euler = new THREE.Euler()
+const scale = new THREE.Vector3()
+const position = new THREE.Vector3()
+
+// Low-poly smoke: faceted puffs that rise, swell, drift with the wind and
+// shrink away. They are lit like everything else, so they pick up the
+// tinted shadows and the colours of the time of day.
+export class Smoke {
+  constructor(app) {
+    this.app = app
+    this.emitters = []
+    this.puffs = []
+    this.capacity = 0
+  }
+
+  // rate: puffs per second, size: start radius, height: how far they rise
+  addEmitter(origin, { rate, size, rise, life, color, spread = 0.4 }) {
+    this.emitters.push({ origin: origin.clone(), rate, size, rise, life, color: new THREE.Color(color), spread, budget: Math.random() })
+    this.capacity += Math.ceil(rate * life) + 2
+  }
+
+  build() {
+    const material = createStylizedMaterial({ color: '#ffffff', flatShading: true }, { waterLine: false, key: 'smoke' })
+    this.mesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), material, this.capacity)
+    this.mesh.count = 0
+    this.mesh.castShadow = true
+    this.mesh.frustumCulled = false
+    this.app.scene.add(this.mesh)
+
+    // Start with the plume already formed rather than growing from nothing
+    for (let t = 0; t < 8; t += 1 / 30) this.update(1 / 30)
+  }
+
+  update(delta) {
+    if (!this.mesh) return
+    const wind = shared.uWindDirection.value
+    const windStrength = shared.uWindStrength.value
+
+    for (const emitter of this.emitters) {
+      emitter.budget += emitter.rate * delta
+      while (emitter.budget >= 1) {
+        emitter.budget -= 1
+        this.puffs.push({
+          emitter,
+          position: emitter.origin.clone().add(new THREE.Vector3((Math.random() - 0.5) * emitter.spread, 0, (Math.random() - 0.5) * emitter.spread)),
+          spin: new THREE.Vector3(Math.random() * 6, Math.random() * 6, Math.random() * 6),
+          age: 0,
+          life: emitter.life * (0.8 + Math.random() * 0.4),
+        })
+      }
+    }
+
+    let count = 0
+    this.puffs = this.puffs.filter(puff => {
+      puff.age += delta
+      const t = puff.age / puff.life
+      if (t >= 1 || count >= this.capacity) return false
+      const { emitter } = puff
+
+      // Fast at first, slowing as it rises; the wind bends the column over
+      const rise = (emitter.rise / puff.life) * (1.3 - t) * delta
+      puff.position.y += rise
+      puff.position.x += wind.x * windStrength * 2.2 * delta * t
+      puff.position.z += wind.y * windStrength * 2.2 * delta * t
+
+      const size = emitter.size * (0.5 + t * 1.6) * Math.min(1, (1 - t) * 4)
+      euler.set(puff.spin.x + t, puff.spin.y + t * 0.5, puff.spin.z)
+      matrix.compose(position.copy(puff.position), rotation.setFromEuler(euler), scale.setScalar(size))
+      this.mesh.setMatrixAt(count, matrix)
+      this.mesh.setColorAt(count, emitter.color)
+      count++
+      return true
+    })
+
+    this.mesh.count = count
+    this.mesh.instanceMatrix.needsUpdate = true
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true
+  }
+}

@@ -27,17 +27,28 @@ export class MapView {
 
     for (const island of islands) {
       const group = svg('g', { transform: `translate(${island.x} ${island.z})` })
-      group.append(svg('circle', { r: island.radius * 0.95, class: 'map-sand' }))
-      group.append(svg('circle', { r: island.radius * 0.7, class: 'map-land' }))
+      // Draw the same blobs the island is built from: sand ring, then land
+      for (const [className, scale] of [
+        ['map-sand', 0.9],
+        ['map-land', 0.68],
+      ]) {
+        for (const [bx, bz, radius] of island.blobs) group.append(svg('circle', { cx: bx, cy: bz, r: radius * scale, class: className }))
+      }
+      if (island.volcano) group.append(svg('circle', { r: 3, class: 'map-crater' }))
       content.append(group)
 
-      const title = island.label === 'name' ? profile.name : sections.find(section => section.id === island.section)?.title
+      const title =
+        island.label === 'name'
+          ? profile.name
+          : (sections.find(section => section.id === island.section)?.title ?? island.label)
       if (!title) continue
 
       if (island.color) group.append(svg('circle', { r: 3.2, class: 'map-pin', fill: island.color }))
       const label = svg('text', { class: 'map-label', transform: `rotate(-45) translate(0 ${-island.radius - 4})` })
       label.textContent = title
       group.append(label)
+
+      if (!island.section && island.label !== 'name') continue
 
       // The visible buttons sit in a list beside the chart, which keeps them keyboard friendly
       const button = document.createElement('button')

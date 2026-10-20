@@ -10,6 +10,9 @@ const models = {
   boat: ['watercraft-kit', 'boat-speed-i'],
   buoy: ['watercraft-kit', 'buoy'],
   'buoy-flag': ['watercraft-kit', 'buoy-flag'],
+  sailboat: ['watercraft-kit', 'boat-sail-a'],
+  'fishing-boat': ['watercraft-kit', 'boat-fishing-small'],
+  houseboat: ['watercraft-kit', 'boat-house-a'],
 
   'palm-straight': ['pirate-kit', 'palm-straight'],
   'palm-bend': ['pirate-kit', 'palm-bend'],
@@ -34,6 +37,7 @@ const models = {
   'dock-small': ['pirate-kit', 'structure-platform-dock-small'],
   planks: ['pirate-kit', 'platform-planks'],
   tower: ['pirate-kit', 'tower-complete-small'],
+  wreck: ['pirate-kit', 'ship-wreck'],
 
   signpost: ['survival-kit', 'signpost'],
   'signpost-single': ['survival-kit', 'signpost-single'],

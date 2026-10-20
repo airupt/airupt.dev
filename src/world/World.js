@@ -20,6 +20,8 @@ import { ZoneRings } from './ZoneRings.js'
 import { Signs } from './Signs.js'
 import { Props } from './Props.js'
 import { Bottles } from './Bottles.js'
+import { Smoke } from './Smoke.js'
+import { Seascape } from './Seascape.js'
 import { profile, sections } from '../content/portfolio.js'
 
 export class World {
@@ -42,10 +44,14 @@ export class World {
     this.zoneRings = new ZoneRings(app, this.zones)
 
     for (const island of this.islands.list) {
-      const text = island.label === 'name' ? profile.name : sections.find(section => section.id === island.section)?.title
+      const text =
+        island.label === 'name'
+          ? profile.name
+          : (sections.find(section => section.id === island.section)?.title ?? island.label)
       if (!text) continue
       const anchor = new THREE.Vector3(island.x, island.top + 2.5, island.z)
-      app.overlay.addLabel(text, anchor, island.label === 'name' ? 'home' : 'section', island.color)
+      const variant = island.label === 'name' ? 'home' : island.section ? 'section' : 'landmark'
+      app.overlay.addLabel(text, anchor, variant, island.color)
     }
   }
 
@@ -53,9 +59,29 @@ export class World {
     await this.models.load('/models/world.glb', onProgress)
     this.decor = new Decor(this.app, this.islands, this.models, new Foliage(this.app))
     this.boat.setModel(this.models.get('boat'))
-    this.lights = new Lights(this.app, this.decor, this.zones, this.boat)
+    this.lights = new Lights(this.app, this.decor, this.zones, this.boat, this.islands)
+
+    this.smoke = new Smoke(this.app)
+    const volcano = this.islands.list.find(island => island.volcano)
+    if (volcano) {
+      const [bx, bz] = volcano.blobs[0]
+      this.smoke.addEmitter(new THREE.Vector3(volcano.x + bx, volcano.top - 1.5, volcano.z + bz), {
+        rate: 3,
+        size: 1.6,
+        rise: 22,
+        life: 9,
+        spread: 2,
+        color: '#ebe6e1',
+      })
+    }
+    for (const { id, model } of this.decor.placed) {
+      if (id !== 'campfire') continue
+      this.smoke.addEmitter(model.position.clone().add(new THREE.Vector3(0, 0.4, 0)), { rate: 2, size: 0.22, rise: 4, life: 3, color: '#d9d4cf' })
+    }
+    this.smoke.build()
     this.fish = new Fish(this.app, this.models, this.splashes, this.islands)
     this.props = new Props(this.app, this.models, this.islands)
+    this.seascape = new Seascape(this.app, this.models, this.props, this.zones)
     this.bottles = new Bottles(this.app, this.models, this.splashes)
 
     // Signs are painted with the display font, so wait until it has loaded
@@ -89,6 +115,8 @@ export class World {
     this.splashes.setNight(this.dayCycle.night)
     this.splashes.update(delta)
     this.birds.update(delta)
+    this.smoke?.update(delta)
+    this.seascape?.update()
     this.ocean.update(focus)
     this.sky.update(focus, this.app.cameraRig.distance)
     this.zones.update()

@@ -67,12 +67,20 @@ class Beam {
 
 // Everything that lights up when the sun goes down
 export class Lights {
-  constructor(app, decor, zones, boat) {
+  constructor(app, decor, zones, boat, islands) {
     this.app = app
     this.glows = []
     this.blinkers = []
     this.flames = []
     this.time = 0
+
+    // Lava in the volcano's crater: glows a little by day, brightly at night
+    const volcano = islands.list.find(island => island.volcano)
+    if (volcano) {
+      const [bx, bz] = volcano.blobs[0]
+      this.lava = new Glow(app.scene, new THREE.Vector3(volcano.x + bx, volcano.top - 3.6, volcano.z + bz), '#ff5a1a', 1.9)
+      this.lava.mesh.scale.y = 0.35
+    }
 
     for (const { id, model } of decor.placed) {
       if (id === 'lantern') {
@@ -117,6 +125,7 @@ export class Lights {
     }
 
     this.lamp?.set(strength * 0.9)
+    this.lava?.set((1.4 + strength * 0.5) * (0.9 + Math.sin(this.time * 2.3) * 0.1))
     this.beam?.update(delta, strength / GLOW_STRENGTH)
   }
 }

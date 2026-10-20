@@ -8,14 +8,14 @@ const PICKUP_DISTANCE = 2.2
 // Hidden around the archipelago, some behind islands so finding them all
 // means exploring the whole map
 const spots = [
-  [-8, 2],
-  [56, -30],
-  [-60, -40],
-  [22, 48],
-  [-34, 38],
-  [70, 8],
-  [-86, -8],
-  [6, -66],
+  [22, 22],
+  [-20, -30],
+  [-64, 18],
+  [28, -72],
+  [72, 2],
+  [-32, 74],
+  [-84, -18],
+  [40, 46],
 ]
 
 function readCollected() {

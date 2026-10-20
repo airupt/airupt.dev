@@ -10,54 +10,74 @@ const down = new THREE.Vector3(0, -1, 0)
 
 const palette = {
   wetSand: new THREE.Color('#c9ad72'),
-  sand: new THREE.Color('#efd69c'),
+  sand: new THREE.Color('#f0d9a0'),
+  drySand: new THREE.Color('#e6c98a'),
   grass: new THREE.Color('#7cc35b'),
   darkGrass: new THREE.Color('#5ea84a'),
   rock: new THREE.Color('#9b968b'),
+  darkRock: new THREE.Color('#857f74'),
+  ash: new THREE.Color('#6e6058'),
+  scorched: new THREE.Color('#4f4440'),
 }
 
 const CELL = 1.8
-
 const TERRACE_STEP = 1.1
 
-// Heightfield island: a noisy dome that sinks under the sea at its edges.
-// The side facing the start point slopes gently into a beach (where the dock
-// goes); the far side rises higher and drops off as a cliff. Some islands
-// are terraced, which turns their slopes into grassy steps with rock faces.
-function createTerrain({ x: centerX, z: centerZ, radius, height, seed }) {
-  const extent = radius * 1.4
+// Ground height at a point given relative to the island centre. Mesh vertices
+// and the baked sea map both come from here, so they always agree.
+//  - every blob is a dome; the island is the highest dome at each point
+//  - the side facing the start slopes gently into a beach, the far side rises
+//    into a cliff
+//  - terraced islands step their slopes; the volcano is a cone with a crater
+export function islandHeight(island, x, z) {
+  const towardX = spawn.x - island.x
+  const towardZ = spawn.z - island.z
+  const facing = (x * towardX + z * towardZ) / ((Math.hypot(towardX, towardZ) || 1) * (Math.hypot(x, z) || 1))
+  const beach = smoothstep(0.1, 0.9, facing)
+  const cliff = 1 - smoothstep(-0.8, -0.1, facing)
+
+  const noise = fbm(x * 0.11 + island.seed, z * 0.11, island.seed)
+  let elevation = 0
+  let nearest = Infinity
+
+  island.blobs.forEach(([bx, bz, radius, height], index) => {
+    const distance = Math.hypot(x - bx, z - bz) / radius + (noise - 0.5) * 0.3
+    nearest = Math.min(nearest, distance)
+    let dome
+    if (island.volcano && index === 0) {
+      // Concave flanks rising to a steep summit, like a real stratovolcano
+      dome = Math.pow(Math.max(0, 1 - distance), 1.4)
+      // The crater: a bowl sunk into the summit
+      dome -= 0.45 * (1 - smoothstep(0.08, 0.24, distance))
+    } else {
+      dome = Math.pow(Math.max(0, 1 - distance * distance), 1.2 + beach * 0.9 - cliff * 0.5)
+    }
+    elevation = Math.max(elevation, height * (1 + cliff * 0.3) * dome)
+  })
+
+  let y = elevation * (island.volcano ? 0.9 + noise * 0.2 : 0.6 + noise * 0.8)
+
+  if (island.terraces) {
+    const level = Math.floor(y / TERRACE_STEP) * TERRACE_STEP
+    const stepped = level + smoothstep(0.7, 1, (y - level) / TERRACE_STEP) * TERRACE_STEP
+    y += (stepped - y) * 0.85 * smoothstep(0.4, 1.2, y)
+  }
+
+  return y - 0.6 - 2.5 * smoothstep(0.75 + cliff * 0.12, 1.3 - cliff * 0.18, nearest)
+}
+
+function createTerrain(island) {
+  const extent = island.radius * 1.3
   const segments = Math.max(12, Math.round((extent * 2) / CELL))
   const geometry = new THREE.PlaneGeometry(extent * 2, extent * 2, segments, segments)
   geometry.rotateX(-Math.PI / 2)
 
-  const towardX = spawn.x - centerX
-  const towardZ = spawn.z - centerZ
-  const towardLength = Math.hypot(towardX, towardZ) || 1
-  const terraces = hash2(seed, 5, 9) > 0.45 ? 0.85 : 0
-
   const position = geometry.attributes.position
   for (let i = 0; i < position.count; i++) {
     // Jitter the grid so faces don't read as neat rows
-    const x = position.getX(i) + (hash2(i, 1, seed) - 0.5) * CELL * 0.45
-    const z = position.getZ(i) + (hash2(i, 2, seed) - 0.5) * CELL * 0.45
-
-    const facing = (x * towardX + z * towardZ) / (towardLength * (Math.hypot(x, z) || 1))
-    const beach = smoothstep(0.1, 0.9, facing)
-    const cliff = 1 - smoothstep(-0.8, -0.1, facing)
-
-    const noise = fbm(x * 0.11 + seed, z * 0.11, seed)
-    const distance = Math.hypot(x, z) / radius + (noise - 0.5) * 0.3
-    const dome = Math.pow(Math.max(0, 1 - distance * distance), 1.2 + beach * 0.9 - cliff * 0.5)
-    let y = height * (1 + cliff * 0.3) * dome * (0.6 + noise * 0.8)
-
-    if (terraces) {
-      const level = Math.floor(y / TERRACE_STEP) * TERRACE_STEP
-      const stepped = level + smoothstep(0.7, 1, (y - level) / TERRACE_STEP) * TERRACE_STEP
-      y += (stepped - y) * terraces * smoothstep(0.4, 1.2, y)
-    }
-
-    y -= 0.6 + 2.5 * smoothstep(0.75 + cliff * 0.12, 1.3 - cliff * 0.18, distance)
-    position.setXYZ(i, x, y, z)
+    const x = position.getX(i) + (hash2(i, 1, island.seed) - 0.5) * CELL * 0.45
+    const z = position.getZ(i) + (hash2(i, 2, island.seed) - 0.5) * CELL * 0.45
+    position.setXYZ(i, x, islandHeight(island, x, z), z)
   }
 
   return geometry
@@ -65,7 +85,7 @@ function createTerrain({ x: centerX, z: centerZ, radius, height, seed }) {
 
 // One flat colour per face, picked from height and slope. Grass faces are
 // collected (positions and colour) so blades can be grown on them later.
-function paint(geometry, seed, grass) {
+function paint(geometry, island, grass) {
   const position = geometry.attributes.position
   const colors = new Float32Array(position.count * 3)
   const a = new THREE.Vector3()
@@ -73,6 +93,7 @@ function paint(geometry, seed, grass) {
   const c = new THREE.Vector3()
   const normal = new THREE.Vector3()
   const color = new THREE.Color()
+  const { seed } = island
 
   for (let i = 0; i < position.count; i += 3) {
     a.fromBufferAttribute(position, i)
@@ -80,12 +101,15 @@ function paint(geometry, seed, grass) {
     c.fromBufferAttribute(position, i + 2)
     normal.subVectors(c, b).cross(a.clone().sub(b)).normalize()
     const height = (a.y + b.y + c.y) / 3
+    const variation = hash2(i, 3, seed)
 
-    const isGrass = height >= 0.5 && normal.y >= 0.75
+    const volcanic = island.volcano && height > 5.5
+    const isGrass = !volcanic && height >= 0.5 && normal.y >= 0.75
     if (height < -0.2) color.copy(palette.wetSand)
-    else if (height < 0.5) color.copy(palette.sand)
-    else if (!isGrass) color.copy(palette.rock)
-    else color.copy(palette.grass).lerp(palette.darkGrass, hash2(i, 3, seed))
+    else if (height < 0.5) color.copy(palette.sand).lerp(palette.drySand, variation)
+    else if (volcanic) color.copy(height > 11 ? palette.scorched : palette.ash).lerp(palette.darkRock, variation * 0.4)
+    else if (!isGrass) color.copy(palette.rock).lerp(palette.darkRock, variation)
+    else color.copy(palette.grass).lerp(palette.darkGrass, variation)
 
     color.multiplyScalar(0.96 + hash2(i, 4, seed) * 0.08)
     if (isGrass) grass.push({ a: a.clone(), b: b.clone(), c: c.clone(), color: color.clone() })
@@ -115,7 +139,7 @@ export class Islands {
 
     const geometry = terrain.toNonIndexed()
     const grass = []
-    paint(geometry, definition.seed, grass)
+    paint(geometry, definition, grass)
 
     const mesh = new THREE.Mesh(geometry, this.material)
     mesh.position.set(definition.x, 0, definition.z)

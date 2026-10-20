@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { waveHeightGLSL } from './waves.js'
 import { islands } from './layout.js'
 import { createStylizedMaterial } from './shading.js'
+import { bakeWaterMap, waterMapGLSL } from './WaterMap.js'
 
 const SIZE = 400
 const SEGMENTS = 160
@@ -9,7 +10,8 @@ const CELL = SIZE / SEGMENTS
 
 // A large faceted plane displaced by the shared wave function. It follows the
 // camera in whole-cell steps, so vertices always land on the same world grid
-// and the surface never appears to slide.
+// and the surface never appears to slide. Colour and foam come from the
+// baked sea map, so shallows and surf follow the real coastlines.
 export class Ocean {
   constructor(app) {
     this.app = app
@@ -18,14 +20,15 @@ export class Ocean {
     geometry.rotateX(-Math.PI / 2)
 
     this.uniforms = {
-      uDeep: { value: new THREE.Color('#0f5fa8') },
-      uCrest: { value: new THREE.Color('#7fdcff') },
-      uShallow: { value: new THREE.Color('#2fd6cf') },
-      uIslands: { value: islands.map(island => new THREE.Vector3(island.x, island.z, island.radius)) },
+      uWaterMap: { value: bakeWaterMap(islands) },
+      uShallow: { value: new THREE.Color('#86e6cf') },
+      uMid: { value: new THREE.Color('#21b6c8') },
+      uDeep: { value: new THREE.Color('#1270bb') },
+      uCrest: { value: new THREE.Color('#8adcff') },
     }
 
     const material = createStylizedMaterial(
-      { color: '#1b8fd6', flatShading: true },
+      { color: '#ffffff', flatShading: true },
       { waterLine: false, key: 'ocean', extend: shader => this.extend(shader) }
     )
 
@@ -58,39 +61,49 @@ export class Ocean {
       .replace(
         '#include <common>',
         `#include <common>
+        uniform vec3 uShallow;
+        uniform vec3 uMid;
         uniform vec3 uDeep;
         uniform vec3 uCrest;
-        uniform vec3 uShallow;
-        uniform vec3 uIslands[${islands.length}];
         varying float vWave;
-        varying vec2 vOceanPosition;`
+        varying vec2 vOceanPosition;
+        ${waterMapGLSL}`
       )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
-        // Broad patches of deeper and lighter water drifting slowly
-        float patches = texture2D(uNoise, vOceanPosition * 0.006 + uTime * 0.002).r;
-        diffuseColor.rgb = mix(uDeep, diffuseColor.rgb, smoothstep(0.25, 0.65, patches) * 0.55 + 0.45);
+        vec2 sea = sampleWaterMap(vOceanPosition);
+        float depth = sea.x;
+        float coast = sea.y;
 
-        // Troughs a little darker, crests a little lighter; facets come from flat shading
-        diffuseColor.rgb = mix(uDeep, diffuseColor.rgb, smoothstep(-0.55, 0.0, vWave) * 0.6 + 0.4);
-        diffuseColor.rgb = mix(diffuseColor.rgb, uCrest, smoothstep(0.3, 0.6, vWave) * 0.5);
+        // Sandy turquoise over the shallows, teal on the shelf, blue offshore
+        vec3 water = mix(uShallow, uMid, smoothstep(0.02, 0.4, depth));
+        water = mix(water, uDeep, smoothstep(0.35, 1.0, depth));
+        water *= 0.95 + texture2D(uNoise, vOceanPosition * 0.005 + uTime * 0.002).r * 0.1;
 
-        // Shallow water around every island, measured in island radii and
-        // wobbled by noise so the rings don't read as perfect circles
-        float nearest = 10.0;
-        for (int i = 0; i < ${islands.length}; i++) {
-          nearest = min(nearest, length(vOceanPosition - uIslands[i].xy) / uIslands[i].z);
-        }
-        nearest += (texture2D(uNoise, vOceanPosition * 0.03).r - 0.5) * 0.18;
-        float shore = 1.0 - smoothstep(0.9, 1.6, nearest);
-        diffuseColor.rgb = mix(diffuseColor.rgb, uShallow, shore * 0.85);
+        // Troughs a touch darker, crests lighter out in open water; facets come from flat shading
+        water = mix(water * 0.86, water, smoothstep(-0.55, 0.0, vWave));
+        water = mix(water, uCrest, smoothstep(0.3, 0.6, vWave) * 0.35 * smoothstep(0.3, 0.8, depth));
 
-        // Broken contour lines rolling in toward each beach
-        float ring = fract(nearest * 5.0 + uTime * 0.18);
-        float rings = smoothstep(0.88, 0.94, ring) * (1.0 - smoothstep(1.0, 1.45, nearest)) * step(0.97, nearest);
-        rings *= smoothstep(0.4, 0.6, texture2D(uNoise, vOceanPosition * 0.02 + uTime * 0.01).g);
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), rings * 0.6);`
+        // Surf: a frothy band hugging the shore, and broken lines that roll in
+        // toward it, following the real coastline
+        float breakup = texture2D(uNoise, vOceanPosition * 0.045 + uTime * vec2(0.01, 0.006)).g;
+        float surf = 1.0 - smoothstep(0.3, 1.2 + sin(uTime * 1.4 + vOceanPosition.x * 0.25) * 0.35, coast);
+        surf *= smoothstep(0.2, 0.45, breakup + 0.25);
+        float roll = fract(coast / 3.2 + uTime * 0.2);
+        float lines = smoothstep(0.84, 0.9, roll) * (1.0 - smoothstep(0.94, 1.0, roll));
+        lines *= (1.0 - smoothstep(1.5, 6.5, coast)) * smoothstep(0.3, 0.6, coast) * smoothstep(0.45, 0.6, breakup);
+        // Whitecaps: small flecks of foam riding the highest crests out at sea
+        float caps = smoothstep(0.36, 0.52, vWave) * smoothstep(0.66, 0.72, texture2D(uNoise, vOceanPosition * 0.16 + uTime * vec2(0.03, 0.018)).r);
+        caps *= smoothstep(0.4, 0.8, depth);
+
+        diffuseColor.rgb = mix(water, vec3(1.0), max(max(surf, lines * 0.55), caps * 0.8));`
+      )
+      // Water facets barely tilt, so read the light on a much narrower range
+      // than land does; this is what makes the faceted swell visible
+      .replace(
+        '// STYLIZED_SHADE',
+        'shade = max(shade, (1.0 - smoothstep(0.6, 0.86, dot(stylizedNormal, uSunDirection))) * 0.4);'
       )
       .replace(
         '// STYLIZED_EXTRA',
@@ -98,7 +111,7 @@ export class Ocean {
         // It goes above 1.0, so only these sparkles reach the bloom threshold.
         vec3 viewDirection = normalize(cameraPosition - vStylizedWorld);
         float glint = pow(max(dot(stylizedNormal, normalize(uSunDirection + viewDirection)), 0.0), 260.0);
-        stylizedColor += uLightColor * glint * 3.0 * (1.0 - shade);`
+        stylizedColor += uLightColor * glint * 3.0 * (1.0 - shade) * smoothstep(0.2, 0.6, depth);`
       )
   }
 
