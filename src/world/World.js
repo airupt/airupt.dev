@@ -10,11 +10,14 @@ import { Decor } from './Decor.js'
 import { shared } from './shading.js'
 import { Grass } from './Grass.js'
 import { Foliage } from './Foliage.js'
+import { DayCycle } from './DayCycle.js'
+import { Lights } from './Lights.js'
 import { profile, sections } from '../content/portfolio.js'
 
 export class World {
   constructor(app) {
     this.app = app
+    this.dayCycle = new DayCycle()
     this.models = new Models()
     this.sky = new Sky(app)
     this.ocean = new Ocean(app)
@@ -36,10 +39,14 @@ export class World {
     await this.models.load('/models/world.glb', onProgress)
     this.decor = new Decor(this.app, this.islands, this.models, new Foliage(this.app))
     this.boat.setModel(this.models.get('boat'))
+    this.lights = new Lights(this.app, this.decor, this.zones, this.boat)
   }
 
   update(delta) {
     const focus = this.app.cameraRig.focus
+    this.dayCycle.update(delta)
+    this.lights?.update(delta, this.dayCycle.night)
+    this.wake.setNight(this.dayCycle.night)
     shared.uTime.value = this.app.physics.renderTime
     // Wind time runs faster in stronger wind, so gusts speed up instead of just growing
     shared.uWindTime.value += delta * 0.1 * shared.uWindStrength.value

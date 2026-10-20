@@ -57,6 +57,8 @@ export class Decor {
     this.islands = islands
     this.models = models
     this.foliage = foliage
+    // Every placed model by id, so other systems can find lanterns, towers…
+    this.placed = []
     this.group = new THREE.Group()
     app.scene.add(this.group)
 
@@ -77,6 +79,7 @@ export class Decor {
     model.rotation.y = rotation
     model.scale.multiplyScalar(scale)
     this.group.add(model)
+    this.placed.push({ id, model })
     return model
   }
 

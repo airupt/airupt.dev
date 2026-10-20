@@ -39,6 +39,12 @@ export class Wake {
     app.scene.add(this.mesh)
   }
 
+  // White foam by day; at night the churned water glows like plankton
+  setNight(night) {
+    const glow = THREE.MathUtils.smoothstep(night, 0.4, 0.9)
+    this.mesh.material.color.setRGB(1 - glow * 0.7, 1 + glow * 1.2, 1 + glow * 1.6)
+  }
+
   update(delta) {
     for (const point of this.points) point.age += delta
     while (this.points.length && this.points.at(-1).age > LIFETIME) this.points.pop()

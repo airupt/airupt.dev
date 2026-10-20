@@ -31,6 +31,7 @@ function createModel(color) {
 export class Buoy {
   constructor(app, { x, z, color }) {
     this.anchor = { x, z }
+    this.color = color
 
     const { world } = app.physics
     this.body = world.createRigidBody(
