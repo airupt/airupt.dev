@@ -64,7 +64,7 @@ export class Overlay {
       if (this.activeSection) this.openSection(this.activeSection)
     })
     this.panel.addEventListener('close', () => {
-      this.app?.sounds.play('click', 0.4, 0.85)
+      this.app?.sounds.play('close', 0.5)
       this.onSectionClose?.()
       this.setSailing(true)
     })
@@ -159,7 +159,7 @@ export class Overlay {
     this.panelBody.replaceChildren(renderSection(section, profile, 'panel', sectionColors[id]))
     this.panel.style.setProperty('--section-color', sectionColors[id] ?? 'var(--accent)')
     this.panel.showModal()
-    this.app.sounds.play('click', 0.5)
+    this.app.sounds.play('open', 0.5)
     this.onSectionOpen?.(id)
     this.setSailing(false)
   }

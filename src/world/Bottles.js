@@ -94,7 +94,8 @@ export class Bottles {
     this.collected.add(item.index)
     saveCollected(this.collected)
     this.splashes.emit(item.object.position.clone(), new THREE.Vector3(), { count: 18, spread: 1.4, up: 2.6, size: 0.08, life: 0.9 })
-    this.app.sounds.play('click', 0.7, 1.6)
+    this.app.sounds.play('glass', 0.8)
+    this.app.sounds.play('chime', 0.4, 1.25)
     this.app.overlay.setBottleCount(this.collected.size, this.items.length)
     this.app.overlay.toast(messages[item.index], `Bottle ${this.collected.size} of ${this.items.length}`)
   }

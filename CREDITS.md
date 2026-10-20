@@ -23,8 +23,8 @@ No code, models, textures, sounds or fonts from it are used.
 All by [Kenney](https://www.kenney.nl), CC0 1.0 (public domain). Thank you, Kenney!
 Source files and licence texts are in `assets/kenney/`.
 
-- Watercraft Kit: speedboat
-- Pirate Kit: palm trees, rocks, grass, docks, barrels, crates, chest, flags, tower, bottle
+- Watercraft Kit: speedboat, sailboat, fishing boat, houseboat, channel buoys
+- Pirate Kit: palm trees, rocks, grass, docks, barrels, crates, chest, flags, tower, bottle, shipwreck
 - Survival Kit: signposts, tent, campfire, fish
 - Fantasy Town Kit: lantern, market stall, cart, banner
 
@@ -37,7 +37,9 @@ All CC0 1.0. Provenance notes are in `assets/freesound/` and `assets/kenney/ui-a
 - "Splash" by swordofkings128, https://freesound.org/s/398032/
 - "SHIP DOCK IMPACT WOOD" by allsowill, https://freesound.org/s/865175/ (trimmed)
 - "Seagulls_short" by Lydmakeren, https://freesound.org/s/510917/ (trimmed)
-- UI Audio by [Kenney](https://www.kenney.nl): click
+- "boat knocks fiberglass water laps on hull" by kyles, https://freesound.org/s/637206/ (cut into a 12 s loop)
+- UI Audio and Interface Sounds by [Kenney](https://www.kenney.nl): click, chime, open, close, glass
+- The volcano rumble is synthesised in the browser (filtered noise), not a recording
 
 ## Fonts
 

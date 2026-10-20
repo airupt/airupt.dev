@@ -68,6 +68,7 @@ export class Zones {
     }
 
     if (nearest !== this.active) {
+      if (nearest) this.app.sounds.play('chime', 0.45)
       this.active = nearest
       this.app.overlay.setPrompt(nearest?.section ?? null)
     }

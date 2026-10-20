@@ -20,8 +20,15 @@ export class Smoke {
 
   // rate: puffs per second, size: start radius, height: how far they rise
   addEmitter(origin, { rate, size, rise, life, color, spread = 0.4 }) {
-    this.emitters.push({ origin: origin.clone(), rate, size, rise, life, color: new THREE.Color(color), spread, budget: Math.random() })
-    this.capacity += Math.ceil(rate * life) + 2
+    this.emitters.push({ origin: origin.clone(), rate, size, rise, life, color: new THREE.Color(color), spread, budget: Math.random(), burst: 0 })
+    // Room for the steady plume plus a burst
+    this.capacity += Math.ceil(rate * life * 2.5) + 2
+  }
+
+  // A thick, fast gush of bigger puffs from one emitter for a moment
+  burst(index) {
+    const emitter = this.emitters[index]
+    if (emitter) emitter.burst = 1
   }
 
   build() {
@@ -42,7 +49,7 @@ export class Smoke {
     const windStrength = shared.uWindStrength.value
 
     for (const emitter of this.emitters) {
-      emitter.budget += emitter.rate * delta
+      emitter.budget += emitter.rate * (1 + emitter.burst * 4) * delta
       while (emitter.budget >= 1) {
         emitter.budget -= 1
         this.puffs.push({
@@ -51,8 +58,11 @@ export class Smoke {
           spin: new THREE.Vector3(Math.random() * 6, Math.random() * 6, Math.random() * 6),
           age: 0,
           life: emitter.life * (0.8 + Math.random() * 0.4),
+          scale: 1 + emitter.burst * 0.8,
+          speed: 1 + emitter.burst * 0.9,
         })
       }
+      emitter.burst = Math.max(0, emitter.burst - delta / 1.6)
     }
 
     let count = 0
@@ -63,12 +73,12 @@ export class Smoke {
       const { emitter } = puff
 
       // Fast at first, slowing as it rises; the wind bends the column over
-      const rise = (emitter.rise / puff.life) * (1.3 - t) * delta
+      const rise = (emitter.rise / puff.life) * (1.3 - t) * puff.speed * delta
       puff.position.y += rise
       puff.position.x += wind.x * windStrength * 2.2 * delta * t
       puff.position.z += wind.y * windStrength * 2.2 * delta * t
 
-      const size = emitter.size * (0.5 + t * 1.6) * Math.min(1, (1 - t) * 4)
+      const size = emitter.size * puff.scale * (0.5 + t * 1.6) * Math.min(1, (1 - t) * 4)
       euler.set(puff.spin.x + t, puff.spin.y + t * 0.5, puff.spin.z)
       matrix.compose(position.copy(puff.position), rotation.setFromEuler(euler), scale.setScalar(size))
       this.mesh.setMatrixAt(count, matrix)

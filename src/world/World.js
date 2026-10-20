@@ -60,6 +60,23 @@ export class World {
     }
   }
 
+  // Every so often Mount Airupt clears its throat: a gush of smoke, a rumble
+  // and a small shake, both fading with distance from the volcano
+  updateVolcano(delta) {
+    if (!this.smoke || !this.app.overlay.started) return
+    this.eruptionTimer = (this.eruptionTimer ?? 12) - delta
+    if (this.eruptionTimer > 0) return
+    this.eruptionTimer = 35 + Math.random() * 20
+
+    const volcano = this.islands.list.find(island => island.volcano)
+    const boat = this.boat.object.position
+    const distance = Math.hypot(boat.x - volcano.x, boat.z - volcano.z)
+    const closeness = THREE.MathUtils.clamp(1 - (distance - 25) / 90, 0, 1)
+    this.smoke.burst(0)
+    this.app.sounds.rumble(0.55 * closeness)
+    this.app.cameraRig.shake(0.2 * closeness)
+  }
+
   // Tells the shaders where the boat is on screen so whatever stands in
   // front of it can thin out (runs after the camera has moved)
   updateSeeThrough(camera) {
@@ -133,6 +150,7 @@ export class World {
     this.splashes.update(delta)
     this.birds.update(delta)
     this.smoke?.update(delta)
+    this.updateVolcano(delta)
     this.seascape?.update()
     this.ocean.update(focus)
     this.sky.update(focus, this.app.cameraRig.distance)

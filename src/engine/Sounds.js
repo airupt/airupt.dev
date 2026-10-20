@@ -5,6 +5,11 @@ const files = {
   bump: '/sounds/bump.mp3',
   gulls: '/sounds/gulls.mp3',
   click: '/sounds/click.mp3',
+  chime: '/sounds/chime.mp3',
+  open: '/sounds/open.mp3',
+  close: '/sounds/close.mp3',
+  glass: '/sounds/glass.mp3',
+  lapping: '/sounds/lapping.mp3',
 }
 
 const STORAGE_KEY = 'airupt-muted'
@@ -57,6 +62,36 @@ export class Sounds {
     this.context.resume()
     this.ocean = this.loop('ocean', 0.3)
     this.engine = this.loop('engine', 0)
+    this.lapping = this.loop('lapping', 0)
+  }
+
+  // A deep volcanic rumble made on the spot: brown noise through a low-pass
+  // filter with a slow swell and fade. No recording needed.
+  rumble(volume) {
+    if (this.context.state !== 'running' || volume < 0.02) return
+    const duration = 3
+    const rate = this.context.sampleRate
+    if (!this.rumbleBuffer) {
+      this.rumbleBuffer = this.context.createBuffer(1, rate * duration, rate)
+      const data = this.rumbleBuffer.getChannelData(0)
+      let last = 0
+      for (let i = 0; i < data.length; i++) {
+        last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02
+        data[i] = last * 3.5
+      }
+    }
+    const source = this.context.createBufferSource()
+    source.buffer = this.rumbleBuffer
+    const filter = this.context.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.value = 140
+    const gain = this.context.createGain()
+    const now = this.context.currentTime
+    gain.gain.setValueAtTime(0, now)
+    gain.gain.linearRampToValueAtTime(volume, now + 0.6)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration)
+    source.connect(filter).connect(gain).connect(this.master)
+    source.start()
   }
 
   setSuspended(suspended) {
@@ -111,6 +146,12 @@ export class Sounds {
       this.engine.source.playbackRate.setTargetAtTime(0.75 + speed * 0.7 + throttle * 0.1, now, 0.15)
       const volume = (0.05 + speed * 0.2 + throttle * 0.08) * (boat.inWater > 0 ? 1 : 0.6)
       this.engine.gain.gain.setTargetAtTime(volume, now, 0.1)
+    }
+
+    // Water slapping the hull is what you hear when idling, drowned out at speed
+    if (this.lapping) {
+      const volume = boat.inWater > 0 ? 0.32 * (1 - Math.min(Math.abs(boat.speed) / 6, 1)) : 0
+      this.lapping.gain.gain.setTargetAtTime(volume, now, 0.3)
     }
 
     // Landing after a jump off a wave

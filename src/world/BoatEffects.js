@@ -40,6 +40,14 @@ export class BoatEffects {
       }
     }
 
+    // Hitting boost kicks up a rooster tail behind the motor
+    const boosting = boat.app.inputs.state.boost && boat.app.inputs.state.throttle > 0
+    if (boosting && !this.wasBoosting && boat.inWater > 0) {
+      bow.set(0, 0, 1.9).applyQuaternion(boat.object.quaternion).add(boat.object.position)
+      splashes.emit(bow, forward.clone().multiplyScalar(-2.5), { count: 22, spread: 1.1, up: 3.2, size: 0.09, life: 0.9 })
+    }
+    this.wasBoosting = boosting
+
     if (boat.inWater > 0 && this.lastInWater === 0 && boat.velocity.y < -2) {
       splashes.emit(boat.object.position, new THREE.Vector3(), { count: 26, spread: 2.2, up: 2.4, size: 0.1, life: 1 })
       this.onImpact?.(Math.min(-boat.velocity.y / 10, 1) * 0.6)
