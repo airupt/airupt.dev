@@ -7,7 +7,7 @@ import { createDockGeometry, DOCK_DECK, DOCK_INLAND, DOCK_LENGTH, DOCK_WIDTH } f
 import { createStylizedMaterial } from './shading.js'
 import { footprints } from './IslandScenes.js'
 import { sections } from '../content/portfolio.js'
-import { createBench, createCampfire, createLighthouse, createLogSeat, createLookout, createLumber, createMailbox, createSignpostHub, createTent } from './Structures.js'
+import { createBench, createCampfire, createLighthouse, createLogSeat, createLookout, createLumber, createMailbox, createSignpostHub, createTent, createWorkbench } from './Structures.js'
 
 export const DOCK_TILES = 2
 export const DOCK_TILE = 2.5 // metres per collision box along the dock
@@ -26,6 +26,7 @@ const builders = {
   mailbox: createMailbox,
   bench: createBench,
   lumber: createLumber,
+  workbench: createWorkbench,
 }
 
 // A lamp post in the same wood as the docks: a post, a little iron lantern
@@ -63,9 +64,9 @@ let lanternMaterialCache = null
 const lanternMaterial = () => (lanternMaterialCache ??= createStylizedMaterial({ vertexColors: true, flatShading: true }, { waterLine: false }))
 
 const bushColors = ['#4fae4a', '#3f9c47', '#6cc24f', '#58b85a']
-const flowerColors = ['#ff8fa8', '#ff6b8b', '#f4e9f0']
-// Mostly broadleaf greens, with the occasional red-orange flame tree
-const treeColors = ['#e8603a', '#3f9c47', '#4fae4a', '#3a8f45', '#58b85a']
+const flowerColors = ['#ff6b8b', '#ff8fa8', '#ffc145', '#e8487a']
+// Broadleaf greens (orange crowns read as autumn on a tropical island)
+const treeColors = ['#3f9c47', '#4fae4a', '#3a8f45', '#58b85a', '#2f8a4a']
 
 // Places props on the procedural islands: a dock facing the start point, a
 // few hand-placed set pieces per section, then seeded scatter of palms,
@@ -297,13 +298,15 @@ export class Decor {
       // Sunk a little so the lump grows out of the ground on every side
       this.foliage.addCluster(new THREE.Vector3(x, ground + size * 0.35, z), size, pick(bushColors))
       this.contacts.push({ x, z, radius: size * 0.85 })
-      // Now and then a bush in flower: a few small blossoms on its crown
-      if (random() < 0.15) {
+      // Now and then a bush in flower: small blossoms dotted over its crown
+      if (random() < 0.18) {
         const color = pick(flowerColors)
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 10; i++) {
           const angle = random() * Math.PI * 2
-          const blossom = new THREE.Vector3(x + Math.cos(angle) * size * 0.45, ground + size * (0.85 + random() * 0.15), z + Math.sin(angle) * size * 0.45)
-          this.foliage.addCluster(blossom, size * 0.22, color)
+          const lift = 0.3 + random() * 0.6
+          const reach = Math.sqrt(1 - lift * lift) * size * 0.95
+          const blossom = new THREE.Vector3(x + Math.cos(angle) * reach, ground + size * 0.35 + lift * size * 0.86, z + Math.sin(angle) * reach)
+          this.foliage.addCluster(blossom, size * 0.1, color)
         }
       }
     })

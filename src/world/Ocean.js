@@ -153,7 +153,9 @@ export class Ocean {
         water = mix(water, vec3(0.28, 0.69, 0.79), smoothstep(0.04, 0.3, trailTexel.r) * 0.3 * (1.0 - uNight * 0.7));
         float trailFoam = smoothstep(0.42, 0.6, trailTexel.r * (0.3 + churn * 1.15));
         float fray = texture2D(uNoise, vOceanPosition * 1.7 + uTime * 0.05).r;
-        trailFoam = max(trailFoam, smoothstep(0.46, 0.56, trailTexel.g + (churn - 0.5) * 0.9 + (fray - 0.5) * 0.5));
+        // Fresh foam is solid; it frays into flecks only as it fades
+        float fresh = smoothstep(0.5, 1.1, trailTexel.g);
+        trailFoam = max(trailFoam, smoothstep(0.46, 0.56, trailTexel.g + ((churn - 0.5) * 0.9 + (fray - 0.5) * 0.5) * (1.0 - fresh * 0.8)));
 
         // At night the surf dims to a cool blue so lights stay the brightest thing
         vec3 foamColor = mix(vec3(1.0), vec3(0.44, 0.56, 0.78), uNight);

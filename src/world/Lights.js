@@ -92,14 +92,15 @@ class Beam {
         varying float vAlong;
         varying float vFacing;
         void main() {
-          float shaft = pow(vAlong, 2.2) * pow(vFacing, 2.0);
+          // Bright at the lamp, thinning out along its length
+          float shaft = pow(vAlong, 3.0) * pow(vFacing, 2.5);
           gl_FragColor = vec4(vec3(1.0, 0.9, 0.65) * shaft * uStrength, 1.0);
         }
       `,
     })
 
     // Cone apex sits on the lamp; the wide end points away horizontally
-    const geometry = new THREE.ConeGeometry(1.6, 24, 24, 1, true)
+    const geometry = new THREE.ConeGeometry(3.4, 24, 24, 1, true)
     geometry.translate(0, -12, 0)
     geometry.rotateZ(Math.PI / 2)
     for (const side of [0, Math.PI]) {
@@ -111,7 +112,7 @@ class Beam {
 
   update(delta, strength) {
     this.pivot.rotation.y += delta * 0.6
-    this.material.uniforms.uStrength.value = strength * 0.32
+    this.material.uniforms.uStrength.value = strength * 0.26
     this.pivot.visible = strength > 0.02
   }
 }
@@ -249,8 +250,8 @@ export class Lights {
 
     // Navigation lights: red to port (left), green to starboard (right)
     this.boatLights = [
-      new Glow(boat.lean, new THREE.Vector3(-0.78, 0.7, -0.75), '#ff3b3b', 0.12),
-      new Glow(boat.lean, new THREE.Vector3(0.78, 0.7, -0.75), '#3bff7a', 0.12),
+      new Glow(boat.lean, new THREE.Vector3(-0.78, 0.7, -0.75), '#ff3b3b', 0.065),
+      new Glow(boat.lean, new THREE.Vector3(0.78, 0.7, -0.75), '#3bff7a', 0.065),
     ]
   }
 

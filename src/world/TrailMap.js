@@ -115,7 +115,7 @@ const ringMaterial = new THREE.ShaderMaterial({
 })
 
 const WAKE_POINTS = 220
-const WAKE_SPACING = 0.32 // metres travelled between two pairs of points
+const WAKE_SPACING = 0.24 // metres travelled between two pairs of points
 const WAKE_LIFE = 2.8
 // Points drift sideways at this fraction of the boat's speed, which opens
 // the two arms of the wake at about 19 degrees, like a real one
@@ -261,8 +261,9 @@ export class TrailMap {
     // A narrow, rough line down the middle of the wake
     stern.set(0, 0, 1.9).applyQuaternion(this.boat.object.quaternion).add(position)
     this.prop.position.set(stern.x - nextX, -(stern.z - nextZ), 0)
-    this.prop.scale.setScalar(0.9 + Math.min(speed / 12, 1) * 0.4)
-    this.prop.material.uniforms.uStrength.value = inWater * Math.min(Math.max(speed - 1, 0) / 8, 1) * 0.11 * delta * 60
+    this.prop.scale.set(1.1 + Math.min(speed / 12, 1) * 0.4, 1.8, 1)
+    this.prop.rotation.z = yaw
+    this.prop.material.uniforms.uStrength.value = inWater * Math.min(Math.max(speed - 1, 0) / 8, 1) * 0.17 * delta * 60
 
     // The waterline foam is strongest at rest; at speed the wake takes over
     this.ring.position.copy(this.hull.position)

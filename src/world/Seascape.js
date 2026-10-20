@@ -1,8 +1,8 @@
 import * as THREE from 'three'
 import * as RAPIER from '@dimforge/rapier3d'
 import { createRandom } from '../utils/noise.js'
-import { waveHeight } from './waves.js'
 import { createSparBuoy } from './Structures.js'
+import { Buoy } from './Buoy.js'
 import { arch, rockClusters, spawn } from './layout.js'
 import { instanceStatic } from './instancing.js'
 
@@ -90,24 +90,16 @@ export class Seascape {
           ['starboard', midX - across.x * (CHANNEL_WIDTH / 2), midZ - across.z * (CHANNEL_WIDTH / 2)],
         ]
         if (!spots.every(([, x, z]) => isOpenWater(x, z))) continue
+        // Real floating buoys on a tether: the boat can bump them aside
         for (const [side, x, z] of spots) {
-          const marker = createSparBuoy(side)
-          Object.assign(marker.userData, { x, z, phase: random() * 6 })
-          app.scene.add(marker)
-          this.markers.push(marker)
+          const model = new THREE.Group()
+          const mark = createSparBuoy(side)
+          mark.position.y = -0.3
+          model.add(mark)
+          this.markers.push(new Buoy(app, { x, z, model }))
         }
         break
       }
-    }
-  }
-
-  // Channel marks only bob; they are not part of the physics
-  update() {
-    const time = this.app.physics.renderTime
-    for (const marker of this.markers) {
-      const { x, z, phase } = marker.userData
-      marker.position.set(x, waveHeight(x, z, time) - 0.2, z)
-      marker.rotation.set(Math.sin(time * 1.3 + phase) * 0.12, phase, Math.cos(time * 1.1 + phase) * 0.12)
     }
   }
 }

@@ -26,7 +26,7 @@ const tuning = {
   drag: 0.05, // quadratic; top speed ≈ sqrt(acceleration / drag)
   grip: 3, // how quickly sideways sliding dies out
   turnRate: 1.6, // rad/s once moving
-  lean: 0.22,
+  lean: 0.3,
 }
 
 const spawnRotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), spawn.yaw)

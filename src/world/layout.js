@@ -17,11 +17,12 @@ export const islands = [
     // whole island sits beside the boat (other islands face the start point)
     facing: [0.707, -0.707],
     yard: [4.5, 5.4, 7],
-    // Two arms hold a small bay with the dock
+    // A main hill and one arm curling round to shelter the dock, which runs
+    // straight out into open water
     blobs: [
       [-2.8, 2.8, 8.5, 4.2],
       [-0.7, -7.8, 5, 2.4],
-      [7.8, 0.7, 5, 2.4],
+      [-6.5, -4, 4.5, 3],
     ],
   },
   {
@@ -51,7 +52,7 @@ export const islands = [
     seed: 23,
     terraces: true,
     // Big enough for the market square and the row of project boards
-    yard: [6.2, 7.6, 10.4],
+    yard: [6.4, 8, 13.5],
     blobs: [
       [0, 0, 15, 5.5],
       [9, -7, 8, 3.5],

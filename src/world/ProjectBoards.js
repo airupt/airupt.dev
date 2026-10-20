@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { createStylizedMaterial } from './shading.js'
 import { sections } from '../content/portfolio.js'
 
-const BOARD = { width: 3, height: 2.3 }
+const BOARD = { width: 2.6, height: 2 }
 const TEXTURE = { width: 680, height: 520 }
 
 // Paints one project card: its screenshot (or a striped tile with initials

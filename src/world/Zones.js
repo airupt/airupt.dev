@@ -27,7 +27,7 @@ export class Zones {
       const z = shore.z + out.z * reach + across.z * offset
       // Moored parallel to the dock, bow out to sea, ready to leave
       const yaw = Math.atan2(-out.x, -out.z)
-      const buoyReach = DOCK_LENGTH - DOCK_INLAND + 1.6
+      const buoyReach = DOCK_LENGTH - DOCK_INLAND + 3.4
       const buoy = new Buoy(app, { x: shore.x + out.x * buoyReach + across.x * (offset + 0.6), z: shore.z + out.z * buoyReach + across.z * (offset + 0.6), color: island.color })
       this.list.push({ section: island.section, island, x, z, yaw, buoy })
     }
@@ -91,7 +91,10 @@ export class Zones {
     }
 
     if (nearest !== this.active) {
-      if (nearest) this.app.sounds.play('chime', 0.45)
+      if (nearest) {
+        this.app.sounds.play('chime', 0.45)
+        this.app.world.signs?.pop(nearest.island)
+      }
       this.active = nearest
       this.app.overlay.setPrompt(nearest?.section ?? null)
       const plaza = nearest?.island.plan?.plaza

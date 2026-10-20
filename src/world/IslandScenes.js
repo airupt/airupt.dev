@@ -25,29 +25,29 @@ const scenes = {
     plaza: 2.7,
     plazaAtHero: true,
     props: [
-      ['tent', 0.3, 2.9, 'hero'],
+      ['tent', -2.6, 2, 'hero'],
       ['log-seat', -1.75, 0.2, 'hero'],
       ['log-seat', 1.75, 0.2, 'hero'],
       ['log-seat', 0.1, -1.8, 'hero'],
-      ['barrel', -2.7, 1.9, 'camera'],
+      ['barrel', 2.6, 1.8, 'camera'],
     ],
   },
-  // A market square in front of a row of project boards
+  // A square in front of a row of project boards, like an open-air gallery
   projects: {
     hero: null,
     reach: 3.2,
     plaza: 3.4,
     boards: [
-      [-4.5, 0],
-      [0, 0.6],
-      [4.5, 0],
+      [-3.9, -0.3],
+      [0, 0.5],
+      [3.9, -0.3],
     ],
+    // A cart and its crates off to one side, clear of the boards behind
     props: [
-      ['stall', -7, -3.6, 'plaza'],
-      ['crate', -8.2, -2.3, 'camera'],
-      ['crate-bottles', -8.3, -3.8, 'camera'],
-      ['cart', 6.9, -3.4, 'plaza'],
-      ['barrel', 8, -2.2, 'camera'],
+      ['cart', 6.6, -3.2, 'plaza'],
+      ['crate', 8, -1.6, 'camera'],
+      ['crate-bottles', 7.6, -4.9, 'camera'],
+      ['barrel', -6.4, -3, 'camera'],
     ],
   },
   // A workshop yard at the foot of a timber lookout
@@ -56,10 +56,10 @@ const scenes = {
     reach: 3,
     plaza: 2.3,
     props: [
-      ['anvil', -2.6, -1.8, 'plaza'],
-      ['lumber', 3, -1.2, 'plaza'],
-      ['barrel', 3.6, 0.6, 'camera'],
-      ['crate', -3.4, -0.2, 'camera'],
+      ['workbench', -2.8, -1.4, 'plaza'],
+      ['lumber', 3.2, -1, 'plaza'],
+      ['barrel', -3.4, 0.6, 'camera'],
+      ['crate', 3.4, 1, 'camera'],
     ],
   },
   // Mount Airupt's landing: a bench to sit and look back over the islands
@@ -75,6 +75,9 @@ const scenes = {
   // A lighthouse, a post box and a bench looking out to sea
   contact: {
     hero: 'lighthouse',
+    // The far side of the dock is the lighthouse's: the sign stands on the
+    // berth side, set back inland so it clears the moored boat
+    signSide: 'berth',
     reach: 3.4,
     plaza: 1.9,
     props: [
@@ -103,6 +106,7 @@ export const footprints = {
   anvil: 1,
   board: 2,
   lumber: 1.2,
+  workbench: 1,
 }
 
 // Turns an island's scene into world positions. Needs the island's level
@@ -163,8 +167,10 @@ export function planIsland(island, rig) {
   // side away from the hero. The sign may stand on the ramp: its posts reach
   // well into the ground.
   const lamps = [-1, 1].map(direction => fromShore(0.7, direction * 1.4))
-  const heroSide = toLocal(hero).across
-  const sign = fromShore(1.7, (heroSide >= 0 ? -1 : 1) * 3)
+  // Opposite the berth (which is on the camera's side of the dock, see
+  // Zones.js), so the sign never hides the moored boat
+  const berthSide = Math.sign(out.z * rig.direction.x - out.x * rig.direction.z) || 1
+  const sign = scene.signSide === 'berth' ? fromShore(3.2, berthSide * 3.8) : fromShore(1.3, -berthSide * 3.6)
   // Things the props must keep clear of but never move
   const fixed = [{ ...sign, radius: 1.8 }, ...lamps.map(lamp => ({ ...lamp, radius: 0.5 }))]
 
@@ -212,7 +218,8 @@ export function planIsland(island, rig) {
 
   const boards = (scene.boards ?? []).map(([dx, dy], index) => {
     const point = at(dx, dy, footprints.board)
-    return { ...point, rotation: cameraFacing + (1 - index) * 0.1 }
+    // A shallow arc, the outer boards turned in toward the square
+    return { ...point, rotation: cameraFacing + (1 - index) * 0.22 }
   })
 
   // The path runs from the dock head across the plaza to the hero

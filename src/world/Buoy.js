@@ -40,7 +40,9 @@ function createModel(color) {
 // Floating marker that bobs on the waves, can be bumped around, and drifts
 // back to its anchor on a soft tether.
 export class Buoy {
-  constructor(app, { x, z, color }) {
+  // `model` replaces the round section buoy (a channel mark, for one),
+  // centred on the float body like the default model
+  constructor(app, { x, z, color, model = null }) {
     this.anchor = { x, z }
     this.color = color
 
@@ -50,7 +52,7 @@ export class Buoy {
     )
     world.createCollider(RAPIER.ColliderDesc.cylinder(0.45, 0.45).setDensity(40).setRestitution(0.4), this.body)
 
-    this.object = createModel(color)
+    this.object = model ?? createModel(color)
     app.scene.add(this.object)
     app.physics.sync(this.body, this.object)
     app.physics.beforeStep.push((dt, time) => this.step(dt, time))

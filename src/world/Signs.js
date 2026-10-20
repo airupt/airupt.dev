@@ -66,6 +66,8 @@ export class Signs {
   constructor(app, islands, entries) {
     // Where the posts meet the ground, for the baked contact shadows
     this.contacts = []
+    // Per island: which board it is, so it can bounce when you arrive
+    this.byIsland = new Map()
     const woodMaterial = createStylizedMaterial({ color: '#a76c3e', flatShading: true }, { waterLine: false })
     const facing = Math.atan2(app.cameraRig.direction.x, app.cameraRig.direction.z)
     const boards = []
@@ -111,6 +113,7 @@ export class Signs {
       face.applyMatrix4(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, HEIGHT, BOARD.depth / 2 + BOARD.bevel + 0.005)))
       face.receiveShadow = true
       app.scene.add(face)
+      this.byIsland.set(island.id, { board: boards.length - 1, boardMatrix: boards[boards.length - 1], face, faceScale: face.scale.clone(), time: Infinity })
     }
 
     for (const [geometry, matrices] of [
@@ -123,6 +126,30 @@ export class Signs {
       mesh.receiveShadow = true
       mesh.computeBoundingSphere()
       app.scene.add(mesh)
+      if (matrices === boards) this.boardMesh = mesh
+    }
+  }
+
+  // A squash-and-stretch bounce of an island's sign, as you sail up to it
+  pop(island) {
+    const sign = this.byIsland.get(island.id)
+    if (sign) sign.time = 0
+  }
+
+  update(delta) {
+    for (const sign of this.byIsland.values()) {
+      if (sign.time > 1.2) continue
+      sign.time += delta
+      const wobble = Math.sin(sign.time * 16) * Math.exp(-sign.time * 5) * 0.14
+      const settled = sign.time > 1.2
+      const sx = settled ? 1 : 1 + wobble
+      const sy = settled ? 1 : 1 - wobble * 0.8
+      this.boardMesh.setMatrixAt(sign.board, bounce.copy(sign.boardMatrix).multiply(squash.makeScale(sx, sy, 1)))
+      this.boardMesh.instanceMatrix.needsUpdate = true
+      sign.face.scale.set(sign.faceScale.x * sx, sign.faceScale.y * sy, sign.faceScale.z)
     }
   }
 }
+
+const bounce = new THREE.Matrix4()
+const squash = new THREE.Matrix4()

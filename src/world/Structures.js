@@ -167,9 +167,9 @@ export function createLogSeat() {
 // toward that island and lettered with its name on both faces:
 // [angle around the post, colour, name]
 export function createSignpostHub(arrows) {
-  const length = 1.7
-  const half = 0.19
-  const parts = [part(box(0.2, 3.2, 0.2), darkWood, [0, 1.6, 0]), part(new THREE.ConeGeometry(0.18, 0.28, 4), darkWood, [0, 3.34, 0], [0, Math.PI / 4, 0])]
+  const length = 2.1
+  const half = 0.26
+  const parts = [part(box(0.22, 3.6, 0.22), darkWood, [0, 1.8, 0]), part(new THREE.ConeGeometry(0.2, 0.3, 4), darkWood, [0, 3.75, 0], [0, Math.PI / 4, 0])]
   const labels = []
 
   // All names on one canvas, one row each
@@ -181,7 +181,7 @@ export function createSignpostHub(arrows) {
   context.fillStyle = '#f4f1ea'
   context.textBaseline = 'middle'
   arrows.forEach(([, , name], index) => {
-    let size = 64
+    let size = 76
     do {
       context.font = `800 ${size}px "Bricolage Grotesque", system-ui, sans-serif`
       size -= 2
@@ -193,7 +193,7 @@ export function createSignpostHub(arrows) {
   texture.anisotropy = 4
 
   arrows.forEach(([angle, hex], index) => {
-    const y = 2.75 - index * 0.48
+    const y = 3.2 - index * 0.62
     const arrow = new THREE.Shape()
     arrow.moveTo(0, -half)
     arrow.lineTo(length - 0.3, -half)
@@ -283,5 +283,23 @@ export function createLumber() {
   }
   parts.push(part(cylinder(0.14, 0.15, 1.6, 7), darkWood, [0.2, 0.15, 0.85], [0, 0, Math.PI / 2]))
   parts.push(part(cylinder(0.12, 0.13, 1.4, 7), darkWood, [-0.1, 0.13, 1.15], [0, 0.2, Math.PI / 2, 'YXZ']))
+  return mesh(parts)
+}
+
+// A carpenter's workbench: a thick top on four legs with a shelf, a vice at
+// one end, a hammer and a mallet lying on it
+export function createWorkbench() {
+  const parts = [part(box(1.5, 0.1, 0.62), wood, [0, 0.86, 0]), part(box(1.3, 0.05, 0.5), darkWood, [0, 0.3, 0])]
+  for (const [x, z] of [[-0.66, -0.24], [0.66, -0.24], [-0.66, 0.24], [0.66, 0.24]]) parts.push(part(box(0.09, 0.86, 0.09), darkWood, [x, 0.43, z]))
+  // The vice: an iron jaw and its screw
+  parts.push(part(box(0.18, 0.16, 0.2), iron, [0.62, 0.99, 0.3]))
+  parts.push(part(cylinder(0.025, 0.025, 0.3, 6), iron, [0.62, 0.95, 0.48], [Math.PI / 2, 0, 0]))
+  // Hammer and mallet on the top
+  parts.push(part(box(0.05, 0.04, 0.34), wood, [-0.2, 0.93, 0.05], [0, 0.4, 0]))
+  parts.push(part(box(0.14, 0.07, 0.06), iron, [-0.27, 0.95, -0.1], [0, 0.4, 0]))
+  parts.push(part(box(0.05, 0.04, 0.3), wood, [0.15, 0.93, -0.1], [0, -0.3, 0]))
+  parts.push(part(cylinder(0.06, 0.06, 0.16, 8), '#c08552', [0.2, 0.96, 0.05], [0, -0.3, Math.PI / 2, 'YXZ']))
+  // A box of nails under the top
+  parts.push(part(box(0.3, 0.16, 0.24), '#b57a49', [-0.35, 0.4, 0]))
   return mesh(parts)
 }

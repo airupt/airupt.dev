@@ -9,7 +9,6 @@ import { dedup, getBounds, mergeDocuments, prune, quantize, unpartition } from '
 const models = {
   boat: ['watercraft-kit', 'boat-speed-i'],
   buoy: ['watercraft-kit', 'buoy'],
-  'buoy-flag': ['watercraft-kit', 'buoy-flag'],
   sailboat: ['watercraft-kit', 'boat-sail-a'],
   'fishing-boat': ['watercraft-kit', 'boat-fishing-small'],
   houseboat: ['watercraft-kit', 'boat-house-a'],
@@ -22,22 +21,11 @@ const models = {
   crate: ['pirate-kit', 'crate'],
   'crate-bottles': ['pirate-kit', 'crate-bottles'],
   bottle: ['pirate-kit', 'bottle'],
-  flag: ['pirate-kit', 'flag-high'],
-  'flag-pennant': ['pirate-kit', 'flag-high-pennant'],
-  tower: ['pirate-kit', 'tower-complete-small'],
   wreck: ['pirate-kit', 'ship-wreck'],
-  'hut-roof': ['pirate-kit', 'structure-roof'],
-  lookout: ['pirate-kit', 'tower-watch'],
 
-  signpost: ['survival-kit', 'signpost'],
-  'signpost-single': ['survival-kit', 'signpost-single'],
-  tent: ['survival-kit', 'tent'],
-  campfire: ['survival-kit', 'campfire-pit'],
-  anvil: ['survival-kit', 'workbench-anvil'],
   fish: ['survival-kit', 'fish'],
   'fish-large': ['survival-kit', 'fish-large'],
 
-  stall: ['fantasy-town-kit', 'stall-red'],
   cart: ['fantasy-town-kit', 'cart'],
 }
 
