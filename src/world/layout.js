@@ -122,8 +122,9 @@ export const islands = [
     ],
   },
   { id: 'islet-3', x: 47, z: -55, radius: 7, seed: 71, blobs: [[0, 0, 6, 2.5]] },
-  // Off the rock arch, so the west has one cluster of things to find
-  { id: 'islet-4', x: -57, z: 37, radius: 6, seed: 83, blobs: [[0, 0, 5, 2]] },
+  // Beside the sea stacks off the rock arch (clear of the run through it),
+  // so the west has one cluster of things to find
+  { id: 'islet-4', x: -71, z: 46, radius: 6, seed: 83, blobs: [[0, 0, 5, 2]] },
   {
     id: 'islet-5',
     x: 47,
@@ -135,7 +136,6 @@ export const islands = [
       [-3, 2, 3, 1.5],
     ],
   },
-  { id: 'islet-6', x: 23, z: 57, radius: 5, seed: 101, blobs: [[0, 0, 4, 1.8]] },
   {
     // A long, low sandbar with a lone palm
     id: 'sandbar',
@@ -172,16 +172,12 @@ export const islands = [
   { id: 'reef-cay', x: 60, z: -38, radius: 3, seed: 131, sparse: true, blobs: [[0, 0, 2.3, 1]] },
 ]
 
-// Sea stacks between the islands so open water always has something in it
+// Sea stacks in a few places along the routes (not sprinkled evenly)
 export const rockClusters = [
   [21, 31],
   [37, -2],
-  [-14, -22],
-  [-30, -30],
   [34, -26],
   [-62, -5],
-  [-32, 62],
-  [8, 70],
   [62, 12],
   [-70, 35],
 ]

@@ -72,29 +72,40 @@ export function createRockGeometry(seed, { width = 2, height = 2, mossy = false 
   return paintRock(geometry, random, mossy)
 }
 
-// A natural arch the boat can sail under: half a thick ring of rock with its
-// feet sunk in the sea. span: metres between the feet' centres
+// A natural arch the boat can sail under, built like the real thing: a
+// crooked bridge of big weathered blocks, heavy where it meets the sea and
+// thinner over the top, no two blocks the same. span: metres between the
+// centres of its feet.
 export function createArchGeometry(seed, { span = 8, thickness = 1.3 } = {}) {
   const random = createRandom(seed)
   const radius = span / 2
-  const geometry = new THREE.TorusGeometry(radius, thickness, 6, 14, Math.PI)
-  // Weathered like a real one: massive feet, a thinner span, one side heavier
-  const position = geometry.attributes.position
-  const point = new THREE.Vector3()
-  const centre = new THREE.Vector3()
-  for (let i = 0; i < position.count; i++) {
-    point.fromBufferAttribute(position, i)
-    const angle = Math.atan2(point.y, point.x)
-    centre.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0)
-    const feet = 1 - Math.sin(Math.max(angle, 0))
-    const heavy = point.x < 0 ? 1.25 : 1
-    point.sub(centre).multiplyScalar((0.8 + feet * 0.9) * heavy).add(centre)
-    position.setXYZ(i, point.x, point.y, point.z)
+  const blocks = []
+  const count = 9
+  for (let i = 0; i < count; i++) {
+    const t = i / (count - 1)
+    // Not a perfect half circle: a little flattened and lopsided
+    const angle = Math.PI * (1 - t)
+    const x = Math.cos(angle) * radius * (1 + (random() - 0.5) * 0.08)
+    const y = Math.sin(angle) * radius * 0.92 + (t > 0.5 ? 0.35 : 0) - 0.8
+    const feet = Math.pow(1 - Math.sin(angle), 1.5)
+    const size = thickness * (0.95 + feet * 1.25 + random() * 0.3) * (x < 0 ? 1.12 : 1)
+    const block = new THREE.IcosahedronGeometry(1, 1)
+    roughen(block, seed + i * 13, 0.32, 0.9)
+    block.scale(size * (0.9 + random() * 0.3), size * (0.75 + random() * 0.25), size * (0.85 + random() * 0.3))
+    block.rotateY(random() * Math.PI)
+    block.rotateZ((random() - 0.5) * 0.6)
+    block.translate(x, y, (random() - 0.5) * 0.5)
+    blocks.push(block)
   }
-  roughen(geometry, seed, 0.55, 0.5)
-  // Stretch it up a little and push the feet below the sea
-  geometry.scale(1, 1.1, 1)
-  geometry.translate(0, -1, 0)
+  // The feet run on down into the sea
+  for (const side of [-1, 1]) {
+    const foot = new THREE.IcosahedronGeometry(1, 1)
+    roughen(foot, seed + side * 7, 0.3, 0.8)
+    foot.scale(thickness * 2.1, thickness * 2.4, thickness * 1.9)
+    foot.translate(side * radius * 1.02, -1.6, 0)
+    blocks.push(foot)
+  }
+  const geometry = mergeGeometries(blocks.map(block => (block.index ? block.toNonIndexed() : block)))
   return paintRock(geometry, random, true)
 }
 
