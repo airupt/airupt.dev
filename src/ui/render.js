@@ -87,14 +87,16 @@ function brand() {
   return node
 }
 
+export const isBrandName = name => name.trim().toLowerCase() === 'airupt'
+
 export function renderClassic(profile, sections, colors, onBack) {
   const back = element('button', { class: 'button button-primary classic-back', text: 'Back to the sea' })
   back.addEventListener('click', onBack)
 
   return element('div', { class: 'classic-inner' }, [
     element('header', { class: 'classic-header' }, [
-      brand(),
-      element('h1', { text: profile.name }),
+      isBrandName(profile.name) ? null : brand(),
+      isBrandName(profile.name) ? element('h1', { class: 'brand-title' }, [brand().querySelector('.brand-mark'), profile.name]) : element('h1', { text: profile.name }),
       element('p', { class: 'classic-role', text: `${profile.role}. ${profile.tagline}` }),
       back,
     ]),

@@ -1,6 +1,6 @@
 import { profile, sections } from '../content/portfolio.js'
 import { islands } from '../world/layout.js'
-import { renderSection, renderClassic } from './render.js'
+import { renderSection, renderClassic, isBrandName } from './render.js'
 
 // Each section takes the colour of its island's buoy
 const sectionColors = Object.fromEntries(islands.filter(island => island.section).map(island => [island.section, island.color]))
@@ -52,6 +52,13 @@ export class Overlay {
 
     for (const element of document.querySelectorAll('[data-profile]')) {
       element.textContent = profile[element.dataset.profile] ?? ''
+    }
+    // When the name is the brand itself, the small brand line above the
+    // title would only repeat it: the mark moves into the title instead
+    const loaderBrand = this.loader.querySelector('.brand')
+    if (isBrandName(profile.name)) {
+      loaderBrand.hidden = true
+      this.loader.querySelector('.loader-title').prepend(loaderBrand.querySelector('.brand-mark').cloneNode(true))
     }
     document.title = `${profile.name} · ${profile.role}`
 

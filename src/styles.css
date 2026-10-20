@@ -344,6 +344,15 @@ body {
   text-shadow: 0 4px 0 rgb(13 43 69 / 0.4);
 }
 
+/* The brand mark sitting in front of a title that is the brand name */
+.loader-title .brand-mark,
+.brand-title .brand-mark {
+  width: 0.82em;
+  height: 0.82em;
+  margin-right: 0.18em;
+  vertical-align: -0.04em;
+}
+
 .loader-subtitle {
   margin: 0 0 0.5rem;
   font-size: clamp(1rem, 1.9vw, 1.15rem);
