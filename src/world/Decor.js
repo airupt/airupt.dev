@@ -64,6 +64,40 @@ const setPieces = {
   ],
 }
 
+// A lamp post in the same wood as the docks: a post, a little iron lantern
+// with a pyramid cap. Its light (see Lights.js) sits in the lantern at 1.38 m.
+let lanternGeometry = null
+function createLantern() {
+  if (!lanternGeometry) {
+    const part = (geometry, hex, x, y, z) => {
+      geometry = geometry.index ? geometry.toNonIndexed() : geometry
+      geometry.translate(x, y, z)
+      geometry.deleteAttribute('uv')
+      const color = new THREE.Color(hex)
+      const colors = new Float32Array(geometry.attributes.position.count * 3)
+      for (let i = 0; i < colors.length; i += 3) color.toArray(colors, i)
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+      return geometry
+    }
+    lanternGeometry = mergeGeometries([
+      part(new THREE.BoxGeometry(0.13, 1.22, 0.13), '#6b4630', 0, 0.61, 0),
+      part(new THREE.BoxGeometry(0.22, 0.05, 0.22), '#2f2b33', 0, 1.22, 0),
+      part(new THREE.BoxGeometry(0.06, 0.3, 0.06), '#2f2b33', -0.1, 1.38, -0.1),
+      part(new THREE.BoxGeometry(0.06, 0.3, 0.06), '#2f2b33', 0.1, 1.38, -0.1),
+      part(new THREE.BoxGeometry(0.06, 0.3, 0.06), '#2f2b33', -0.1, 1.38, 0.1),
+      part(new THREE.BoxGeometry(0.06, 0.3, 0.06), '#2f2b33', 0.1, 1.38, 0.1),
+      part(new THREE.BoxGeometry(0.17, 0.24, 0.17), '#ffd59a', 0, 1.38, 0),
+      part(new THREE.ConeGeometry(0.2, 0.16, 4).rotateY(Math.PI / 4), '#2f2b33', 0, 1.61, 0),
+    ])
+  }
+  const mesh = new THREE.Mesh(lanternGeometry, lanternMaterial())
+  mesh.castShadow = true
+  mesh.receiveShadow = true
+  return mesh
+}
+let lanternMaterialCache = null
+const lanternMaterial = () => (lanternMaterialCache ??= createStylizedMaterial({ vertexColors: true, flatShading: true }, { waterLine: false }))
+
 // Set pieces that look the same from every side keep a random turn
 const roundPieces = new Set(['tower', 'lookout', 'barrel', 'lantern', 'campfire', 'flag', 'flag-pennant'])
 
@@ -90,7 +124,11 @@ export class Decor {
     for (const island of islands.list) {
       const random = createRandom(island.seed * 7919)
       const occupied = []
-      if (island.section || island.id === 'home') this.placeDock(island, occupied)
+      if (island.section || island.id === 'home') {
+        this.placeDock(island, occupied)
+        // The section sign stands here (see Signs.js): keep trees off it
+        this.placeSetPiece(island, 'reserve', 2.5, 4, occupied, 3)
+      }
       for (const [id, along, across, radius] of setPieces[island.id] ?? []) this.placeSetPiece(island, id, along, across, occupied, radius)
       // Nothing grows on the footpaths, and trees keep a little back from
       // them so their crowns don't hang over the trail
@@ -120,7 +158,7 @@ export class Decor {
   }
 
   add(id, x, y, z, rotation = 0, scale = 1) {
-    const model = this.models.get(id)
+    const model = id === 'lantern' ? createLantern() : this.models.get(id)
     model.position.set(x, y, z)
     model.rotation.y = rotation
     model.scale.multiplyScalar(scale)
@@ -180,6 +218,12 @@ export class Decor {
 
   scatter(island, random, occupied) {
     const isFree = (x, z, radius) => occupied.every(spot => Math.hypot(spot.x - x, spot.z - z) > spot.radius + radius)
+    // The front yard of a section island, between the beach and its set
+    // pieces, is what the camera looks at when you arrive: nothing tall
+    // grows there to block the view of the dock, sign and plaza
+    const { shore, out } = island
+    const yard = { x: shore.x - out.x * 4, z: shore.z - out.z * 4 }
+    const inYard = (x, z) => (island.section || island.id === 'home') && Math.hypot(x - yard.x, z - yard.z) < 6.5
 
     const tryPlace = (count, minRadius, maxRadius, accept, place) => {
       for (let placed = 0, tries = 0; placed < count && tries < count * 12; tries++) {
@@ -188,7 +232,7 @@ export class Decor {
         const x = island.x + Math.cos(angle) * distance
         const z = island.z + Math.sin(angle) * distance
         const surface = this.islands.surfaceAt(island, x, z)
-        if (!surface || !accept(surface) || !isFree(x, z, 1.4)) continue
+        if (!surface || !accept(surface, x, z) || !isFree(x, z, 1.4)) continue
         place(x, surface.y, z)
         occupied.push({ x, z, radius: 1.4 })
         placed++
@@ -202,7 +246,7 @@ export class Decor {
       amount(Math.round(island.radius * 0.45)),
       0.15,
       0.75,
-      surface => surface.y > (island.sparse ? 0.15 : 0.4) && surface.normalY > 0.8 && !(island.volcano && surface.y > 5),
+      (surface, x, z) => surface.y > (island.sparse ? 0.15 : 0.4) && surface.normalY > 0.8 && !(island.volcano && surface.y > 5) && !inYard(x, z),
       (x, y, z) => this.add(palms[Math.floor(random() * palms.length)], x, y - 0.1, z, random() * Math.PI * 2, 0.75 + random() * 0.4)
     )
 
@@ -218,7 +262,7 @@ export class Decor {
     // Nothing grows on the volcano's ash cone
     const onGrass = surface => surface.y > 0.6 && surface.normalY > 0.75 && !(island.volcano && surface.y > 5)
 
-    tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.15), 0.1, 0.6, onGrass, (x, y, z) => {
+    tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.15), 0.1, 0.6, (surface, x, z) => onGrass(surface) && !inYard(x, z), (x, y, z) => {
       this.foliage.addTree(new THREE.Vector3(x, y - 0.1, z), 2.2 + random() * 1.2, 1.3 + random() * 0.6, pick(treeColors), random)
     })
 
@@ -228,8 +272,5 @@ export class Decor {
       this.foliage.addCluster(new THREE.Vector3(x, y + size * 0.45, z), size, color)
     })
 
-    tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.25), 0.1, 0.8, onGrass, (x, y, z) =>
-      this.add('grass-plant', x, y, z, random() * Math.PI * 2, 1 + random() * 0.8)
-    )
   }
 }

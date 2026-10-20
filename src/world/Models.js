@@ -1,5 +1,6 @@
+import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
-import { createStylizedMaterial, stylizeObject, windGLSL } from './shading.js'
+import { createStylizedMaterial, stylize, stylizeObject, windGLSL } from './shading.js'
 
 // The Kenney kits use different unit sizes; these bring every model to metres
 // and to a size that sits right next to the 3.9 m boat (a barrel waist
@@ -10,10 +11,9 @@ const scales = {
   campfire: 3.4,
   signpost: 4,
   'signpost-single': 4,
-  lantern: 1.3,
   stall: 2.4,
   cart: 2,
-  'hut-roof': 1.4,
+  'hut-roof': 1.12,
   lookout: 1.3,
   anvil: 3.2,
   barrel: 0.62,
@@ -23,8 +23,15 @@ const scales = {
   'fish-large': 4,
 }
 
+// Pale lavender-grey stone turns violet in the tinted shade; warmed to
+// sandstone it stays a soft grey-mauve. Applied once, on its own materials.
+const tints = {
+  tower: '#f1d9bd',
+  lookout: '#efd6b8',
+}
+
 // Models whose tops bend in the wind
-const swaying = ['palm-straight', 'palm-bend', 'palm-detailed-straight', 'palm-detailed-bend', 'grass-plant', 'grass-patch']
+const swaying = ['palm-straight', 'palm-bend', 'palm-detailed-straight', 'palm-detailed-bend']
 
 // Bends vertices by the wind, more the higher they sit in the model
 function sway(shader) {
@@ -73,9 +80,29 @@ export class Models {
     })
   }
 
+  // Gives a model its own tinted copies of its materials (they are shared
+  // with every other model from the same kit)
+  tint(id, source) {
+    if (!tints[id] || source.userData.tinted) return
+    const tint = new THREE.Color(tints[id])
+    const copies = new Map()
+    source.traverse(child => {
+      if (!child.isMesh) return
+      if (!copies.has(child.material)) {
+        // clone() drops the stylised shader hook, so it is stylised again
+        const copy = stylize(child.material.clone())
+        copy.color.multiply(tint)
+        copies.set(child.material, copy)
+      }
+      child.material = copies.get(child.material)
+    })
+    source.userData.tinted = true
+  }
+
   get(id) {
     const source = this.root.getObjectByName(id)
     if (!source) throw new Error(`Unknown model "${id}"`)
+    this.tint(id, source)
     const copy = source.clone()
     copy.position.set(0, 0, 0)
     copy.rotation.set(0, 0, 0)

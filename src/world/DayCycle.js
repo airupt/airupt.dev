@@ -4,10 +4,10 @@ import { shared } from './shading.js'
 const DURATION = 6 * 60 // seconds for a full day
 
 const presets = {
-  // Shadow colours multiply the surface colour: tinted, but not so saturated
-  // that every shadow turns the same electric blue
+  // Shadow colours multiply the surface colour: tinted, but muted enough that
+  // pale stone and paint in shade stay grey-blue rather than turning lavender
   day: {
-    light: '#fff1de', intensity: 1.15, shadow: '#8890e6', bounce: '#38d6e6',
+    light: '#fff1de', intensity: 1.15, shadow: '#8a90c6', bounce: '#38d6e6',
     fogA: '#bff6ff', fogB: '#8f9dff', sun: [-0.5, 0.75, 0.42], night: 0,
   },
   sunset: {

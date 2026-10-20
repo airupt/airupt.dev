@@ -18,8 +18,6 @@ const models = {
   'palm-bend': ['pirate-kit', 'palm-bend'],
   'palm-detailed-straight': ['pirate-kit', 'palm-detailed-straight'],
   'palm-detailed-bend': ['pirate-kit', 'palm-detailed-bend'],
-  'grass-plant': ['pirate-kit', 'grass-plant'],
-  'grass-patch': ['pirate-kit', 'patch-grass-foliage'],
   barrel: ['pirate-kit', 'barrel'],
   crate: ['pirate-kit', 'crate'],
   'crate-bottles': ['pirate-kit', 'crate-bottles'],
@@ -39,7 +37,6 @@ const models = {
   fish: ['survival-kit', 'fish'],
   'fish-large': ['survival-kit', 'fish-large'],
 
-  lantern: ['fantasy-town-kit', 'lantern'],
   stall: ['fantasy-town-kit', 'stall-red'],
   cart: ['fantasy-town-kit', 'cart'],
 }

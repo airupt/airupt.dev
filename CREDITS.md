@@ -24,9 +24,9 @@ All by [Kenney](https://www.kenney.nl), CC0 1.0 (public domain). Thank you, Kenn
 Source files and licence texts are in `assets/kenney/`.
 
 - Watercraft Kit: speedboat, sailboat, fishing boat, houseboat, channel buoys
-- Pirate Kit: palm trees, grass, barrels, crates, flags, lighthouse tower, stone lookout, thatched hut, bottle, shipwreck
+- Pirate Kit: palm trees, barrels, crates, flags, lighthouse tower, stone lookout, thatched hut, bottle, shipwreck
 - Survival Kit: signposts, tent, campfire, anvil bench, fish
-- Fantasy Town Kit: lantern, market stall, cart
+- Fantasy Town Kit: market stall, cart
 
 ## Sound
 
