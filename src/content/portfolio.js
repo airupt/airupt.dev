@@ -11,6 +11,19 @@ export const profile = {
   ],
 }
 
+// Messages in the bottles hidden around the sea, one per bottle. The facts
+// about the site are true; the personal ones are placeholders to replace.
+export const bottles = [
+  'You found a bottle! There are seven more drifting around these islands.',
+  'Every island here is grown from noise in code, not modelled by hand.',
+  'The grass is about 29,000 single triangles, each one turned to face you.',
+  'The sea and the boat share one wave formula, so the boat rides exactly the waves you see.',
+  'Wait for night: the lighthouse lights up and the wake starts to glow.',
+  'Placeholder: a fun fact about you.',
+  'Placeholder: something you are proud of building.',
+  'That was the last one. Thanks for exploring! Say hi on the Contact island.',
+]
+
 export const sections = [
   {
     id: 'about',

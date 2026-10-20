@@ -18,6 +18,8 @@ import { Fish } from './Fish.js'
 import { Birds } from './Birds.js'
 import { ZoneRings } from './ZoneRings.js'
 import { Signs } from './Signs.js'
+import { Props } from './Props.js'
+import { Bottles } from './Bottles.js'
 import { profile, sections } from '../content/portfolio.js'
 
 export class World {
@@ -53,6 +55,8 @@ export class World {
     this.boat.setModel(this.models.get('boat'))
     this.lights = new Lights(this.app, this.decor, this.zones, this.boat)
     this.fish = new Fish(this.app, this.models, this.splashes, this.islands)
+    this.props = new Props(this.app, this.models, this.islands)
+    this.bottles = new Bottles(this.app, this.models, this.splashes)
 
     // Signs are painted with the display font, so wait until it has loaded
     await document.fonts.load('800 96px "Bricolage Grotesque"')
@@ -81,6 +85,7 @@ export class World {
     this.wake.update(delta)
     this.boatEffects.update(delta)
     this.fish?.update(delta)
+    this.bottles?.update(delta)
     this.splashes.setNight(this.dayCycle.night)
     this.splashes.update(delta)
     this.birds.update(delta)

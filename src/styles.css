@@ -258,6 +258,49 @@ body {
   gap: 0.6rem;
 }
 
+.hud-counter {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top));
+  left: 1rem;
+  margin: 0;
+  font: 800 0.95rem/1 var(--font-display);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--lift);
+  padding: 0.7rem 0.9rem;
+}
+
+.toast {
+  position: absolute;
+  left: 1rem;
+  bottom: max(4.5rem, calc(env(safe-area-inset-bottom) + 3.5rem));
+  width: min(340px, calc(100% - 2rem));
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 6px 0 var(--ink);
+  padding: 0.9rem 1.1rem;
+  transform: translateY(calc(100% + 6rem));
+  transition: transform 0.45s cubic-bezier(0.3, 1.4, 0.5, 1);
+  pointer-events: none;
+}
+
+.toast.is-visible {
+  transform: none;
+}
+
+.toast-title {
+  margin: 0 0 0.3rem;
+  font: 800 0.85rem/1 var(--font-display);
+  color: var(--sea);
+}
+
+.toast-text {
+  margin: 0;
+  line-height: 1.45;
+}
+
 .joystick {
   position: absolute;
   left: 1.5rem;

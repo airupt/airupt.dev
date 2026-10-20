@@ -140,8 +140,27 @@ export class Boat {
       const authority = THREE.MathUtils.clamp(Math.abs(forwardSpeed) / 4, 0.3, 1)
       const targetYaw = -input.steer * tuning.turnRate * authority * direction
       const angvel = body.angvel()
-      const blend = 1 - Math.exp(-5 * water * dt)
+      // Firm enough that waves rocking the hull don't slowly turn the boat
+      const blend = 1 - Math.exp(-9 * water * dt)
       body.setAngvel({ x: angvel.x, y: angvel.y + (targetYaw - angvel.y) * blend, z: angvel.z }, true)
+    }
+
+    // Airborne off a ramp or wave: ease the hull back toward level so jumps
+    // end in a landing rather than a backflip
+    if (this.inWater === 0) {
+      up.set(0, 1, 0).applyQuaternion(quaternion)
+      const angvel = body.angvel()
+      const level = 6 * dt
+      const damp = 1 - Math.exp(-3 * dt)
+      // up × worldUp = (-up.z, 0, up.x) is the axis that turns the hull back upright
+      body.setAngvel(
+        {
+          x: angvel.x - angvel.x * damp - up.z * level,
+          y: angvel.y,
+          z: angvel.z - angvel.z * damp + up.x * level,
+        },
+        true
+      )
     }
 
     // Soft border: past the world edge the sea gently pushes you back

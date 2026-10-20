@@ -68,6 +68,22 @@ export class Overlay {
     this.progress.setAttribute('aria-valuenow', percent)
   }
 
+  setBottleCount(count, total) {
+    const counter = document.querySelector('#bottle-counter')
+    counter.hidden = count === 0
+    counter.textContent = `Bottles ${count} / ${total}`
+  }
+
+  // Message card that slides in at the bottom left and leaves on its own
+  toast(text, title) {
+    const toast = document.querySelector('#toast')
+    toast.querySelector('.toast-title').textContent = title
+    toast.querySelector('.toast-text').textContent = text
+    toast.classList.add('is-visible')
+    clearTimeout(this.toastTimer)
+    this.toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 7000)
+  }
+
   // Quick wave of colour across the screen to hide a jump cut (respawn)
   wipe() {
     this.wipeElement ??= Object.assign(document.createElement('div'), { className: 'wipe' })
@@ -182,6 +198,9 @@ export class Overlay {
       const x = (projected.x * 0.5 + 0.5) * width
       const y = (-projected.y * 0.5 + 0.5) * height
       label.element.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`
+      // Up close the painted sign on the island takes over; labels guide from afar
+      const distance = camera.position.distanceTo(label.position)
+      label.element.style.opacity = Math.min(Math.max((distance - 48) / 14, 0), 1)
     }
   }
 }
