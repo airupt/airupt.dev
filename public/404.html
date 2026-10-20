@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lost at sea · airupt</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      @font-face {
+        font-family: 'Bricolage Grotesque';
+        src: url('/fonts/bricolage-grotesque.woff2') format('woff2');
+        font-weight: 200 800;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Figtree';
+        src: url('/fonts/figtree.woff2') format('woff2');
+        font-weight: 300 900;
+        font-display: swap;
+      }
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 1.5rem;
+        box-sizing: border-box;
+        background: radial-gradient(circle at 50% 30%, #1d61a3, #0d2b45 70%);
+        color: #f4f1ea;
+        font: 400 1.05rem/1.5 'Figtree', system-ui, sans-serif;
+        text-align: center;
+      }
+      h1 {
+        margin: 0 0 0.5rem;
+        font: 800 clamp(2.4rem, 8vw, 4rem) / 1 'Bricolage Grotesque', system-ui, sans-serif;
+        letter-spacing: -0.03em;
+      }
+      p {
+        margin: 0 0 1.6rem;
+        opacity: 0.85;
+      }
+      a {
+        display: inline-block;
+        padding: 0.8rem 1.4rem;
+        border-radius: 12px;
+        background: #e8543a;
+        color: #fff;
+        font: 800 1rem/1 'Bricolage Grotesque', system-ui, sans-serif;
+        text-decoration: none;
+        box-shadow: 0 5px 0 #a8341f;
+      }
+      a:active {
+        transform: translateY(3px);
+        box-shadow: 0 2px 0 #a8341f;
+      }
+      a:focus-visible {
+        outline: 3px solid #fff;
+        outline-offset: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Lost at sea</h1>
+      <p>There's no island at this address.</p>
+      <a href="/">Back to the harbour</a>
+    </main>
+  </body>
+</html>
