@@ -39,7 +39,11 @@ export class MapView {
       if (!title) continue
       const group = svg('g', { transform: `translate(${island.x} ${island.z})` })
       if (island.color) group.append(svg('circle', { r: 3.4, class: 'map-pin', fill: island.color }))
-      const label = svg('text', { class: 'map-label', transform: `rotate(-45) translate(0 ${-island.radius * 0.75 - 4})` })
+      // Above the island, unless that would run off the top of the round chart
+      const chartY = Math.SQRT1_2 * (island.x + island.z)
+      const above = chartY - island.radius * 0.75 - 12 > -EXTENT * 0.9
+      const offset = above ? -island.radius * 0.75 - 4 : island.radius * 0.75 + 10
+      const label = svg('text', { class: 'map-label', transform: `rotate(-45) translate(0 ${offset})` })
       label.textContent = title
       group.append(label)
       this.content.append(group)
