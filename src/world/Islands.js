@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import RAPIER from '@dimforge/rapier3d-compat'
 import { islands as layout, spawn } from './layout.js'
 import { fbm, hash2, smoothstep } from '../utils/noise.js'
+import { createStylizedMaterial } from './shading.js'
 
 const raycaster = new THREE.Raycaster()
 const rayOrigin = new THREE.Vector3()
@@ -74,7 +75,7 @@ function paint(geometry, seed) {
 export class Islands {
   constructor(app) {
     this.app = app
-    this.material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 })
+    this.material = createStylizedMaterial({ vertexColors: true, flatShading: true })
     this.list = layout.map(definition => this.create(definition))
   }
 

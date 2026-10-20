@@ -6,7 +6,9 @@ import { Inputs } from './Inputs.js'
 import { Physics } from './Physics.js'
 import { CameraRig } from './CameraRig.js'
 import { Sounds } from './Sounds.js'
+import { PostProcessing } from './PostProcessing.js'
 import { World } from '../world/World.js'
+import { shared } from '../world/shading.js'
 
 // Owns the renderer and wires every system together. Systems receive this
 // object and read what they need from it instead of importing each other.
@@ -40,7 +42,9 @@ export class Experience {
 
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFShadowMap
-    this.renderer.toneMapping = THREE.NeutralToneMapping
+    // Colours are art-directed in the stylised shader; tone mapping would only wash them out
+    this.renderer.toneMapping = THREE.NoToneMapping
+    this.postProcessing = new PostProcessing(this)
     this.resize()
     this.viewport.onResize(() => this.resize())
 
@@ -56,7 +60,7 @@ export class Experience {
     this.ticker.add(delta => this.cameraRig.update(delta), 30)
     this.ticker.add(delta => this.sounds.update(delta), 35)
     this.ticker.add(() => this.overlay.update(), 40)
-    this.ticker.add(() => this.render(), 100)
+    this.ticker.add(delta => this.render(delta), 100)
     this.ticker.start()
 
     this.overlay.ready(() => {
@@ -67,14 +71,18 @@ export class Experience {
   }
 
   resize() {
-    const { width, height, pixelRatio } = this.viewport
+    const { width, height } = this.viewport
+    // The tilt-shift blur hides softness, so post-processing can run below full retina resolution
+    const pixelRatio = Math.min(this.viewport.pixelRatio, 1.5)
     this.renderer.setPixelRatio(pixelRatio)
     this.renderer.setSize(width, height, false)
+    this.postProcessing.resize(width, height, pixelRatio)
     this.cameraRig.resize(width, height)
+    shared.uResolution.value.set(width * pixelRatio, height * pixelRatio)
   }
 
-  render() {
+  render(delta) {
     if (this.paused) return
-    this.renderer.render(this.scene, this.cameraRig.camera)
+    this.postProcessing.render(delta)
   }
 }

@@ -1,4 +1,5 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { stylizeObject } from './shading.js'
 
 // The Kenney kits use different unit sizes; these bring every model to metres
 const scales = {
@@ -21,6 +22,7 @@ export class Models {
       if (event.lengthComputable) onProgress(event.loaded / event.total)
     })
     this.root = gltf.scene
+    stylizeObject(this.root)
     this.root.traverse(child => {
       if (!child.isMesh) return
       child.castShadow = true

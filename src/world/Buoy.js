@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import RAPIER from '@dimforge/rapier3d-compat'
 import { applyBuoyancy } from './buoyancy.js'
+import { createStylizedMaterial } from './shading.js'
 
 // Points spread wider than the buoy itself: lift pushing from close under the
 // centre would tip a narrow buoy over like a pencil balanced on a fingertip
@@ -10,8 +11,8 @@ const FLOAT_POINTS = [0, 1, 2, 3].map(i => {
 })
 
 function createModel(color) {
-  const material = new THREE.MeshStandardMaterial({ color, flatShading: true })
-  const white = new THREE.MeshStandardMaterial({ color: '#ffffff', flatShading: true })
+  const material = createStylizedMaterial({ color, flatShading: true })
+  const white = createStylizedMaterial({ color: '#ffffff', flatShading: true })
 
   const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.48, 0.9, 8), material)
   const band = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.46, 0.18, 8), white)

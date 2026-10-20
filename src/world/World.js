@@ -7,6 +7,7 @@ import { Zones } from './Zones.js'
 import { Wake } from './Wake.js'
 import { Models } from './Models.js'
 import { Decor } from './Decor.js'
+import { shared } from './shading.js'
 import { profile, sections } from '../content/portfolio.js'
 
 export class World {
@@ -36,6 +37,7 @@ export class World {
 
   update(delta) {
     const focus = this.app.cameraRig.focus
+    shared.uTime.value = this.app.physics.renderTime
     this.boat.update(delta)
     this.wake.update(delta)
     this.ocean.update(focus)
