@@ -2,11 +2,12 @@ import * as THREE from 'three'
 import { shared } from './shading.js'
 import { waveHeightGLSL } from './waves.js'
 
-const RADIUS = 4.5
+const REACH = 6 // metres the ripples travel from the buoy
+const PLANE = 16
 
-// A soft ring of light riding the waves around each section zone, in the
-// section colour. It breathes gently, brightens while the boat is inside and
-// sends a ripple outward the moment it enters.
+// Calm ripples spreading from each section buoy in the section colour: a
+// quiet "something here" in open water. Inside the zone they come faster and
+// brighter, and entering sends one stronger pulse.
 export class ZoneRings {
   constructor(app, zones) {
     this.zones = zones
@@ -16,17 +17,18 @@ export class ZoneRings {
         depthWrite: false,
         uniforms: {
           uTime: shared.uTime,
-          uColor: { value: new THREE.Color(zone.buoy.color) },
+          uColor: { value: new THREE.Color(zone.buoy.color).lerp(new THREE.Color('#ffffff'), 0.45) },
+          uBuoy: { value: new THREE.Vector2() },
           uActive: { value: 0 },
-          uRipple: { value: 1 },
+          uPulse: { value: 1 },
         },
         vertexShader: /* glsl */ `
           uniform float uTime;
-          varying vec2 vLocal;
+          varying vec2 vWorld;
           ${waveHeightGLSL()}
           void main() {
-            vLocal = position.xz;
             vec4 world = modelMatrix * vec4(position, 1.0);
+            vWorld = world.xz;
             world.y = waveHeight(world.xz, uTime) + 0.1;
             gl_Position = projectionMatrix * viewMatrix * world;
           }
@@ -34,32 +36,34 @@ export class ZoneRings {
         fragmentShader: /* glsl */ `
           uniform float uTime;
           uniform vec3 uColor;
+          uniform vec2 uBuoy;
           uniform float uActive;
-          uniform float uRipple;
-          varying vec2 vLocal;
+          uniform float uPulse;
+          varying vec2 vWorld;
           void main() {
-            float radius = length(vLocal) / ${RADIUS.toFixed(1)};
-            float breathe = sin(uTime * 2.0) * 0.03;
-            // Soft band at the edge of the zone
-            float band = smoothstep(0.78 + breathe, 0.95, radius) * (1.0 - smoothstep(0.97, 1.08 + breathe, radius));
-            // Faint fill inside, so the zone reads as a place, not a line
-            float fill = (1.0 - smoothstep(0.0, 0.95, radius)) * 0.12 * uActive;
-            // Entry ripple travelling outward
-            float ripple = smoothstep(0.08, 0.0, abs(radius - (0.9 + uRipple * 0.9))) * (1.0 - uRipple);
-            float alpha = band * (0.4 + uActive * 0.45) + fill + ripple * 0.8;
-            vec3 color = mix(uColor, vec3(1.0), 0.45) * (1.0 + uActive * 0.6 + ripple);
-            gl_FragColor = vec4(color, alpha);
+            float range = length(vWorld - uBuoy);
+            float alpha = 0.0;
+            float speed = mix(0.42, 0.7, uActive);
+            for (int i = 0; i < 3; i++) {
+              float phase = fract(uTime * speed / 2.4 + float(i) / 3.0);
+              float radius = 0.6 + phase * ${REACH.toFixed(1)};
+              float ring = 1.0 - smoothstep(0.0, 0.16, abs(range - radius));
+              alpha += ring * (1.0 - phase) * (0.3 + uActive * 0.35);
+            }
+            // One wide, bright ring travelling out when the boat sails in
+            float pulseRadius = 0.6 + uPulse * ${(REACH * 1.4).toFixed(1)};
+            alpha += (1.0 - smoothstep(0.0, 0.3, abs(range - pulseRadius))) * (1.0 - uPulse) * 0.8;
+            gl_FragColor = vec4(uColor, clamp(alpha, 0.0, 0.9));
             #include <colorspace_fragment>
           }
         `,
       })
 
-      // Finely subdivided so every part of the ring rides the waves; a coarse
-      // disc would sag between its vertices and dip under the swell
-      const geometry = new THREE.PlaneGeometry(RADIUS * 2.5, RADIUS * 2.5, 40, 40)
+      // Subdivided so the ripples ride the swell
+      const geometry = new THREE.PlaneGeometry(PLANE * 2, PLANE * 2, 64, 64)
       geometry.rotateX(-Math.PI / 2)
       const mesh = new THREE.Mesh(geometry, material)
-      mesh.position.set(zone.x, 0, zone.z)
+      mesh.position.set(zone.buoy.anchor.x, 0, zone.buoy.anchor.z)
       mesh.frustumCulled = false
       app.scene.add(mesh)
       return { zone, material }
@@ -70,9 +74,11 @@ export class ZoneRings {
     for (const { zone, material } of this.rings) {
       const uniforms = material.uniforms
       const active = this.zones.active === zone
-      if (active && uniforms.uActive.value < 0.05) uniforms.uRipple.value = 0
-      uniforms.uActive.value += ((active ? 1 : 0) - uniforms.uActive.value) * (1 - Math.exp(-6 * delta))
-      uniforms.uRipple.value = Math.min(1, uniforms.uRipple.value + delta * 1.2)
+      const buoy = zone.buoy.object.position
+      uniforms.uBuoy.value.set(buoy.x, buoy.z)
+      if (active && uniforms.uActive.value < 0.05) uniforms.uPulse.value = 0
+      uniforms.uActive.value += ((active ? 1 : 0) - uniforms.uActive.value) * (1 - Math.exp(-5 * delta))
+      uniforms.uPulse.value = Math.min(1, uniforms.uPulse.value + delta * 0.9)
     }
   }
 }

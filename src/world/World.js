@@ -50,6 +50,12 @@ export class World {
     this.zones = new Zones(app, this.islands)
     this.zoneRings = new ZoneRings(app, this.zones)
 
+    const volcano = this.islands.list.find(island => island.volcano)
+    if (volcano) {
+      app.cameraRig.attractPoint = new THREE.Vector3(volcano.x, 0, volcano.z)
+      app.cameraRig.focus.copy(app.cameraRig.attractPoint).addScaledVector(app.cameraRig.screenUp, -8)
+    }
+
     for (const island of this.islands.list) {
       const text =
         island.label === 'name'

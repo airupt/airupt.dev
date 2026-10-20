@@ -82,8 +82,9 @@ export class Overlay {
 
   setProgress(value) {
     const percent = Math.round(value * 100)
-    this.progress.style.setProperty('--progress', `${percent}%`)
     this.progress.setAttribute('aria-valuenow', percent)
+    // The Set sail button fills up as the world loads
+    this.startButton.style.setProperty('--progress', `${percent}%`)
   }
 
   setBottleCount(count, total) {

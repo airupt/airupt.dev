@@ -293,7 +293,7 @@ body {
 }
 
 .loader.is-live {
-  background: radial-gradient(ellipse 70% 60% at center, rgb(13 43 69 / 0.45) 0%, rgb(13 43 69 / 0.15) 60%, rgb(13 43 69 / 0.35) 100%);
+  background: linear-gradient(180deg, rgb(13 43 69 / 0) 40%, rgb(13 43 69 / 0.25) 100%);
 }
 
 .loader.is-hidden {
@@ -301,12 +301,16 @@ body {
   visibility: hidden;
 }
 
+/* A soft scrim only behind the text, so the world around stays clear */
 .loader-content {
   display: grid;
   justify-items: center;
-  gap: 1.1rem;
+  gap: 1rem;
   text-align: center;
   max-width: 760px;
+  padding: 3rem 4rem;
+  background: radial-gradient(ellipse closest-side, rgb(8 22 44 / 0.55), rgb(8 22 44 / 0));
+  margin-top: 22vh;
 }
 
 .loader .brand {
@@ -316,7 +320,7 @@ body {
 
 .loader-title {
   margin: 0.2rem 0 0;
-  font: 800 clamp(3rem, 11vw, 7.5rem) / 0.95 var(--font-display);
+  font: 800 clamp(2.6rem, 7.5vw, 4.6rem) / 0.95 var(--font-display);
   letter-spacing: -0.035em;
   text-shadow: 0 6px 0 rgb(13 43 69 / 0.35);
 }
@@ -328,25 +332,20 @@ body {
   text-shadow: 0 2px 8px rgb(13 43 69 / 0.5);
 }
 
+/* The progress lives inside the button: it fills up, then becomes Set sail */
 .loader-progress {
-  width: min(260px, 70vw);
-  height: 6px;
-  border-radius: 3px;
-  background: rgb(255 255 255 / 0.3);
+  position: absolute;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
-  transition: opacity 0.4s ease;
+  clip-path: inset(50%);
 }
 
-.loader-progress span {
-  display: block;
-  height: 100%;
-  width: var(--progress, 0%);
-  background: #fff;
-  transition: width 0.3s ease;
-}
-
-.loader.is-ready .loader-progress {
-  opacity: 0;
+#start:disabled {
+  filter: none;
+  opacity: 1;
+  color: rgb(255 255 255 / 0.9);
+  background: linear-gradient(90deg, var(--accent-strong) var(--progress, 0%), #9c4a39 var(--progress, 0%));
 }
 
 /* Island labels: only visible for distant islands */

@@ -15,8 +15,8 @@ export class CameraRig {
     this.screenUp = new THREE.Vector3(-this.direction.x, 0, -this.direction.z).normalize()
     this.screenRight = new THREE.Vector3(-this.screenUp.z, 0, this.screenUp.x)
     this.limits = { min: 24, max: 80, start: 46 }
-    this.distance = 105
-    this.targetDistance = 105
+    this.distance = 100
+    this.targetDistance = 100
     this.focus = new THREE.Vector3()
     this.lookAhead = new THREE.Vector3()
     // When set, the camera frames this point instead of following the boat
@@ -64,8 +64,12 @@ export class CameraRig {
     const boat = this.app.world.boat
 
     if (this.attract) {
-      this.attractTime += delta * 0.05
-      desired.set(Math.cos(this.attractTime) * 22, 0, Math.sin(this.attractTime) * 22 - 10)
+      // Behind the loader: Mount Airupt and its plume, drifting gently, with
+      // the volcano high in the frame so the title sits over open water
+      this.attractTime += delta
+      desired.copy(this.attractPoint ?? desired.set(0, 0, 0))
+      desired.addScaledVector(this.screenUp, -8)
+      desired.addScaledVector(this.screenRight, Math.sin(this.attractTime * 0.08) * 6)
     } else if (this.override) {
       desired.copy(this.override)
     } else {

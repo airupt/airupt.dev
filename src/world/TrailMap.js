@@ -146,7 +146,7 @@ export class TrailMap {
     this.hull.position.set(position.x - nextX, -(position.z - nextZ), 0)
     this.hull.rotation.z = yaw
     this.hull.scale.set(2.6, 4.6, 1)
-    this.hull.material.uniforms.uStrength.value = inWater * (0.05 + Math.min(speed / 10, 1) * 0.18) * delta * 60
+    this.hull.material.uniforms.uStrength.value = inWater * (0.008 + Math.min(speed / 10, 1) * 0.07) * delta * 60
 
     const wakeStrength = inWater * Math.min(Math.max(speed - 1.5, 0) / 8, 1) * 0.24 * delta * 60
     for (const stamp of this.wakes) {
