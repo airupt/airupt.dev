@@ -9,8 +9,8 @@ export const islands = [
   {
     id: 'home',
     label: 'name',
-    x: 0,
-    z: 0,
+    x: 3.5,
+    z: -2.5,
     radius: 15,
     seed: 3,
     // The bay opens toward the right of the screen, so from the start the
