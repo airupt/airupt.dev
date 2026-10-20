@@ -29,6 +29,10 @@ const setPieces = {
     ['crate-bottles', 2.6, 1.4],
     ['chest', 3.4, 0],
     ['barrel', 2, 4.2],
+    // Room for the project boards (see ProjectBoards.js)
+    ['reserve', 8.8, -5.7, 2.6],
+    ['reserve', 8, -1.5, 2.6],
+    ['reserve', 8.8, 2.7, 2.6],
   ],
   skills: [
     ['stall', 4.5, 2],
@@ -66,7 +70,7 @@ export class Decor {
       const random = createRandom(island.seed * 7919)
       const occupied = []
       if (island.section || island.id === 'home') this.placeDock(island, occupied)
-      for (const [id, along, across] of setPieces[island.id] ?? []) this.placeSetPiece(island, id, along, across, occupied)
+      for (const [id, along, across, radius] of setPieces[island.id] ?? []) this.placeSetPiece(island, id, along, across, occupied, radius)
       this.scatter(island, random, occupied)
     }
 
@@ -133,10 +137,15 @@ export class Decor {
     }
   }
 
-  placeSetPiece(island, id, along, across, occupied) {
+  placeSetPiece(island, id, along, across, occupied, radius) {
     const { shore, out } = island
     const x = shore.x - out.x * along + out.z * across
     const z = shore.z - out.z * along - out.x * across
+    // A reserved spot only keeps scattered plants away; something else builds there
+    if (id === 'reserve') {
+      occupied.push({ x, z, radius })
+      return
+    }
     const surface = this.islands.surfaceAt(island, x, z)
     if (!surface) return
     this.add(id, x, surface.y, z, Math.atan2(out.x, out.z))

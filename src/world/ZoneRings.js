@@ -54,7 +54,9 @@ export class ZoneRings {
         `,
       })
 
-      const geometry = new THREE.CircleGeometry(RADIUS * 2, 64)
+      // Finely subdivided so every part of the ring rides the waves; a coarse
+      // disc would sag between its vertices and dip under the swell
+      const geometry = new THREE.PlaneGeometry(RADIUS * 2.5, RADIUS * 2.5, 40, 40)
       geometry.rotateX(-Math.PI / 2)
       const mesh = new THREE.Mesh(geometry, material)
       mesh.position.set(zone.x, 0, zone.z)

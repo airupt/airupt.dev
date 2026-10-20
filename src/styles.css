@@ -198,6 +198,13 @@ body {
   transform: none;
 }
 
+/* No hover on touch screens, and a tooltip stuck on a focused button only gets in the way */
+@media (hover: none) {
+  .icon-button[data-tooltip]::after {
+    display: none;
+  }
+}
+
 #sound-toggle .icon-off,
 #sound-toggle[aria-pressed='false'] .icon-on {
   display: none;

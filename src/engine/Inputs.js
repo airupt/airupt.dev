@@ -141,11 +141,15 @@ export class Inputs {
 
     element.addEventListener('pointerdown', event => {
       pointerId = event.pointerId
-      element.setPointerCapture(pointerId)
       const rect = element.getBoundingClientRect()
       center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, radius: rect.width / 2 }
       this.lastDevice = 'touch'
       move(event)
+      try {
+        element.setPointerCapture(pointerId)
+      } catch {
+        // Capture can fail for synthetic or already-released pointers; dragging still works
+      }
     })
     element.addEventListener('pointermove', event => {
       if (event.pointerId === pointerId) move(event)

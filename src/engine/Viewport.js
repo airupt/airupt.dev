@@ -12,7 +12,8 @@ export class Viewport {
     this.width = window.innerWidth
     this.height = window.innerHeight
     this.pixelRatio = Math.min(window.devicePixelRatio, 2)
-    this.isTouch = window.matchMedia('(pointer: coarse)').matches
+    // ?touch=1 forces the touch interface, for testing on a desktop browser
+    this.isTouch = window.matchMedia('(pointer: coarse)').matches || new URLSearchParams(window.location.search).has('touch')
   }
 
   onResize(listener) {

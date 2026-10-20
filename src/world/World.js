@@ -22,6 +22,7 @@ import { Props } from './Props.js'
 import { Bottles } from './Bottles.js'
 import { Smoke } from './Smoke.js'
 import { Seascape } from './Seascape.js'
+import { ProjectBoards } from './ProjectBoards.js'
 import { profile, sections } from '../content/portfolio.js'
 
 const seeThroughPoint = new THREE.Vector3()
@@ -118,8 +119,9 @@ export class World {
     this.seascape = new Seascape(this.app, this.models, this.props, this.zones)
     this.bottles = new Bottles(this.app, this.models, this.splashes)
 
-    // Signs are painted with the display font, so wait until it has loaded
-    await document.fonts.load('800 96px "Bricolage Grotesque"')
+    // Signs and boards are painted with the site fonts, so wait until they have loaded
+    await Promise.all([document.fonts.load('800 96px "Bricolage Grotesque"'), document.fonts.load('600 30px "Figtree"')])
+    this.projectBoards = new ProjectBoards(this.app, this.islands)
     this.signs = new Signs(
       this.app,
       this.islands,

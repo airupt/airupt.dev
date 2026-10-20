@@ -49,5 +49,7 @@ On touch devices an on-screen joystick appears.
 - In dev mode the app is available in the console as `window.experience`.
 - `?time=0.6` starts at another time of day: 0 to 1, where 0.5 is sunset and 0.7 is night.
 - `?quality=low` or `?quality=high` forces a quality level.
+- `?touch=1` forces the touch interface (joystick, tap prompts).
+- http://localhost:5173/scripts/phone.html shows the site in a 390×844 phone frame with touch forced on (dev only, not built).
 
 See `CREDITS.md` for licences.
