@@ -21,7 +21,7 @@ const scenes = {
   // A camp: tent behind the fire, log seats round it
   about: {
     hero: 'campfire',
-    reach: 2.4,
+    reach: 0.6,
     plaza: 2.7,
     plazaAtHero: true,
     props: [
@@ -148,19 +148,56 @@ export function planIsland(island, rig) {
   const facing = (point, how) =>
     how === 'camera' ? cameraFacing : how === 'hero' ? toward(point, hero) : how === 'sea' ? Math.atan2(out.x, out.z) : toward(point, plaza)
 
-  const items = []
-  if (scene.hero) items.push({ id: scene.hero, ...hero, rotation: toward(hero, plaza) })
-  for (const [id, dx, dy, how] of scene.props) {
-    const point = at(dx, dy, footprints[id])
-    items.push({ id, ...point, rotation: facing(point, how) })
-  }
-
   // Lamps either side of the dock head; the sign beside the path, on the
-  // side away from the hero
+  // side away from the hero. The sign may stand on the ramp: its posts reach
+  // well into the ground.
   const lamps = [-1, 1].map(direction => fromShore(0.7, direction * 1.4))
   const heroSide = toLocal(hero).across
-  // The sign may stand on the ramp: its posts reach well into the ground
   const sign = fromShore(2, (heroSide >= 0 ? -1 : 1) * 3.4)
+  // Things the props must keep clear of but never move
+  const fixed = [{ ...sign, radius: 2.4 }, ...lamps.map(lamp => ({ ...lamp, radius: 0.5 }))]
+
+  const items = []
+  if (scene.hero) items.push({ id: scene.hero, ...hero, how: null })
+  for (const [id, dx, dy, how] of scene.props) items.push({ id, ...at(dx, dy, footprints[id]), how })
+
+  // Pulling things back onto the yard can push them into each other: nudge
+  // apart anything closer than its footprint allows (the hero stays put)
+  for (let pass = 0; pass < 6; pass++) {
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const a = items[i]
+        const b = items[j]
+        const dx = b.x - a.x
+        const dz = b.z - a.z
+        const distance = Math.hypot(dx, dz) || 0.01
+        const needed = (footprints[a.id] ?? 1) + (footprints[b.id] ?? 1) + 0.15
+        if (distance >= needed) continue
+        const push = needed - distance
+        const share = i === 0 && scene.hero ? 1 : 0.5
+        b.x += (dx / distance) * push * share
+        b.z += (dz / distance) * push * share
+        if (share < 1) {
+          a.x -= (dx / distance) * push * 0.5
+          a.z -= (dz / distance) * push * 0.5
+        }
+      }
+    }
+    for (const item of items.slice(scene.hero ? 1 : 0)) {
+      for (const obstacle of fixed) {
+        const dx = item.x - obstacle.x
+        const dz = item.z - obstacle.z
+        const distance = Math.hypot(dx, dz) || 0.01
+        const needed = obstacle.radius + (footprints[item.id] ?? 1) + 0.15
+        if (distance >= needed) continue
+        item.x += (dx / distance) * (needed - distance)
+        item.z += (dz / distance) * (needed - distance)
+      }
+      Object.assign(item, settle(item, footprints[item.id] ?? 1))
+    }
+  }
+  for (const item of items) item.rotation = item.how ? facing(item, item.how) : toward(item, plaza)
+
 
   const boards = (scene.boards ?? []).map(([dx, dy], index) => {
     const point = at(dx, dy, footprints.board)
