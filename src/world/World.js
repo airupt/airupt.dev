@@ -25,6 +25,7 @@ import { Seascape } from './Seascape.js'
 import { RockField } from './Rocks.js'
 import { bakeContactShadows } from './ContactShadows.js'
 import { Reactions } from './Reactions.js'
+import { Guide } from './Guide.js'
 import { ProjectBoards } from './ProjectBoards.js'
 import { profile, sections } from '../content/portfolio.js'
 
@@ -161,6 +162,7 @@ export class World {
     )
 
     this.reactions = new Reactions(this.app, this)
+    this.guide = new Guide(this.app, this.zones, this.reactions)
 
     // Now everything stands where it will stay: darken the ground under it
     this.islands.uniforms.uContactMap.value = bakeContactShadows([
@@ -192,6 +194,7 @@ export class World {
     this.projectBoards?.update(delta)
     this.signs?.update(delta)
     this.reactions?.update(delta)
+    this.guide?.update(delta)
     this.props?.instances.update()
     this.ocean.update(focus)
     this.sky.update(focus, this.app.cameraRig.distance)
