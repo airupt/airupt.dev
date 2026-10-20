@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+.DS_Store
+.env*
+!.env.example
+
+# Research captures and raw generations are large binaries; keep them local.
+research/teardown/
+research/higgsfield/
