@@ -5,11 +5,14 @@ import { Islands } from './Islands.js'
 import { Boat } from './Boat.js'
 import { Zones } from './Zones.js'
 import { Wake } from './Wake.js'
+import { Models } from './Models.js'
+import { Decor } from './Decor.js'
 import { profile, sections } from '../content/portfolio.js'
 
 export class World {
   constructor(app) {
     this.app = app
+    this.models = new Models()
     this.sky = new Sky(app)
     this.ocean = new Ocean(app)
     this.islands = new Islands(app)
@@ -26,8 +29,9 @@ export class World {
   }
 
   async load(onProgress) {
-    // Models and sounds get loaded here once the asset packs are in
-    onProgress(1)
+    await this.models.load('/models/world.glb', onProgress)
+    this.decor = new Decor(this.app, this.islands, this.models)
+    this.boat.setModel(this.models.get('boat'))
   }
 
   update(delta) {

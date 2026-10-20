@@ -1,10 +1,10 @@
 import { Buoy } from './Buoy.js'
-import { spawn } from './layout.js'
+import { DOCK_TILE, DOCK_TILES } from './Decor.js'
 
 const RADIUS = 9
 
-// A zone sits just off each section island, on the side facing the start.
-// Sailing into one offers to open that section.
+// Each section island has a zone at the end of its dock, marked by a buoy
+// in the section colour. Sailing into it offers to open that section.
 export class Zones {
   constructor(app, islands) {
     this.app = app
@@ -13,12 +13,13 @@ export class Zones {
 
     for (const island of islands.list) {
       if (!island.section) continue
-      const dx = spawn.x - island.x
-      const dz = spawn.z - island.z
-      const length = Math.hypot(dx, dz)
-      const x = island.x + (dx / length) * island.radius * 1.12
-      const z = island.z + (dz / length) * island.radius * 1.12
-      this.list.push({ section: island.section, x, z, buoy: new Buoy(app, { x, z, color: island.color }) })
+      const { shore, out } = island
+      const reach = DOCK_TILES * DOCK_TILE + 1.5
+      const x = shore.x + out.x * reach
+      const z = shore.z + out.z * reach
+      // Buoy sits beside the dock end so the boat can pull right up to it
+      const buoy = new Buoy(app, { x: x + out.z * 3, z: z - out.x * 3, color: island.color })
+      this.list.push({ section: island.section, x, z, buoy })
     }
 
     app.inputs.on('interact', () => {

@@ -13,6 +13,9 @@ const FLOAT_POINTS = [
   new THREE.Vector3(0.6, -0.3, 1.2),
 ]
 
+// Turns the loaded model so its bow points along -Z
+const MODEL_ROTATION = Math.PI
+
 // Thrust pushes from the stern, a little under the centre, so the bow lifts
 const THRUST_POINT = new THREE.Vector3(0, -0.15, 1.3)
 
@@ -91,6 +94,9 @@ export class Boat {
   }
 
   setModel(model) {
+    // Kenney models stand on y = 0; line the keel up with the bottom of the hull box
+    model.position.y = -HULL.y
+    model.rotation.y = MODEL_ROTATION
     this.lean.clear()
     this.lean.add(model)
   }

@@ -1,7 +1,11 @@
 import * as THREE from 'three'
 import RAPIER from '@dimforge/rapier3d-compat'
-import { islands as layout } from './layout.js'
+import { islands as layout, spawn } from './layout.js'
 import { fbm, hash2, smoothstep } from '../utils/noise.js'
+
+const raycaster = new THREE.Raycaster()
+const rayOrigin = new THREE.Vector3()
+const down = new THREE.Vector3(0, -1, 0)
 
 const palette = {
   wetSand: new THREE.Color('#c9ad72'),
@@ -91,11 +95,39 @@ export class Islands {
     mesh.position.set(definition.x, 0, definition.z)
     mesh.castShadow = true
     mesh.receiveShadow = true
+    mesh.updateMatrixWorld()
     this.app.scene.add(mesh)
 
     let top = 0
     for (let i = 1; i < vertices.length; i += 3) top = Math.max(top, vertices[i])
 
-    return { ...definition, mesh, top }
+    const island = { ...definition, mesh, top }
+    this.findShore(island)
+    return island
+  }
+
+  // Ground height and steepness at a world position, or null off the island
+  surfaceAt(island, x, z) {
+    raycaster.set(rayOrigin.set(x, 50, z), down)
+    const hit = raycaster.intersectObject(island.mesh, false)[0]
+    return hit ? { y: hit.point.y, normalY: hit.face.normal.y } : null
+  }
+
+  // Walks from the centre toward the start point until the ground meets the
+  // sea. Docks and section buoys are placed from this point.
+  findShore(island) {
+    const dx = spawn.x - island.x
+    const dz = spawn.z - island.z
+    const length = Math.hypot(dx, dz) || 1
+    island.out = { x: dx / length, z: dz / length }
+    island.shore = { x: island.x, z: island.z }
+
+    for (let distance = 0; distance < island.radius * 1.3; distance += 0.25) {
+      const x = island.x + island.out.x * distance
+      const z = island.z + island.out.z * distance
+      const surface = this.surfaceAt(island, x, z)
+      island.shore = { x, z }
+      if (!surface || surface.y < 0.25) break
+    }
   }
 }
