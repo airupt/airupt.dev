@@ -65,12 +65,9 @@ const scenes = {
   // Mount Airupt's landing: a bench to sit and look back over the islands
   volcano: {
     hero: 'bench',
-    reach: 2,
-    plaza: 1.8,
-    props: [
-      ['barrel', -2.2, 0.4, 'camera'],
-      ['crate', 2, 0.6, 'camera'],
-    ],
+    reach: 1,
+    plaza: 1.4,
+    props: [['barrel', -1.8, 0.3, 'camera']],
   },
   // A lighthouse, a post box and a bench looking out to sea
   contact: {

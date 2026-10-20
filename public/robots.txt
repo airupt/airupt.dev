@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://airupt.dev/sitemap.xml

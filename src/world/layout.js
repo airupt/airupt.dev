@@ -102,7 +102,7 @@ export const islands = [
     volcano: true,
     // A small landing with a lookout bench, so there's a reason to come ashore
     landing: true,
-    yard: [4.6, 5.2, 6.4],
+    yard: [3.2, 3.4, 4.6],
     x: -54,
     z: -47,
     radius: 25,
