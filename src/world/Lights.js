@@ -121,8 +121,20 @@ export class Lights {
     const volcano = islands.list.find(island => island.volcano)
     if (volcano) {
       const [bx, bz] = volcano.blobs[0]
-      this.lava = new Glow(app.scene, new THREE.Vector3(volcano.x + bx, volcano.top - 3.6, volcano.z + bz), '#ff5a1a', 1.9)
-      this.lava.mesh.scale.y = 0.35
+      this.lava = new Glow(app.scene, new THREE.Vector3(volcano.x + bx, volcano.top - 3.4, volcano.z + bz), '#ff5a1a', 1)
+      // An irregular pool rather than a perfect polygon: a disc with a ragged
+      // rim, slightly domed so it catches the eye from the camera's angle
+      const pool = new THREE.CircleGeometry(1.9, 14)
+      const position = pool.attributes.position
+      for (let i = 1; i < position.count; i++) {
+        const wobble = 0.72 + ((Math.sin(i * 12.9898) * 43758.5453) % 1 + 1) % 1 * 0.42
+        position.setXY(i, position.getX(i) * wobble, position.getY(i) * wobble)
+      }
+      position.setZ(0, 0.25)
+      pool.rotateX(-Math.PI / 2)
+      pool.computeVertexNormals()
+      this.lava.mesh.geometry.dispose()
+      this.lava.mesh.geometry = pool
     }
 
     for (const { id, model } of decor.placed) {
