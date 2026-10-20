@@ -39,6 +39,8 @@ const models = {
   'signpost-single': ['survival-kit', 'signpost-single'],
   tent: ['survival-kit', 'tent'],
   campfire: ['survival-kit', 'campfire-pit'],
+  fish: ['survival-kit', 'fish'],
+  'fish-large': ['survival-kit', 'fish-large'],
 
   lantern: ['fantasy-town-kit', 'lantern'],
   stall: ['fantasy-town-kit', 'stall-red'],

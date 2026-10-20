@@ -12,6 +12,8 @@ const scales = {
   stall: 2.4,
   cart: 2,
   banner: 2.4,
+  fish: 4.5,
+  'fish-large': 4,
 }
 
 // Models whose tops bend in the wind

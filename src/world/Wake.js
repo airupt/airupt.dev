@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { waveHeight } from './waves.js'
+import { shared } from './shading.js'
 
 const MAX_POINTS = 40
 const SPACING = 0.7 // metres between trail samples
@@ -29,12 +30,46 @@ export class Wake {
     const geometry = new THREE.BufferGeometry()
     geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3).setUsage(THREE.DynamicDrawUsage))
     geometry.setAttribute('color', new THREE.BufferAttribute(this.colors, 4).setUsage(THREE.DynamicDrawUsage))
+    geometry.setAttribute('aSide', new THREE.BufferAttribute(new Float32Array(vertexCount).map((_, i) => i % 2), 1))
     geometry.setIndex(indices)
 
-    this.mesh = new THREE.Mesh(
-      geometry,
-      new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide })
-    )
+    // Foam, not paint: the two outer edges (the V of a real wake) are the
+    // brightest, the middle is thinner, and noise breaks it into patches
+    const material = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      uniforms: { uColor: { value: new THREE.Color('#ffffff') }, uNoise: shared.uNoise },
+      vertexShader: /* glsl */ `
+        attribute vec4 color;
+        attribute float aSide;
+        varying float vAlpha;
+        varying float vSide;
+        varying vec2 vWorld;
+        void main() {
+          vAlpha = color.a;
+          vSide = aSide;
+          vWorld = position.xz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uColor;
+        uniform sampler2D uNoise;
+        varying float vAlpha;
+        varying float vSide;
+        varying vec2 vWorld;
+        void main() {
+          float profile = mix(0.3, 1.0, pow(abs(vSide * 2.0 - 1.0), 3.0));
+          float foam = texture2D(uNoise, vWorld * 0.17).r * 0.6 + texture2D(uNoise, vWorld * 0.6).g * 0.4;
+          float breakup = smoothstep(0.32, 0.62, foam + vAlpha * 0.35);
+          gl_FragColor = vec4(uColor, vAlpha * profile * breakup);
+          #include <colorspace_fragment>
+        }
+      `,
+    })
+
+    this.mesh = new THREE.Mesh(geometry, material)
     this.mesh.frustumCulled = false
     app.scene.add(this.mesh)
   }
@@ -42,7 +77,7 @@ export class Wake {
   // White foam by day; at night the churned water glows like plankton
   setNight(night) {
     const glow = THREE.MathUtils.smoothstep(night, 0.4, 0.9)
-    this.mesh.material.color.setRGB(1 - glow * 0.7, 1 + glow * 1.2, 1 + glow * 1.6)
+    this.mesh.material.uniforms.uColor.value.setRGB(1 - glow * 0.7, 1 + glow * 1.2, 1 + glow * 1.6)
   }
 
   update(delta) {

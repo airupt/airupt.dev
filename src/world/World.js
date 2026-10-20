@@ -12,6 +12,10 @@ import { Grass } from './Grass.js'
 import { Foliage } from './Foliage.js'
 import { DayCycle } from './DayCycle.js'
 import { Lights } from './Lights.js'
+import { Splashes } from './Splashes.js'
+import { BoatEffects } from './BoatEffects.js'
+import { Fish } from './Fish.js'
+import { Birds } from './Birds.js'
 import { profile, sections } from '../content/portfolio.js'
 
 export class World {
@@ -25,6 +29,9 @@ export class World {
     this.grass = new Grass(app, this.islands)
     this.boat = new Boat(app)
     this.wake = new Wake(app, this.boat)
+    this.splashes = new Splashes(app)
+    this.boatEffects = new BoatEffects(this.boat, this.splashes)
+    this.birds = new Birds(app, this.islands)
     this.zones = new Zones(app, this.islands)
 
     for (const island of this.islands.list) {
@@ -40,6 +47,7 @@ export class World {
     this.decor = new Decor(this.app, this.islands, this.models, new Foliage(this.app))
     this.boat.setModel(this.models.get('boat'))
     this.lights = new Lights(this.app, this.decor, this.zones, this.boat)
+    this.fish = new Fish(this.app, this.models, this.splashes, this.islands)
   }
 
   update(delta) {
@@ -52,6 +60,11 @@ export class World {
     shared.uWindTime.value += delta * 0.1 * shared.uWindStrength.value
     this.boat.update(delta)
     this.wake.update(delta)
+    this.boatEffects.update(delta)
+    this.fish?.update(delta)
+    this.splashes.setNight(this.dayCycle.night)
+    this.splashes.update(delta)
+    this.birds.update(delta)
     this.ocean.update(focus)
     this.sky.update(focus, this.app.cameraRig.distance)
     this.zones.update()
