@@ -1,6 +1,7 @@
 # Credits
 
-All code in this repository is original work written for airupt.dev.
+All code in this repository is original work written for airupt.dev, released under the
+MIT licence (see `LICENSE`).
 Islands, Mount Airupt, ocean, sky, grass, foliage, gulls, wake, smoke, ramps, signs, project boards, the map picture and section buoys are generated in code.
 
 ## Inspiration
@@ -56,7 +57,22 @@ Both are subset to Latin characters; Bricolage Grotesque is pinned to one width 
 | Library | Licence |
 | --- | --- |
 | [three.js](https://threejs.org) | MIT |
-| [Rapier](https://rapier.rs) (`@dimforge/rapier3d-compat`) | Apache-2.0 |
+| [Rapier](https://rapier.rs) (`@dimforge/rapier3d`) | Apache-2.0 |
 | [Vite](https://vite.dev) (build only) | MIT |
 | [glTF-Transform](https://gltf-transform.dev) (build only) | MIT |
 | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) (deploy only) | MIT OR Apache-2.0 |
+
+three.js and Rapier are bundled into the site, so their licence texts ship with it as
+`public/third-party-licenses.txt` (https://airupt.dev/third-party-licenses.txt).
+
+## Personal content (not under the MIT licence)
+
+These belong to airupt or to their respective owners and are not licensed for reuse:
+
+- The portfolio text in `src/content/portfolio.js`
+- The profile picture and everything made from it: `assets/brand/`, `public/avatar.png`,
+  `public/favicon-*.png`, `public/apple-touch-icon.png`, `public/og.jpg`
+- The project images in `src/assets/projects/`. The Reallife Roleplay and Quasar Store
+  images are screenshots of their websites; those sites, names and logos belong to
+  their owners and appear here only to show airupt's work for them.
+
