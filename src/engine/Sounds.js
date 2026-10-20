@@ -123,15 +123,28 @@ export class Sounds {
     return { source, gain }
   }
 
-  play(name, volume = 1, rate = 1) {
+  // With a world position the sound is panned to where it is on screen and
+  // fades out with distance from the camera's focus
+  play(name, volume = 1, rate = 1, position = null) {
     const buffer = this.buffers[name]
     if (!buffer || this.context.state !== 'running') return
+    let pan = 0
+    if (position) {
+      const rig = this.app.cameraRig
+      const distance = Math.hypot(position.x - rig.focus.x, position.z - rig.focus.z)
+      volume *= Math.max(0, 1 - distance / 70)
+      if (volume < 0.01) return
+      this.projected ??= position.clone()
+      pan = Math.max(-1, Math.min(1, this.projected.copy(position).project(rig.camera).x)) * 0.8
+    }
     const source = this.context.createBufferSource()
     source.buffer = buffer
     source.playbackRate.value = rate
     const gain = this.context.createGain()
     gain.gain.value = volume
-    source.connect(gain).connect(this.master)
+    const panner = this.context.createStereoPanner()
+    panner.pan.value = pan
+    source.connect(gain).connect(panner).connect(this.master)
     source.start()
   }
 
@@ -166,7 +179,7 @@ export class Sounds {
     const position = boat.object.position
     const teleported = this.lastPosition && Math.hypot(position.x - this.lastPosition.x, position.z - this.lastPosition.z) > 5
     const change = Math.hypot(boat.velocity.x - this.lastVelocity.x, boat.velocity.z - this.lastVelocity.z)
-    if (change > 2.5 && !teleported) this.play('bump', Math.min(change / 10, 1) * 0.8, 0.9 + Math.random() * 0.2)
+    if (change > 2.5 && !teleported) this.play('bump', Math.min(change / 10, 1) * 0.8, 0.9 + Math.random() * 0.2, position)
     this.lastVelocity = { x: boat.velocity.x, z: boat.velocity.z }
     this.lastPosition = { x: position.x, z: position.z }
 

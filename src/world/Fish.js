@@ -56,7 +56,7 @@ export class Fish {
 
   splash(position, loud) {
     this.splashes.emit(position, new THREE.Vector3(), { count: 14, spread: 1.2, up: 2.2, size: 0.07, life: 0.7 })
-    if (loud) this.app.sounds.play('splash', 0.18, 1.3 + Math.random() * 0.3)
+    if (loud) this.app.sounds.play('splash', 0.3, 1.3 + Math.random() * 0.3, position)
   }
 
   update(delta) {

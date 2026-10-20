@@ -173,7 +173,7 @@ export class Birds {
           gull.timer = 0
           const away = gull.home.clone().sub(boat).setY(0).normalize()
           gull.velocity.set(away.x * 4.5, 3.2, away.z * 4.5)
-          if (index % 2 === 0) this.app.sounds.play('gulls', 0.3, 1.05 + Math.random() * 0.1)
+          if (index % 2 === 0) this.app.sounds.play('gulls', 0.4, 1.05 + Math.random() * 0.1, gull.home)
         }
       } else if (gull.state === 'flying') {
         gull.timer += delta
