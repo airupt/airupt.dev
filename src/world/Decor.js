@@ -6,6 +6,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { createDockGeometry, DOCK_DECK, DOCK_INLAND, DOCK_LENGTH, DOCK_WIDTH } from './Dock.js'
 import { createStylizedMaterial } from './shading.js'
 import { footprints } from './IslandScenes.js'
+import { sections } from '../content/portfolio.js'
 import { createBench, createCampfire, createLighthouse, createLogSeat, createLookout, createLumber, createMailbox, createSignpostHub, createTent } from './Structures.js'
 
 export const DOCK_TILES = 2
@@ -229,7 +230,7 @@ export class Decor {
   createHub(island) {
     const arrows = this.islands.list
       .filter(other => other.section)
-      .map(other => [Math.atan2(-(other.z - island.z), other.x - island.x), other.color])
+      .map(other => [Math.atan2(-(other.z - island.z), other.x - island.x), other.color, sections.find(section => section.id === other.section)?.title ?? other.section])
     return createSignpostHub(arrows)
   }
 
@@ -290,13 +291,20 @@ export class Decor {
     })
 
     tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.6), 0.1, 0.85, onGrass, (x, y, z) => {
-      // Mostly green bushes; the odd small flowering one
-      const flowering = random() < 0.12
-      const size = flowering ? 0.4 + random() * 0.2 : 0.55 + random() * 0.6
-      const color = flowering ? pick(flowerColors) : pick(bushColors)
+      const size = 0.55 + random() * 0.6
+      const ground = this.groundAt(island, x, z, size * 0.6)
       // Sunk a little so the lump grows out of the ground on every side
-      this.foliage.addCluster(new THREE.Vector3(x, this.groundAt(island, x, z, size * 0.6) + size * 0.35, z), size, color)
+      this.foliage.addCluster(new THREE.Vector3(x, ground + size * 0.35, z), size, pick(bushColors))
       this.contacts.push({ x, z, radius: size * 0.85 })
+      // Now and then a bush in flower: a few small blossoms on its crown
+      if (random() < 0.15) {
+        const color = pick(flowerColors)
+        for (let i = 0; i < 3; i++) {
+          const angle = random() * Math.PI * 2
+          const blossom = new THREE.Vector3(x + Math.cos(angle) * size * 0.45, ground + size * (0.85 + random() * 0.15), z + Math.sin(angle) * size * 0.45)
+          this.foliage.addCluster(blossom, size * 0.22, color)
+        }
+      }
     })
 
   }

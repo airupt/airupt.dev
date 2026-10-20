@@ -163,25 +163,79 @@ export function createLogSeat() {
   ])
 }
 
-// A tall signpost with one arrow per section, each in its colour and
-// turned toward that island: [angle around the post, colour] pairs
+// A tall signpost with one arrow per section, each in its colour, turned
+// toward that island and lettered with its name on both faces:
+// [angle around the post, colour, name]
 export function createSignpostHub(arrows) {
-  const parts = [part(box(0.18, 3, 0.18), darkWood, [0, 1.5, 0]), part(new THREE.ConeGeometry(0.16, 0.25, 4), darkWood, [0, 3.12, 0], [0, Math.PI / 4, 0])]
+  const length = 1.7
+  const half = 0.19
+  const parts = [part(box(0.2, 3.2, 0.2), darkWood, [0, 1.6, 0]), part(new THREE.ConeGeometry(0.18, 0.28, 4), darkWood, [0, 3.34, 0], [0, Math.PI / 4, 0])]
+  const labels = []
+
+  // All names on one canvas, one row each
+  const rowHeight = 96
+  const canvas = document.createElement('canvas')
+  canvas.width = 512
+  canvas.height = rowHeight * arrows.length
+  const context = canvas.getContext('2d')
+  context.fillStyle = '#f4f1ea'
+  context.textBaseline = 'middle'
+  arrows.forEach(([, , name], index) => {
+    let size = 64
+    do {
+      context.font = `800 ${size}px "Bricolage Grotesque", system-ui, sans-serif`
+      size -= 2
+    } while (context.measureText(name).width > canvas.width - 24)
+    context.fillText(name, 12, rowHeight * (index + 0.5) + 2)
+  })
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.anisotropy = 4
+
   arrows.forEach(([angle, hex], index) => {
-    const y = 2.6 - index * 0.38
+    const y = 2.75 - index * 0.48
     const arrow = new THREE.Shape()
-    arrow.moveTo(0, -0.14)
-    arrow.lineTo(0.95, -0.14)
-    arrow.lineTo(1.2, 0)
-    arrow.lineTo(0.95, 0.14)
-    arrow.lineTo(0, 0.14)
+    arrow.moveTo(0, -half)
+    arrow.lineTo(length - 0.3, -half)
+    arrow.lineTo(length, 0)
+    arrow.lineTo(length - 0.3, half)
+    arrow.lineTo(0, half)
     arrow.closePath()
-    const board = new THREE.ExtrudeGeometry(arrow, { depth: 0.05, bevelEnabled: false })
-    board.translate(0.05, 0, -0.025)
+    const board = new THREE.ExtrudeGeometry(arrow, { depth: 0.06, bevelEnabled: false })
+    board.translate(0.08, 0, -0.03)
     // Board points along +X; turn it to its island
     parts.push(part(board, hex, [0, y, 0], [0, angle, 0]))
+
+    // The name on each face, reading from the post outward on the front
+    for (const face of [1, -1]) {
+      const label = new THREE.PlaneGeometry(length - 0.45, half * 1.6)
+      const uv = label.attributes.uv
+      for (let i = 0; i < uv.count; i++) {
+        const u = face > 0 ? uv.getX(i) : 1 - uv.getX(i)
+        uv.setXY(i, u, 1 - (index + 1 - uv.getY(i)) / arrows.length)
+      }
+      label.translate(0.08 + (length - 0.45) / 2 + 0.04, 0, 0.032 * face)
+      label.rotateY(angle)
+      label.translate(0, y, 0)
+      // The back face points the other way
+      if (face < 0) {
+        const normal = label.attributes.normal
+        for (let i = 0; i < normal.count; i++) normal.setXYZ(i, -normal.getX(i), -normal.getY(i), -normal.getZ(i))
+        const index = label.index.array
+        for (let i = 0; i < index.length; i += 3) [index[i + 1], index[i + 2]] = [index[i + 2], index[i + 1]]
+      }
+      labels.push(label)
+    }
   })
-  return mesh(parts)
+
+  const group = new THREE.Group()
+  group.add(mesh(parts))
+  const lettering = new THREE.Mesh(
+    mergeGeometries(labels),
+    createStylizedMaterial({ map: texture, transparent: true, alphaTest: 0.5 }, { waterLine: false, key: 'hub-labels' })
+  )
+  group.add(lettering)
+  return group
 }
 
 // A post box for the Contact island
