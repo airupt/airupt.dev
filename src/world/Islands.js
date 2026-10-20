@@ -21,7 +21,7 @@ const palette = {
   scorched: new THREE.Color('#4f4440'),
 }
 
-const CELL = 1.3
+const CELL = 0.95
 const TERRACE_STEP = 1.1
 
 // Which way an island's beach and dock face: its own `facing`, or the start point
@@ -124,7 +124,11 @@ function paint(geometry, island, grass) {
     else if (height < 0.5) color.copy(palette.sand).lerp(palette.drySand, variation)
     else if (volcanic) color.copy(height > 11 ? palette.scorched : palette.ash).lerp(palette.darkRock, variation * 0.4)
     // Rock is warm and light up high, cooler and darker toward the sea
-    else if (isRock) color.copy(palette.darkRock).lerp(palette.rock, smoothstep(0.5, 5, height) * 0.8 + variation * 0.2)
+    else if (isRock) {
+      color.copy(palette.darkRock).lerp(palette.rock, smoothstep(0.5, 5, height) * 0.8 + variation * 0.2)
+      // Darker where the sea wets the foot of a cliff, lighter at its sunny lip
+      color.multiplyScalar(0.72 + smoothstep(-0.4, 2.5, height) * 0.43)
+    }
     // Steeper grass (terrace risers, banks) a shade darker
     else color.copy(palette.grass).lerp(palette.darkGrass, Math.min(variation + smoothstep(0.85, 0.7, normal.y) * 0.6, 1))
 
@@ -145,8 +149,8 @@ export class Islands {
     this.list = layout.map(definition => this.create(definition))
     this.uniforms = {
       uPathMap: { value: bakePathMap(this.list) },
-      uEarth: { value: new THREE.Color('#c29b66') },
-      uDarkEarth: { value: new THREE.Color('#a17c52') },
+      uEarth: { value: new THREE.Color('#dcb47c') },
+      uDarkEarth: { value: new THREE.Color('#c9a06a') },
     }
   }
 
@@ -163,6 +167,9 @@ export class Islands {
         vec3 earth = mix(uEarth, uDarkEarth, texture2D(uNoise, vStylizedWorld.xz * 0.45).r);
         diffuseColor.rgb = mix(diffuseColor.rgb, earth, bare);`
       )
+      // Trodden earth is pale and dusty: on a slope it keeps more light than
+      // grass would, so a trail never reads as a dark trench
+      .replace('// STYLIZED_SHADE', 'shade *= 1.0 - samplePathMap(vStylizedWorld.xz) * 0.45;')
   }
 
   create(definition) {

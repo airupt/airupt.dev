@@ -126,7 +126,7 @@ export class World {
     this.smoke.build()
     this.fish = new Fish(this.app, this.models, this.splashes, this.islands)
     this.props = new Props(this.app, this.models, this.islands)
-    this.seascape = new Seascape(this.app, this.models, this.props, this.zones, this.rocks, this.islands)
+    this.seascape = new Seascape(this.app, this.models, this.props, this.rocks, this.islands)
     this.rocks.build()
     this.props.instances.build()
     this.bottles = new Bottles(this.app, this.models, this.splashes)

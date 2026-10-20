@@ -6,8 +6,8 @@ import { waterMapGLSL } from './WaterMap.js'
 const REACH = 6 // metres the ripples travel from the buoy
 const PLANE = 16
 
-// Calm ripples spreading from each section buoy, tinted with the section
-// colour: a quiet "something here" in open water. They are drawn like foam,
+// Calm ripples spreading from each section buoy as the boat approaches,
+// tinted with the section colour: a quiet "something here". They are drawn like foam,
 // soft and broken, widening as they travel, and stop at the beach. Inside the
 // zone they come faster and brighter, and entering sends one stronger pulse.
 export class ZoneRings {
@@ -25,6 +25,7 @@ export class ZoneRings {
           uBuoy: { value: new THREE.Vector2() },
           uActive: { value: 0 },
           uNight: { value: 0 },
+          uNear: { value: 0 },
           uPulse: { value: 1 },
         },
         vertexShader: /* glsl */ `
@@ -46,6 +47,7 @@ export class ZoneRings {
           uniform float uActive;
           uniform float uPulse;
           uniform float uNight;
+          uniform float uNear;
           varying vec2 vWorld;
           ${waterMapGLSL}
           void main() {
@@ -53,14 +55,16 @@ export class ZoneRings {
             float breakup = texture2D(uNoise, vWorld * 0.3 + uTime * 0.02).r;
             float alpha = 0.0;
             float speed = mix(0.42, 0.7, uActive);
-            for (int i = 0; i < 3; i++) {
-              float phase = fract(uTime * speed / 2.4 + float(i) / 3.0);
+            // Two soft ripples at a time, only while the boat is close by:
+            // from afar the buoy and its light mark the spot on their own
+            for (int i = 0; i < 2; i++) {
+              float phase = fract(uTime * speed / 2.4 + float(i) / 2.0);
               float radius = 0.6 + phase * ${REACH.toFixed(1)};
               // Thin and solid near the buoy, wider and more broken further out
-              float width = mix(0.1, 0.45, phase);
+              float width = mix(0.12, 0.6, phase);
               float ring = 1.0 - smoothstep(0.0, width, abs(range - radius));
-              ring *= smoothstep(0.25, 0.45, breakup + (1.0 - phase) * 0.35);
-              alpha += ring * (1.0 - phase) * (0.32 + uActive * 0.3);
+              ring *= smoothstep(0.3, 0.5, breakup + (1.0 - phase) * 0.3);
+              alpha += ring * (1.0 - phase) * (0.18 + uActive * 0.22) * uNear;
             }
             // One wide, bright ring travelling out when the boat sails in
             float pulseRadius = 0.6 + uPulse * ${(REACH * 1.4).toFixed(1)};
@@ -99,6 +103,9 @@ export class ZoneRings {
       if (active && uniforms.uActive.value < 0.05) uniforms.uPulse.value = 0
       uniforms.uActive.value += ((active ? 1 : 0) - uniforms.uActive.value) * (1 - Math.exp(-5 * delta))
       uniforms.uPulse.value = Math.min(1, uniforms.uPulse.value + delta * 0.9)
+      const boat = this.zones.app.world.boat.object.position
+      const near = 1 - THREE.MathUtils.smoothstep(Math.hypot(boat.x - buoy.x, boat.z - buoy.z), 14, 32)
+      uniforms.uNear.value += (near - uniforms.uNear.value) * (1 - Math.exp(-3 * delta))
     }
   }
 }

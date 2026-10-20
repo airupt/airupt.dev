@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { waveHeightGLSL, waveNormalGLSL } from './waves.js'
-import { islands } from './layout.js'
+import { arch, islands, rockClusters } from './layout.js'
 import { createStylizedMaterial } from './shading.js'
 import { bakeWaterMap, waterMapGLSL } from './WaterMap.js'
 
@@ -8,6 +8,13 @@ const SIZE = 300
 const SEGMENTS = 200
 const CELL = SIZE / SEGMENTS
 const MAX_LAMPS = 12
+
+// Rocks in open water, for their shallows: each sea stack cluster, and the
+// two feet of the arch
+function seaRocks() {
+  const feet = [-1, 1].map(side => [arch.x + Math.cos(arch.yaw) * side * (arch.span / 2), arch.z - Math.sin(arch.yaw) * side * (arch.span / 2), 2.4])
+  return [...rockClusters.map(([x, z]) => [x, z, 2.2]), ...feet]
+}
 
 // A large plane displaced by the shared wave function, lit with the exact
 // wave normal so the swell reads as smooth rolling water rather than a grid
@@ -23,7 +30,7 @@ export class Ocean {
     geometry.rotateX(-Math.PI / 2)
 
     this.uniforms = {
-      uWaterMap: { value: bakeWaterMap(islands) },
+      uWaterMap: { value: bakeWaterMap(islands, seaRocks()) },
       uShallow: { value: new THREE.Color('#62d8c8') },
       uMid: { value: new THREE.Color('#2a9fcf') },
       uDeep: { value: new THREE.Color('#1d61a3') },
@@ -108,8 +115,8 @@ export class Ocean {
         vec3 water = mix(uShallow, uMid, smoothstep(0.02, 0.4, depth));
         water = mix(water, uDeep, smoothstep(0.35, 1.0, depth));
         water *= 0.95 + texture2D(uNoise, vOceanPosition * 0.005 + uTime * 0.002).r * 0.1;
-        // At night open water sinks to a deep navy, the shallows keep a little glow
-        water *= mix(1.0, mix(0.4, 0.75, 1.0 - smoothstep(0.1, 0.6, depth)), uNight);
+        // At night open water sinks to a deep navy, the shallows keep only a faint glow
+        water *= mix(1.0, mix(0.4, 0.52, 1.0 - smoothstep(0.1, 0.6, depth)), uNight);
 
         // Troughs a touch darker, crests lighter out in open water, in patches
         water = mix(water * 0.86, water, smoothstep(-0.55, 0.0, vWave));
@@ -142,7 +149,8 @@ export class Ocean {
         float inside = step(0.0, trailUv.x) * step(trailUv.x, 1.0) * step(0.0, trailUv.y) * step(trailUv.y, 1.0);
         vec2 trailTexel = texture2D(uTrail, trailUv).rg * inside;
         float churn = texture2D(uNoise, vOceanPosition * 0.31 + uTime * 0.04).r * 0.6 + texture2D(uNoise, vOceanPosition * 0.83 - uTime * 0.03).g * 0.4;
-        water = mix(water, uCrest, smoothstep(0.04, 0.3, trailTexel.r + trailTexel.g * 0.3) * 0.16);
+        // Prop wash: a pale turquoise band straight behind the boat
+        water = mix(water, vec3(0.28, 0.69, 0.79), smoothstep(0.04, 0.3, trailTexel.r) * 0.3 * (1.0 - uNight * 0.7));
         float trailFoam = smoothstep(0.42, 0.6, trailTexel.r * (0.3 + churn * 1.15));
         float fray = texture2D(uNoise, vOceanPosition * 1.7 + uTime * 0.05).r;
         trailFoam = max(trailFoam, smoothstep(0.46, 0.56, trailTexel.g + (churn - 0.5) * 0.9 + (fray - 0.5) * 0.5));
@@ -151,7 +159,7 @@ export class Ocean {
         vec3 foamColor = mix(vec3(1.0), vec3(0.44, 0.56, 0.78), uNight);
         float foamAmount = mix(1.0, 0.4, uNight);
         diffuseColor.rgb = mix(water, foamColor, max(surf, lines * 0.5) * foamAmount);
-        vec3 trailColor = mix(vec3(1.0), vec3(0.3, 2.2, 2.6), uFoamGlow);
+        vec3 trailColor = mix(vec3(1.0), vec3(0.25, 1.1, 1.3), uFoamGlow);
         diffuseColor.rgb = mix(diffuseColor.rgb, trailColor, trailFoam);`
       )
       // The swell barely tilts the surface, so read the light on a much
@@ -182,7 +190,10 @@ export class Ocean {
             lampLight += fall * fall * lamp.w;
           }
           float shimmer = 0.45 + texture2D(uNoise, vOceanPosition * 0.8 + uTime * vec2(0.05, -0.03)).r * 1.1;
-          stylizedColor += vec3(1.0, 0.58, 0.26) * lampLight * shimmer * uLampStrength;
+          // Amber, replacing some of the blue rather than only adding to it,
+          // which would turn it pink
+          float lamp = clamp(lampLight * shimmer * uLampStrength, 0.0, 1.0);
+          stylizedColor = mix(stylizedColor, vec3(1.0, 0.5, 0.12), lamp * 0.55) + vec3(0.6, 0.3, 0.05) * lamp * 0.35;
         }`
       )
   }

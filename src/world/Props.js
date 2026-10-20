@@ -9,11 +9,12 @@ import { DynamicInstances } from './instancing.js'
 const box = new THREE.Box3()
 const size = new THREE.Vector3()
 
-// Jump ramps in open water; each rises along `direction`
-const ramps = [
-  { x: 27, z: -4, width: 5, direction: [-0.6, -0.8] },
-  { x: -24, z: 31, width: 3.5, direction: [0.7, -0.7] },
-  { x: 30, z: 40, width: 3.5, direction: [0.95, 0.3] },
+// Jump ramps in open water; each rises along `direction`. One lies on the
+// first run from the start toward Projects, so the first press of W finds it.
+export const ramps = [
+  { x: 11.5, z: -18, width: 5, direction: [-0.214, -0.977] },
+  { x: -20, z: 30, width: 3.5, direction: [0.866, 0.5] },
+  { x: 52, z: 8, width: 3.5, direction: [-0.3, 0.95] },
 ]
 
 const RAMP = { length: 6, low: -0.7, high: 1.5, bottom: -1.6 }
@@ -74,13 +75,11 @@ function createRampGeometry(width) {
   return geometry
 }
 
-// Clusters of floating cargo near the islands
-// A few small groups rather than confetti: cargo drifting off the Projects
-// island, debris trailing from the wreck, a pair by the Contact channel
+// Floating cargo, each group with a reason to be there: crates lost by the
+// fishing boat moored off Projects, and debris around the wreck
 const flotsam = [
-  { x: 24, z: -32, count: 3 },
-  { x: -31, z: -22, count: 3 },
-  { x: 36, z: 12, count: 2 },
+  { x: 22, z: -37, count: 3 },
+  { x: 35, z: 36, count: 2 },
 ]
 
 // Floating crates and barrels the boat can shove around, and jump ramps

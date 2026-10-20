@@ -2,10 +2,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { createStylizedMaterial, stylizeObject, windGLSL } from './shading.js'
 
 // The Kenney kits use different unit sizes; these bring every model to metres
+// and to a size that sits right next to the 3.9 m boat (a barrel waist
+// high, a crate knee to waist high, a workbench at hand height)
 const scales = {
   boat: 1,
   tent: 5,
-  campfire: 5,
+  campfire: 3.4,
   signpost: 4,
   'signpost-single': 4,
   lantern: 1.3,
@@ -13,7 +15,10 @@ const scales = {
   cart: 2,
   'hut-roof': 1.4,
   lookout: 1.3,
-  anvil: 5,
+  anvil: 3.2,
+  barrel: 0.62,
+  crate: 0.72,
+  'crate-bottles': 0.72,
   fish: 4.5,
   'fish-large': 4,
 }

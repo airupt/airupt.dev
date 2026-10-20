@@ -10,7 +10,7 @@ const PICKUP_DISTANCE = 2.2
 const spots = [
   [22, 22],
   [-20, -30],
-  [-64, 18],
+  [-64, 22], // under the rock arch
   [28, -72],
   [72, 2],
   [-32, 74],

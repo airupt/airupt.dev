@@ -197,7 +197,8 @@ export class TrailMap {
       }
     }
 
-    const drag = Math.exp(-0.7 * delta)
+    // Little drag: the arms keep opening behind the boat instead of running parallel
+    const drag = Math.exp(-0.18 * delta)
     this.points.forEach((point, index) => {
       let value = 0
       let size = 0
@@ -209,7 +210,7 @@ export class TrailMap {
         point.vz *= drag
         const life = point.age / WAKE_LIFE
         value = point.strength * Math.pow(Math.max(1 - life, 0), 1.8) * 0.5
-        size = 1 + life * 1.4
+        size = 0.9 + life * 2
       }
       matrix.makeScale(size, size, 1).setPosition(point.x - nextX, -(point.z - nextZ), 0)
       this.wake.setMatrixAt(index, matrix)

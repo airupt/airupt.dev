@@ -12,51 +12,60 @@ export const DOCK_HEIGHT = -0.55 // bottom of the collision boxes
 
 const palms = ['palm-straight', 'palm-bend', 'palm-detailed-straight', 'palm-detailed-bend']
 
-// Props around each island's dock: [model, metres inland from the shore, metres sideways]
+// Props around each island's dock: [model, metres inland from the shore,
+// metres sideways]. Each island is one small scene built around its plaza
+// (see `paths` in layout.js), and props turn to face that plaza. Keep clear
+// of the section sign at [2.5, 4] and of the footpaths.
 const setPieces = {
   home: [
     ['signpost', 3, -2.5],
     ['flag', 4.5, 3],
-    ['lantern', 1.8, 2],
+    ['lantern', 1.6, 1.6],
   ],
-  // A little camp: a roofed hut, a tent and a campfire
+  // A camp: a roofed hut and a tent around the campfire
   about: [
     ['hut-roof', 7, -1.5],
-    ['tent', 5, 3],
-    ['campfire', 3.5, 0.5],
-    ['barrel', 2.5, 3.8],
-    ['lantern', 1.8, -2.6],
+    ['tent', 5.2, 3],
+    ['campfire', 3.6, 0.5],
+    ['barrel', 6.4, 4.4],
+    ['lantern', 1.6, -1.8],
   ],
+  // A little market square: a stall with its stock stacked beside it, a cart
+  // across the square, the boards behind on their own path
   projects: [
-    ['stall', 5, -3],
-    ['cart', 4.5, 3.2],
-    ['crate', 2.2, -1.2],
-    ['crate-bottles', 2.6, 1.4],
-    ['chest', 3.4, 0],
-    ['barrel', 2, 4.2],
-    ['lantern', 1.6, -3.4],
+    ['stall', 4.8, -3.4],
+    ['crate', 3.5, -4.9],
+    ['crate-bottles', 2.4, -4.5],
+    ['cart', 5.8, 2.6],
+    ['barrel', 6.7, 3.7],
+    ['lantern', 1.2, -1.6],
     // Room for the project boards (see ProjectBoards.js)
     ['reserve', 8.8, -5.7, 2.6],
     ['reserve', 8, -1.5, 2.6],
     ['reserve', 8.8, 2.7, 2.6],
   ],
-  // A workshop: lookout tower, anvil bench and stores
+  // A workshop yard: the anvil bench out in the yard, stores against the
+  // stall, the lookout up the path
   skills: [
     ['lookout', 7, 0],
-    ['anvil', 3.2, -1.6],
-    ['stall', 4.5, 2.6],
-    ['crate', 2.5, -2.8],
-    ['barrel', 2.4, -3.9],
-    ['flag-pennant', 5.5, -3.5],
-    ['lantern', 1.8, 2.4],
+    ['anvil', 3.3, -1.4],
+    ['stall', 4.6, 2.6],
+    ['crate', 2.4, -2.9],
+    ['barrel', 3.2, -3.6],
+    ['flag-pennant', 5.6, -3.4],
+    ['lantern', 1.6, 1.8],
   ],
+  // The lighthouse at the end of the path, a pointer to it by the dock
   contact: [
     ['tower', 7, 0],
-    ['lantern', 2, -2.2],
-    ['flag', 3.2, 3],
-    ['signpost-single', 2, 2],
+    ['lantern', 1.6, -1.8],
+    ['flag', 3.4, 3],
+    ['signpost-single', 2.2, 1.3],
   ],
 }
+
+// Set pieces that look the same from every side keep a random turn
+const roundPieces = new Set(['tower', 'lookout', 'barrel', 'lantern', 'campfire', 'flag', 'flag-pennant'])
 
 const bushColors = ['#4fae4a', '#3f9c47', '#6cc24f', '#58b85a']
 const flowerColors = ['#ff7a59', '#ff9f43', '#ff6b8b']
@@ -83,17 +92,18 @@ export class Decor {
       const occupied = []
       if (island.section || island.id === 'home') this.placeDock(island, occupied)
       for (const [id, along, across, radius] of setPieces[island.id] ?? []) this.placeSetPiece(island, id, along, across, occupied, radius)
-      // Nothing grows on the footpaths
+      // Nothing grows on the footpaths, and trees keep a little back from
+      // them so their crowns don't hang over the trail
       for (const line of island.paths.lines) {
         for (let i = 1; i < line.length; i++) {
           const length = Math.hypot(line[i].x - line[i - 1].x, line[i].z - line[i - 1].z)
           for (let t = 0; t <= length; t += 0.8) {
             const f = t / length
-            occupied.push({ x: line[i - 1].x + (line[i].x - line[i - 1].x) * f, z: line[i - 1].z + (line[i].z - line[i - 1].z) * f, radius: 0.5 })
+            occupied.push({ x: line[i - 1].x + (line[i].x - line[i - 1].x) * f, z: line[i - 1].z + (line[i].z - line[i - 1].z) * f, radius: 1.2 })
           }
         }
       }
-      for (const { x, z, radius } of island.paths.clearings) occupied.push({ x, z, radius })
+      for (const { x, z, radius } of island.paths.clearings) occupied.push({ x, z, radius: radius + 1 })
       this.scatter(island, random, occupied)
     }
 
@@ -160,7 +170,11 @@ export class Decor {
     }
     const surface = this.islands.surfaceAt(island, x, z)
     if (!surface) return
-    this.add(id, x, surface.y, z, Math.atan2(out.x, out.z))
+    // Face the island's plaza (or, without one, the dock), a little off square
+    const target = island.paths.clearings[0] ?? island.shore
+    const jitter = (Math.sin(x * 12.9 + z * 78.2) * 0.5) * 0.35
+    const rotation = roundPieces.has(id) ? Math.sin(x * 3.1 + z) * Math.PI : Math.atan2(target.x - x, target.z - z) + jitter
+    this.add(id, x, surface.y - 0.05, z, rotation)
     occupied.push({ x, z, radius: ['tower', 'hut-roof', 'lookout'].includes(id) ? 3 : 1.6 })
   }
 

@@ -411,11 +411,14 @@ body {
   pointer-events: none;
   z-index: 5;
   opacity: 0;
-  transition: opacity 1s ease 1.2s;
+  /* Gone at once when a panel or the map opens… */
+  transition: opacity 0.2s ease;
 }
 
 .is-sailing .labels {
   opacity: 1;
+  /* …and back gently once sailing again */
+  transition: opacity 1s ease 1.2s;
 }
 
 .label {

@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { MAP_EXTENT, paths } from './layout.js'
 import { fbm, smoothstep } from '../utils/noise.js'
 
-const HALF_WIDTH = 0.5 // metres either side of a trail's centre line
+const HALF_WIDTH = 0.42 // metres either side of a trail's centre line
 const EDGE = 0.22 // how soft and wobbly the edge of bare earth is
 const RESOLUTION = 1024 // texels across the whole archipelago (25 cm each)
 

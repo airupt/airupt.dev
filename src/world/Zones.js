@@ -43,9 +43,19 @@ export class Zones {
     // a side panel, above a bottom sheet
     const target = new THREE.Vector3(zone.island.x * 0.75 + zone.x * 0.25, 0, zone.island.z * 0.75 + zone.z * 0.25)
     rig.override = target
-    rig.zoomTo(rig.limits.min + 22 + zone.island.radius * 0.6)
-    if (this.app.viewport.width > 720) rig.viewShiftTarget.set(0.22, 0)
-    else rig.viewShiftTarget.set(0, 0.3)
+    const distance = rig.limits.min + 22 + zone.island.radius * 0.6
+    const { width } = this.app.viewport
+    if (width > 720) {
+      // Centre the island in whatever room the panel leaves, and pull back
+      // a little when that room is narrow so the whole island still fits
+      const panel = document.querySelector('#panel')
+      const free = Math.max(width - panel.offsetWidth - 24, width * 0.3)
+      rig.viewShiftTarget.set(0.5 - free / 2 / width, 0)
+      rig.zoomTo(distance * Math.max(1, (0.55 * width) / free))
+    } else {
+      rig.viewShiftTarget.set(0, 0.3)
+      rig.zoomTo(distance)
+    }
   }
 
   release() {

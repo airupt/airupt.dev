@@ -2,42 +2,26 @@ import * as THREE from 'three'
 import * as RAPIER from '@dimforge/rapier3d'
 import { createRandom } from '../utils/noise.js'
 import { waveHeight } from './waves.js'
-import { spawn } from './layout.js'
+import { ramps } from './Props.js'
+import { arch, rockClusters } from './layout.js'
 import { instanceStatic } from './instancing.js'
-
-// Sea stacks between the islands so open water always has something in it
-const rockClusters = [
-  [21, 31],
-  [37, -2],
-  [-14, -22],
-  [-30, -30],
-  [34, -26],
-  [-62, -5],
-  [-32, 62],
-  [8, 70],
-  [62, 12],
-  [-70, 35],
-]
-
-// A natural arch out west, wide enough to sail through
-const arch = { x: -64, z: 22, yaw: 0.5 }
 
 // Boats riding at anchor near the islands: [model, x, z, heading]
 const moorings = [
   ['sailboat', -6, 16, 2.2],
-  ['fishing-boat', 16, -36, 0.6],
+  ['fishing-boat', 26, -41, 0.6],
   ['houseboat', -26, 22, -1.1],
 ]
 
 // Out in open water between Contact and Skills, a reward for exploring
 const wreck = { x: 31, z: 41, yaw: 0.9 }
 
-// Pairs of flag buoys, like harbour channel markers, halfway along the route
-// from the start to each section dock
-const GATE_WIDTH = 7
+// A flag buoy either side of the foot of every ramp, so ramps read from afar
+const FLAG_SPREAD = 1.3 // metres beyond the ramp's edge
+const RAMP_FOOT = 3.4 // metres from a ramp's centre to its low end
 
 export class Seascape {
-  constructor(app, models, props, zones, rockField, islands) {
+  constructor(app, models, props, rockField, islands) {
     this.app = app
     this.markers = []
     const { world } = app.physics
@@ -61,7 +45,7 @@ export class Seascape {
       }
     }
 
-    rockField.addArch(arch.x, arch.z, arch.yaw, { span: 10, thickness: 1.4 })
+    rockField.addArch(arch.x, arch.z, arch.yaw, { span: arch.span, thickness: 1.4 })
 
     // Rocks breaking the surface along the reef's rim
     for (const island of islands.list.filter(candidate => candidate.reef)) {
@@ -91,17 +75,14 @@ export class Seascape {
 
     instanceStatic(group, statics)
 
-    for (const zone of zones.list) {
-      const midX = (zone.x + spawn.x) / 2
-      const midZ = (zone.z + spawn.z) / 2
-      const dx = zone.x - midX
-      const dz = zone.z - midZ
-      const length = Math.hypot(dx, dz) || 1
+    for (const { x, z, width, direction } of ramps) {
+      const [dx, dz] = direction
       for (const side of [-1, 1]) {
         const marker = models.get('buoy-flag')
         marker.scale.multiplyScalar(0.85)
-        marker.userData.x = midX + (-dz / length) * GATE_WIDTH * side
-        marker.userData.z = midZ + (dx / length) * GATE_WIDTH * side
+        const across = side * (width / 2 + FLAG_SPREAD)
+        marker.userData.x = x - dx * RAMP_FOOT + dz * across
+        marker.userData.z = z - dz * RAMP_FOOT - dx * across
         marker.userData.phase = random() * 6
         app.scene.add(marker)
         this.markers.push(marker)
@@ -109,7 +90,7 @@ export class Seascape {
     }
   }
 
-  // Channel markers only bob; they are not part of the physics
+  // Ramp markers only bob; they are not part of the physics
   update() {
     const time = this.app.physics.renderTime
     for (const marker of this.markers) {

@@ -39,14 +39,16 @@ export class MapView {
       if (!title) continue
       const group = svg('g', { transform: `translate(${island.x} ${island.z})` })
       if (island.color) group.append(svg('circle', { r: 3.4, class: 'map-pin', fill: island.color }))
-      // Above the island, unless the label would leave the round chart there.
+      // Above the island when the label fits inside the round chart there.
       // Chart position after the 45° turn; text is ~4.2 units per letter wide
       const chartX = Math.SQRT1_2 * (island.x - island.z)
       const chartY = Math.SQRT1_2 * (island.x + island.z)
       const halfWidth = title.length * 2.1
       const top = chartY - island.radius * 0.75 - 11
       const above = Math.hypot(Math.abs(chartX) + halfWidth, top) < EXTENT * 0.94
-      const offset = above ? -island.radius * 0.75 - 4 : island.radius * 0.75 + 10
+      // No room above: write the name across the island itself rather than
+      // below it, where it would seem to name whatever lies further down
+      const offset = above ? -island.radius * 0.75 - 4 : 3
       const label = svg('text', { class: 'map-label', transform: `rotate(-45) translate(0 ${offset})` })
       label.textContent = title
       group.append(label)

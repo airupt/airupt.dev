@@ -136,7 +136,7 @@ export class ProjectBoards {
               shader.fragmentShader = shader.fragmentShader
                 .replace('#include <common>', '#include <common>\nuniform float uHighlight;')
                 .replace('// STYLIZED_SHADE', 'shade = (1.0 - dropShadow) * 0.6 * (1.0 - uHighlight);')
-                .replace('// STYLIZED_EXTRA', 'stylizedColor *= 1.0 + uHighlight * 0.4;')
+                .replace('// STYLIZED_EXTRA', 'stylizedColor *= 1.0 + max(uHighlight, 0.0) * 0.55 + min(uHighlight, 0.0) * 0.3;')
             },
           }
         )
@@ -144,7 +144,7 @@ export class ProjectBoards {
       face.applyMatrix4(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 2.6, 0.02)))
       face.receiveShadow = true
       app.scene.add(face)
-      this.boards.push({ highlight, position: new THREE.Vector3(x, surface.y + 2.6, z) })
+      this.boards.push({ highlight, face, rest: face.position.clone(), normal: new THREE.Vector3(0, 0, 1).applyQuaternion(face.quaternion), position: new THREE.Vector3(x, surface.y + 2.6, z) })
     })
 
     for (const [geometry, matrices] of [
@@ -171,9 +171,16 @@ export class ProjectBoards {
     else rig.nudgeTarget.set(0, 0, 0)
   }
 
+  // The hovered board brightens and steps forward off its frame; the others
+  // dim, so it's obvious which one the card belongs to
   update(delta) {
-    this.boards.forEach(({ highlight }, index) => {
-      highlight.value += ((index === this.active ? 1 : 0) - highlight.value) * (1 - Math.exp(-8 * delta))
+    const anyActive = this.active !== null && this.active !== undefined
+    this.boards.forEach(({ highlight, face, rest, normal }, index) => {
+      const target = index === this.active ? 1 : anyActive ? -1 : 0
+      highlight.value += (target - highlight.value) * (1 - Math.exp(-8 * delta))
+      const lift = Math.max(highlight.value, 0)
+      face.position.copy(rest).addScaledVector(normal, lift * 0.12)
+      face.scale.setScalar(1 + lift * 0.05)
     })
   }
 }

@@ -1,77 +1,32 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { createStylizedMaterial, windGLSL } from './shading.js'
-import { createRandom } from '../utils/noise.js'
+import { createRandom, hash2 } from '../utils/noise.js'
 
-const CARDS = 70
-
-// Soft blobs added together; cutting this at 0.5 leaves a lumpy leaf-cluster
-// outline, and rotating the lookup a little makes the outline flutter
-function createLeafTexture() {
-  const size = 128
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const context = canvas.getContext('2d')
-  context.fillStyle = '#000'
-  context.fillRect(0, 0, size, size)
-  context.globalCompositeOperation = 'lighter'
-
-  const random = createRandom(5)
-  for (let i = 0; i < 22; i++) {
-    const angle = random() * Math.PI * 2
-    const distance = Math.sqrt(random()) * size * 0.26
-    const x = size / 2 + Math.cos(angle) * distance
-    const y = size / 2 + Math.sin(angle) * distance
-    const radius = size * (0.08 + random() * 0.09)
-    const gradient = context.createRadialGradient(x, y, 0, x, y, radius)
-    gradient.addColorStop(0, 'rgba(255,255,255,0.75)')
-    gradient.addColorStop(1, 'rgba(255,255,255,0)')
-    context.fillStyle = gradient
-    context.fillRect(x - radius, y - radius, radius * 2, radius * 2)
-  }
-
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.colorSpace = THREE.NoColorSpace
-  return texture
-}
-
-// Leaf cards scattered through a unit sphere, all facing +Z. Normals are bent
-// outward so the whole cluster is lit like one soft ball.
-function createClusterGeometry() {
-  const random = createRandom(9)
-  const cards = []
-  const radial = new THREE.Vector3()
+// One lump of leaves: a low-poly ball with its corners pushed in and out a
+// little so no two facets line up
+function createBlobGeometry() {
+  const geometry = new THREE.IcosahedronGeometry(1, 1)
+  const position = geometry.attributes.position
+  const normal = geometry.attributes.normal
   const vertex = new THREE.Vector3()
-
-  for (let i = 0; i < CARDS; i++) {
-    const card = new THREE.PlaneGeometry(0.8, 0.8)
-    card.rotateZ(random() * Math.PI * 2)
-    radial.setFromSphericalCoords(1 - Math.pow(random(), 3), Math.acos(2 * random() - 1), random() * Math.PI * 2)
-    card.translate(radial.x, radial.y, radial.z)
-
-    const outward = radial.clone().normalize()
-    const position = card.attributes.position
-    const normal = card.attributes.normal
-    for (let j = 0; j < position.count; j++) {
-      vertex.fromBufferAttribute(position, j).lerp(outward, 0.85).normalize()
-      normal.setXYZ(j, vertex.x, vertex.y, vertex.z)
-    }
-    cards.push(card)
+  for (let i = 0; i < position.count; i++) {
+    vertex.fromBufferAttribute(position, i).normalize()
+    normal.setXYZ(i, vertex.x, vertex.y, vertex.z)
+    // Shared corners get the same push, so the surface stays closed
+    const lump = 0.88 + hash2(Math.round(vertex.x * 50), Math.round(vertex.y * 50) + Math.round(vertex.z * 50) * 7, 3) * 0.2
+    position.setXYZ(i, vertex.x * lump, vertex.y * lump * 0.86, vertex.z * lump)
   }
-
-  return mergeGeometries(cards)
+  return geometry
 }
 
-// Bushes and tree canopies: instanced leaf clusters turned to face the
-// fixed camera direction, each with its own size, roll and colour.
+// Bushes and tree canopies: instanced soft blobs, each with its own size,
+// turn and colour. A crown is a few blobs heaped together.
 export class Foliage {
   constructor(app) {
     this.app = app
     this.instances = []
     this.trunks = []
-    this.texture = createLeafTexture()
-    this.cameraDirection = app.cameraRig.direction.clone()
   }
 
   addCluster(position, size, color) {
@@ -83,11 +38,13 @@ export class Foliage {
     const top = position.clone()
     top.y += height
     this.addCluster(top, canopySize, color)
-    // A couple of smaller clusters around the main one make the crown irregular
-    for (let i = 0; i < 2; i++) {
-      const angle = random() * Math.PI * 2
-      const offset = new THREE.Vector3(Math.cos(angle) * canopySize * 0.7, -canopySize * 0.25, Math.sin(angle) * canopySize * 0.7)
-      this.addCluster(top.clone().add(offset), canopySize * (0.55 + random() * 0.2), color)
+    // Smaller lumps heaped around and on top of the main one make the crown irregular
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2 + random() * 1.2
+      const lift = i === 3 ? 0.62 : -0.2 + random() * 0.35
+      const reach = i === 3 ? 0.2 : 0.78
+      const offset = new THREE.Vector3(Math.cos(angle) * canopySize * reach, canopySize * lift, Math.sin(angle) * canopySize * reach)
+      this.addCluster(top.clone().add(offset), canopySize * (0.52 + random() * 0.2), color)
     }
   }
 
@@ -97,30 +54,25 @@ export class Foliage {
   }
 
   buildClusters() {
-    const material = createStylizedMaterial({ color: '#ffffff' }, { waterLine: false, key: 'foliage', extend: shader => this.extend(shader) })
-    const mesh = new THREE.InstancedMesh(createClusterGeometry(), material, this.instances.length)
+    // Faceted like the palms, rocks and cliffs, so the whole world is one low-poly family
+    const material = createStylizedMaterial({ color: '#ffffff', flatShading: true }, { waterLine: false, key: 'foliage', extend: shader => this.extend(shader) })
+    const mesh = new THREE.InstancedMesh(createBlobGeometry(), material, this.instances.length)
     const object = new THREE.Object3D()
     const random = createRandom(13)
 
     this.instances.forEach((instance, index) => {
-      const roll = random() * Math.PI * 2
       object.position.copy(instance.position)
-      object.up.set(Math.sin(roll), Math.cos(roll), 0)
-      object.lookAt(instance.position.clone().add(this.cameraDirection))
+      object.rotation.set(0, random() * Math.PI * 2, 0)
       object.scale.setScalar(instance.size)
       object.updateMatrix()
       mesh.setMatrixAt(index, object.matrix)
-      mesh.setColorAt(index, instance.color)
+      // Each lump a shade lighter or darker than its neighbours, so a crown
+      // reads as a heap of separate clumps
+      mesh.setColorAt(index, instance.color.clone().multiplyScalar(0.88 + random() * 0.22))
     })
 
     mesh.castShadow = true
     mesh.receiveShadow = true
-    // Shadows use the same leaf outline instead of solid squares
-    mesh.customDepthMaterial = new THREE.MeshDepthMaterial({
-      depthPacking: THREE.RGBADepthPacking,
-      alphaMap: this.texture,
-      alphaTest: 0.5,
-    })
     this.app.scene.add(mesh)
   }
 
@@ -143,39 +95,30 @@ export class Foliage {
     this.app.scene.add(mesh)
   }
 
+  // Lumps lean with the wind as a whole, and are darker underneath where
+  // the crown shades itself
   extend(shader) {
-    shader.uniforms.uLeaves = { value: this.texture }
-
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
         `#include <common>
         uniform sampler2D uNoise;
-        varying vec2 vLeafUv;
-        varying float vLeafWind;
+        varying float vBlobHeight;
         ${windGLSL}`
       )
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
-        vLeafUv = uv;
-        vec2 clusterPosition = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xz;
-        vLeafWind = length(windOffset(clusterPosition));`
+        vBlobHeight = position.y;
+        vec2 blobCentre = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xz;
+        vec2 lean = windOffset(blobCentre) * (position.y + 1.0) * 0.18;
+        transformed.xz += (inverse(mat2(instanceMatrix[0].xz, instanceMatrix[2].xz)) * lean);`
       )
 
     shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <common>',
-        `#include <common>
-        uniform sampler2D uLeaves;
-        varying vec2 vLeafUv;
-        varying float vLeafWind;`
-      )
-      .replace(
-        '#include <alphamap_fragment>',
-        `float leafAngle = vLeafWind * 2.2;
-        vec2 leafUv = mat2(cos(leafAngle), -sin(leafAngle), sin(leafAngle), cos(leafAngle)) * (vLeafUv - 0.5) + 0.5;
-        if (texture2D(uLeaves, leafUv).r < 0.5) discard;`
-      )
+      .replace('#include <common>', '#include <common>\nvarying float vBlobHeight;')
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= mix(0.72, 1.06, smoothstep(-0.9, 0.7, vBlobHeight));')
+      // A crisper edge between the lit and shaded side of each lump
+      .replace('// STYLIZED_SHADE', 'shade = mix(shade, smoothstep(0.3, 0.6, shade), 0.75);')
   }
 }

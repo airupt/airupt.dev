@@ -102,7 +102,8 @@ export const islands = [
       [10, 7, 8, 3],
     ],
   },
-  { id: 'islet-1', x: 10, z: -24, radius: 5, seed: 53, blobs: [[0, 0, 4, 1.6]] },
+  // Beside the run from the start to Projects, not on it
+  { id: 'islet-1', x: 19, z: -26, radius: 5, seed: 53, blobs: [[0, 0, 4, 1.6]] },
   {
     id: 'islet-2',
     x: -45,
@@ -182,6 +183,23 @@ export const paths = {
   },
   contact: { lines: [[[0, 0], [1.8, 0.4], [3.6, 0.3], [5.4, 0]]] },
 }
+
+// Sea stacks between the islands so open water always has something in it
+export const rockClusters = [
+  [21, 31],
+  [37, -2],
+  [-14, -22],
+  [-30, -30],
+  [34, -26],
+  [-62, -5],
+  [-32, 62],
+  [8, 70],
+  [62, 12],
+  [-70, 35],
+]
+
+// A natural arch out west, wide enough to sail through
+export const arch = { x: -64, z: 22, yaw: 0.5, span: 10 }
 
 // The boat starts beside the home island, bow pointing along a clear run to
 // the Projects island so the first press of W goes somewhere

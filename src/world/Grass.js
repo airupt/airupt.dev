@@ -111,12 +111,14 @@ export class Grass {
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.3 + vec3(0.05, 0.06, 0.0), vGrassTip);
+        // Blades stay close to the ground's colour (tips only a touch lighter),
+        // so the lawn reads as one soft surface rather than noise
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.08 + vec3(0.01, 0.015, 0.0), vGrassTip);
         // Sun-dried patches break up the green
         float meadow = texture2D(uNoise, vStylizedWorld.xz * 0.04).g;
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.3, 1.15, 0.65), smoothstep(0.55, 0.75, meadow) * 0.6);`
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.3, 1.15, 0.65), smoothstep(0.55, 0.75, meadow) * 0.35);`
       )
-      // Roots sit in the shade of their neighbours, tips catch the light
-      .replace('// STYLIZED_SHADE', 'shade = max(shade, (1.0 - vGrassTip) * 0.7);')
+      // Roots sit a little in the shade of their neighbours
+      .replace('// STYLIZED_SHADE', 'shade = max(shade, (1.0 - vGrassTip) * 0.32);')
   }
 }
