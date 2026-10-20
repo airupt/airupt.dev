@@ -14,8 +14,8 @@ export class CameraRig {
     this.screenUp = new THREE.Vector3(-this.direction.x, 0, -this.direction.z).normalize()
     this.screenRight = new THREE.Vector3(-this.screenUp.z, 0, this.screenUp.x)
     this.limits = { min: 24, max: 80, start: 46 }
-    this.distance = 100
-    this.targetDistance = 100
+    this.distance = 112
+    this.targetDistance = 112
     this.focus = new THREE.Vector3()
     this.lookAhead = new THREE.Vector3()
     // When set, the camera frames this point instead of following the boat

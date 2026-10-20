@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { createStylizedMaterial } from './shading.js'
 import { sections } from '../content/portfolio.js'
 
-const BOARD = { width: 3.4, height: 2.6 }
+const BOARD = { width: 3, height: 2.3 }
 const TEXTURE = { width: 680, height: 520 }
 
 // Paints one project card: its screenshot (or a striped tile with initials
@@ -74,6 +74,7 @@ export class ProjectBoards {
   constructor(app, islands) {
     this.app = app
     this.boards = []
+    this.contacts = []
     const island = islands.list.find(candidate => candidate.section === 'projects')
     const projects = sections.find(section => section.id === 'projects')?.projects ?? []
     if (!island || !projects.length) return
@@ -98,6 +99,8 @@ export class ProjectBoards {
       frames.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 2.6, -0.08)))
       for (const side of [-1, 1]) {
         posts.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(side * BOARD.width * 0.42, 1, -0.12)))
+        const foot = new THREE.Vector3(side * BOARD.width * 0.42, 0, -0.12).applyMatrix4(placement.matrix)
+        this.contacts.push({ x: foot.x, z: foot.z, radius: 0.32 })
       }
 
       const canvas = document.createElement('canvas')

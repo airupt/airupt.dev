@@ -77,23 +77,30 @@ class Beam {
       uniforms: { uStrength: { value: 0 } },
       vertexShader: /* glsl */ `
         varying float vAlong;
+        varying float vFacing;
         void main() {
           vAlong = uv.y;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+          // How squarely the cone's surface faces the camera: its silhouette
+          // edges fade out, so the beam reads as a soft shaft, not a wedge
+          vFacing = abs(dot(normalize(normalMatrix * normal), normalize(-viewPosition.xyz)));
+          gl_Position = projectionMatrix * viewPosition;
         }
       `,
       fragmentShader: /* glsl */ `
         uniform float uStrength;
         varying float vAlong;
+        varying float vFacing;
         void main() {
-          gl_FragColor = vec4(vec3(1.0, 0.9, 0.65) * pow(vAlong, 2.5) * uStrength, 1.0);
+          float shaft = pow(vAlong, 2.2) * pow(vFacing, 2.0);
+          gl_FragColor = vec4(vec3(1.0, 0.9, 0.65) * shaft * uStrength, 1.0);
         }
       `,
     })
 
     // Cone apex sits on the lamp; the wide end points away horizontally
-    const geometry = new THREE.ConeGeometry(1.5, 22, 20, 1, true)
-    geometry.translate(0, -11, 0)
+    const geometry = new THREE.ConeGeometry(1.6, 24, 24, 1, true)
+    geometry.translate(0, -12, 0)
     geometry.rotateZ(Math.PI / 2)
     for (const side of [0, Math.PI]) {
       const cone = new THREE.Mesh(geometry, this.material)
@@ -104,7 +111,7 @@ class Beam {
 
   update(delta, strength) {
     this.pivot.rotation.y += delta * 0.6
-    this.material.uniforms.uStrength.value = strength * 0.2
+    this.material.uniforms.uStrength.value = strength * 0.32
     this.pivot.visible = strength > 0.02
   }
 }
@@ -214,7 +221,7 @@ export class Lights {
     for (const { id, model } of decor.placed) {
       if (id === 'lantern') {
         // Inside the little lantern on top of the post (see Decor.js)
-        this.glows.push(new Glow(model, new THREE.Vector3(0, 1.38, 0), '#ffb35c', 0.09))
+        this.glows.push(new Glow(model, new THREE.Vector3(0, 1.38, 0), '#ffb35c', 0.1))
         this.pools.push(new LightPool(app.scene, model.position, 3.2))
       }
       if (id === 'campfire') {
@@ -251,7 +258,8 @@ export class Lights {
     this.time += delta
     const strength = THREE.MathUtils.smoothstep(night, 0.25, 0.85) * GLOW_STRENGTH
 
-    for (const glow of this.glows) glow.set(strength)
+    // Lantern glass looks warm even by day, and properly lit after dark
+    for (const glow of this.glows) glow.set(0.45 + strength)
     for (const glow of this.boatLights) glow.set(strength * 1.3)
     for (const pool of this.pools) pool.set((strength / GLOW_STRENGTH) * 0.55)
     for (const flame of this.flames) {

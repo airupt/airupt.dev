@@ -5,6 +5,7 @@ import { fbm, hash2, smoothstep } from '../utils/noise.js'
 import { createStylizedMaterial } from './shading.js'
 import { bakePathMap, pathMapGLSL } from './Paths.js'
 import { planIsland } from './IslandScenes.js'
+import { contactShadowGLSL, createEmptyContactMap } from './ContactShadows.js'
 
 const raycaster = new THREE.Raycaster()
 const rayOrigin = new THREE.Vector3()
@@ -149,7 +150,10 @@ function paint(geometry, island, grass) {
     const height = (a.y + b.y + c.y) / 3
     const variation = hash2(i, 3, seed)
 
-    const volcanic = island.volcano && height > 5.5
+    // On the volcano, grass gives way to ash over a ragged band of height
+    // rather than along one line of triangles
+    const ashiness = island.volcano ? smoothstep(4.6, 6.6, height + (fbm(a.x * 0.3, a.z * 0.3, 7) - 0.5) * 2.4) : 0
+    const volcanic = ashiness > 0.55
     // Steep faces are bare rock; everything gentler above the beach is grass
     // (bare earth only shows where paths are worn in, see Paths.js)
     const isRock = normal.y < 0.64
@@ -166,10 +170,15 @@ function paint(geometry, island, grass) {
       color.multiplyScalar(0.72 + smoothstep(-0.4, 2.5, height) * 0.43)
     }
     // Steeper grass (terrace risers, banks) a shade darker
-    else color.copy(palette.grass).lerp(palette.darkGrass, Math.min(variation + smoothstep(0.85, 0.7, normal.y) * 0.6, 1))
+    else {
+      color.copy(palette.grass).lerp(palette.darkGrass, Math.min(variation + smoothstep(0.85, 0.7, normal.y) * 0.6, 1))
+      // Dusted with ash toward the volcano's bare cone
+      color.lerp(palette.ash, ashiness * 0.75)
+    }
 
     color.multiplyScalar(0.96 + hash2(i, 4, seed) * 0.08)
-    if (isGrass) grass.push({ a: a.clone(), b: b.clone(), c: c.clone(), color: color.clone() })
+    // Blades thin out as the ash takes over
+    if (isGrass) grass.push({ a: a.clone(), b: b.clone(), c: c.clone(), color: color.clone(), density: 1 - ashiness * 1.6 })
     if (isFringe) grass.push({ a: a.clone(), b: b.clone(), c: c.clone(), color: palette.grass.clone().lerp(palette.drySand, 0.3) })
     for (let j = 0; j < 3; j++) color.toArray(colors, (i + j) * 3)
   }
@@ -187,6 +196,8 @@ export class Islands {
       uPathMap: { value: bakePathMap(this.list) },
       uEarth: { value: new THREE.Color('#dcb47c') },
       uDarkEarth: { value: new THREE.Color('#c9a06a') },
+      // Baked once the props are placed (see World.load)
+      uContactMap: { value: createEmptyContactMap() },
     }
   }
 
@@ -195,13 +206,15 @@ export class Islands {
   extend(shader) {
     Object.assign(shader.uniforms, this.uniforms)
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\nuniform vec3 uEarth;\nuniform vec3 uDarkEarth;\n${pathMapGLSL}`)
+      .replace('#include <common>', `#include <common>\nuniform vec3 uEarth;\nuniform vec3 uDarkEarth;\n${pathMapGLSL}\n${contactShadowGLSL}`)
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
         float bare = samplePathMap(vStylizedWorld.xz) * smoothstep(0.15, 0.45, vStylizedWorld.y);
         vec3 earth = mix(uEarth, uDarkEarth, texture2D(uNoise, vStylizedWorld.xz * 0.45).r);
-        diffuseColor.rgb = mix(diffuseColor.rgb, earth, bare);`
+        diffuseColor.rgb = mix(diffuseColor.rgb, earth, bare);
+        // Darker where something stands, so it looks planted
+        diffuseColor.rgb *= 1.0 - sampleContact(vStylizedWorld.xz) * 0.42;`
       )
       // Trodden earth is pale and dusty: on a slope it keeps more light than
       // grass would, so a trail never reads as a dark trench

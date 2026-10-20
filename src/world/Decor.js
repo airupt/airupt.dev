@@ -6,7 +6,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { createDockGeometry, DOCK_DECK, DOCK_INLAND, DOCK_LENGTH, DOCK_WIDTH } from './Dock.js'
 import { createStylizedMaterial } from './shading.js'
 import { footprints } from './IslandScenes.js'
-import { createBench, createCampfire, createLighthouse, createLogSeat, createLookout, createMailbox, createSignpostHub, createTent } from './Structures.js'
+import { createBench, createCampfire, createLighthouse, createLogSeat, createLookout, createLumber, createMailbox, createSignpostHub, createTent } from './Structures.js'
 
 export const DOCK_TILES = 2
 export const DOCK_TILE = 2.5 // metres per collision box along the dock
@@ -24,10 +24,12 @@ const builders = {
   'log-seat': createLogSeat,
   mailbox: createMailbox,
   bench: createBench,
+  lumber: createLumber,
 }
 
 // A lamp post in the same wood as the docks: a post, a little iron lantern
-// with a pyramid cap. Its light (see Lights.js) sits in the lantern at 1.38 m.
+// frame with a pyramid cap. Its glowing glass (see Lights.js) sits in the
+// frame at 1.38 m.
 let lanternGeometry = null
 function createLantern() {
   if (!lanternGeometry) {
@@ -48,7 +50,6 @@ function createLantern() {
       part(new THREE.BoxGeometry(0.06, 0.3, 0.06), '#2f2b33', 0.1, 1.38, -0.1),
       part(new THREE.BoxGeometry(0.06, 0.3, 0.06), '#2f2b33', -0.1, 1.38, 0.1),
       part(new THREE.BoxGeometry(0.06, 0.3, 0.06), '#2f2b33', 0.1, 1.38, 0.1),
-      part(new THREE.BoxGeometry(0.17, 0.24, 0.17), '#ffd59a', 0, 1.38, 0),
       part(new THREE.ConeGeometry(0.2, 0.16, 4).rotateY(Math.PI / 4), '#2f2b33', 0, 1.61, 0),
     ])
   }
@@ -61,7 +62,7 @@ let lanternMaterialCache = null
 const lanternMaterial = () => (lanternMaterialCache ??= createStylizedMaterial({ vertexColors: true, flatShading: true }, { waterLine: false }))
 
 const bushColors = ['#4fae4a', '#3f9c47', '#6cc24f', '#58b85a']
-const flowerColors = ['#ff7a59', '#ff9f43', '#ff6b8b']
+const flowerColors = ['#ff8fa8', '#ff6b8b', '#f4e9f0']
 // Mostly broadleaf greens, with the occasional red-orange flame tree
 const treeColors = ['#e8603a', '#3f9c47', '#4fae4a', '#3a8f45', '#58b85a']
 
@@ -77,6 +78,8 @@ export class Decor {
     this.foliage = foliage
     // Every placed model by id, so other systems can find lanterns, towers…
     this.placed = []
+    // Where things stand on the ground, for the baked contact shadows
+    this.contacts = []
     this.group = new THREE.Group()
     app.scene.add(this.group)
 
@@ -211,10 +214,12 @@ export class Decor {
         this.add(id, x, y, z, rotation)
       }
       occupied.push({ x, z, radius })
+      this.contacts.push({ x, z, radius: radius * 0.8 })
     }
     for (const { x, z } of lamps) {
       this.add('lantern', x, this.groundAt(island, x, z, 0.2) - 0.03, z)
       occupied.push({ x, z, radius: 0.6 })
+      this.contacts.push({ x, z, radius: 0.3 })
     }
     occupied.push({ ...sign, radius: 2.6 })
     for (const board of boards) occupied.push({ ...board, radius: footprints.board })
@@ -257,7 +262,10 @@ export class Decor {
       0.75,
       (surface, x, z) =>
         surface.y > (island.sparse ? 0.15 : 0.4) && surface.normalY > 0.8 && !(island.volcano && surface.y > 5) && !inYard(x, z) && this.slopeAt(island, x, z, 0.7) < 0.35,
-      (x, y, z) => this.add(palms[Math.floor(random() * palms.length)], x, this.groundAt(island, x, z, 0.45) - 0.1, z, random() * Math.PI * 2, 0.75 + random() * 0.4)
+      (x, y, z) => {
+        this.add(palms[Math.floor(random() * palms.length)], x, this.groundAt(island, x, z, 0.45) - 0.1, z, random() * Math.PI * 2, 0.75 + random() * 0.4)
+        this.contacts.push({ x, z, radius: 0.5 })
+      }
     )
 
     tryPlace(
@@ -268,6 +276,7 @@ export class Decor {
       (x, y, z) => {
         const width = 1 + random() * 1.3
         this.rocks.add(x, this.groundAt(island, x, z, width * 0.4) - 0.2, z, { width, height: 0.5 + random() * 0.9, mossy: y > 0.6 })
+        this.contacts.push({ x, z, radius: width * 0.55 })
       }
     )
 
@@ -277,6 +286,7 @@ export class Decor {
 
     tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.15), 0.1, 0.6, (surface, x, z) => onGrass(surface) && !inYard(x, z), (x, y, z) => {
       this.foliage.addTree(new THREE.Vector3(x, this.groundAt(island, x, z, 0.4) - 0.1, z), 2.2 + random() * 1.2, 1.3 + random() * 0.6, pick(treeColors), random)
+      this.contacts.push({ x, z, radius: 0.55 })
     })
 
     tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.6), 0.1, 0.85, onGrass, (x, y, z) => {
@@ -286,6 +296,7 @@ export class Decor {
       const color = flowering ? pick(flowerColors) : pick(bushColors)
       // Sunk a little so the lump grows out of the ground on every side
       this.foliage.addCluster(new THREE.Vector3(x, this.groundAt(island, x, z, size * 0.6) + size * 0.35, z), size, color)
+      this.contacts.push({ x, z, radius: size * 0.85 })
     })
 
   }

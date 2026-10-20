@@ -193,7 +193,7 @@ export class Ocean {
           // Amber, replacing some of the blue rather than only adding to it,
           // which would turn it pink
           float lamp = clamp(lampLight * shimmer * uLampStrength, 0.0, 1.0);
-          stylizedColor = mix(stylizedColor, vec3(1.0, 0.5, 0.12), lamp * 0.55) + vec3(0.6, 0.3, 0.05) * lamp * 0.35;
+          stylizedColor = mix(stylizedColor, vec3(1.0, 0.62, 0.16), lamp * 0.45) + vec3(0.5, 0.32, 0.04) * lamp * 0.3;
         }`
       )
   }
@@ -205,7 +205,7 @@ export class Ocean {
 
   // Lights by the water whose glow shows on the sea after dark
   setLamps(positions) {
-    positions.slice(0, MAX_LAMPS).forEach((position, index) => this.uniforms.uLamps.value[index].set(position.x, position.z, 4.5, 0.55))
+    positions.slice(0, MAX_LAMPS).forEach((position, index) => this.uniforms.uLamps.value[index].set(position.x, position.z, 3.6, 0.5))
   }
 
   setNight(night) {

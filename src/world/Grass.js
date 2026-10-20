@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { createStylizedMaterial, windGLSL } from './shading.js'
 import { createRandom, smoothstep } from '../utils/noise.js'
 import { pathAmount } from './Paths.js'
+import { contactShadowGLSL } from './ContactShadows.js'
 
 const DENSITY = 11 // blades per square metre of grass face
 
@@ -15,6 +16,8 @@ export class Grass {
       uBladeHeight: { value: 0.38 },
       // Perpendicular to the fixed camera direction, so blades show their full width
       uBladeRight: { value: new THREE.Vector3(1, 0, -1).normalize() },
+      // The same baked contact shadows as the ground (shared object)
+      uContactMap: islands.uniforms.uContactMap,
     }
 
     this.material = createStylizedMaterial(
@@ -40,10 +43,10 @@ export class Grass {
     const edgeB = new THREE.Vector3()
     const point = new THREE.Vector3()
 
-    for (const { a, b, c, color } of island.grass) {
+    for (const { a, b, c, color, density = 1 } of island.grass) {
       const area = edgeA.subVectors(b, a).cross(edgeB.subVectors(c, a)).length() / 2
       // Fractional blade counts are rounded up or down at random, keeping density even
-      const count = Math.floor(area * DENSITY + random())
+      const count = Math.floor(area * DENSITY * Math.max(density, 0) + random())
 
       for (let i = 0; i < count; i++) {
         let u = random()
@@ -107,7 +110,7 @@ export class Grass {
       )
 
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vGrassTip;')
+      .replace('#include <common>', `#include <common>\nvarying float vGrassTip;\n${contactShadowGLSL}`)
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
@@ -116,7 +119,8 @@ export class Grass {
         diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.08 + vec3(0.01, 0.015, 0.0), vGrassTip);
         // Sun-dried patches break up the green
         float meadow = texture2D(uNoise, vStylizedWorld.xz * 0.04).g;
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.3, 1.15, 0.65), smoothstep(0.55, 0.75, meadow) * 0.35);`
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.3, 1.15, 0.65), smoothstep(0.55, 0.75, meadow) * 0.35);
+        diffuseColor.rgb *= 1.0 - sampleContact(vStylizedWorld.xz) * (0.42 - vGrassTip * 0.15);`
       )
       // Roots sit a little in the shade of their neighbours
       .replace('// STYLIZED_SHADE', 'shade = max(shade, (1.0 - vGrassTip) * 0.32);')

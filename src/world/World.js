@@ -23,6 +23,7 @@ import { Bottles } from './Bottles.js'
 import { Smoke } from './Smoke.js'
 import { Seascape } from './Seascape.js'
 import { RockField } from './Rocks.js'
+import { bakeContactShadows } from './ContactShadows.js'
 import { ProjectBoards } from './ProjectBoards.js'
 import { profile, sections } from '../content/portfolio.js'
 
@@ -128,7 +129,7 @@ export class World {
     this.smoke.build()
     this.fish = new Fish(this.app, this.models, this.splashes, this.islands)
     this.props = new Props(this.app, this.models, this.islands)
-    this.seascape = new Seascape(this.app, this.models, this.props, this.rocks, this.islands)
+    this.seascape = new Seascape(this.app, this.models, this.props, this.rocks, this.islands, this.zones)
     this.rocks.build()
     this.props.instances.build()
     this.bottles = new Bottles(this.app, this.models, this.splashes)
@@ -147,6 +148,13 @@ export class World {
           color: island.color ?? '#ff6b4a',
         }))
     )
+
+    // Now everything stands where it will stay: darken the ground under it
+    this.islands.uniforms.uContactMap.value = bakeContactShadows([
+      ...this.decor.contacts,
+      ...this.signs.contacts,
+      ...(this.projectBoards.contacts ?? []),
+    ])
   }
 
   update(delta) {

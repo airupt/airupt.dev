@@ -205,12 +205,29 @@ export function createBench() {
   return mesh(parts)
 }
 
-// A striped spar buoy with a cone on top: plainly a sea mark, not a figure
-export function createSparBuoy() {
+// Channel marks as sailors know them: a red can to port, a green cone to
+// starboard, each banded in white
+export function createSparBuoy(side = 'port') {
+  const colour = side === 'port' ? red : '#2f9e5a'
   return mesh([
-    part(cylinder(0.32, 0.38, 0.5, 8), red, [0, 0.05, 0]),
+    part(cylinder(0.32, 0.38, 0.5, 8), colour, [0, 0.05, 0]),
     part(cylinder(0.16, 0.3, 0.45, 8), white, [0, 0.52, 0]),
-    part(cylinder(0.1, 0.16, 0.4, 8), red, [0, 0.94, 0]),
-    part(new THREE.ConeGeometry(0.2, 0.3, 8), iron, [0, 1.3, 0]),
+    part(cylinder(0.1, 0.16, 0.4, 8), colour, [0, 0.94, 0]),
+    side === 'port' ? part(cylinder(0.2, 0.2, 0.32, 8), colour, [0, 1.3, 0]) : part(new THREE.ConeGeometry(0.22, 0.36, 8), colour, [0, 1.32, 0]),
   ])
+}
+
+// A stack of sawn planks on two bearers, and a couple of logs waiting beside it
+export function createLumber() {
+  const random = createRandom(57)
+  const parts = [part(box(0.16, 0.12, 1.1), darkWood, [-0.7, 0.06, 0]), part(box(0.16, 0.12, 1.1), darkWood, [0.7, 0.06, 0])]
+  for (let layer = 0; layer < 3; layer++) {
+    for (let i = 0; i < 4 - layer; i++) {
+      const z = (i - (3 - layer) / 2) * 0.27
+      parts.push(part(box(2 - random() * 0.2, 0.09, 0.24), layer % 2 ? '#c08552' : wood, [(random() - 0.5) * 0.1, 0.17 + layer * 0.1, z]))
+    }
+  }
+  parts.push(part(cylinder(0.14, 0.15, 1.6, 7), darkWood, [0.2, 0.15, 0.85], [0, 0, Math.PI / 2]))
+  parts.push(part(cylinder(0.12, 0.13, 1.4, 7), darkWood, [-0.1, 0.13, 1.15], [0, 0.2, Math.PI / 2, 'YXZ']))
+  return mesh(parts)
 }

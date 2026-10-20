@@ -2,9 +2,8 @@ import * as THREE from 'three'
 import * as RAPIER from '@dimforge/rapier3d'
 import { createRandom } from '../utils/noise.js'
 import { waveHeight } from './waves.js'
-import { ramps } from './Props.js'
 import { createSparBuoy } from './Structures.js'
-import { arch, rockClusters } from './layout.js'
+import { arch, rockClusters, spawn } from './layout.js'
 import { instanceStatic } from './instancing.js'
 
 // Boats riding at anchor near the islands: [model, x, z, heading]
@@ -17,12 +16,12 @@ const moorings = [
 // Out in open water between Contact and Skills, a reward for exploring
 const wreck = { x: 31, z: 41, yaw: 0.9 }
 
-// A spar buoy either side of the foot of every ramp, so ramps read from afar
-const FLAG_SPREAD = 1.3 // metres beyond the ramp's edge
-const RAMP_FOOT = 3.4 // metres from a ramp's centre to its low end
+// A pair of channel marks halfway along the run from the start to each
+// section's dock: sail between them and you are on your way there
+const CHANNEL_WIDTH = 9
 
 export class Seascape {
-  constructor(app, models, props, rockField, islands) {
+  constructor(app, models, props, rockField, islands, zones) {
     this.app = app
     this.markers = []
     const { world } = app.physics
@@ -76,21 +75,33 @@ export class Seascape {
 
     instanceStatic(group, statics)
 
-    for (const { x, z, width, direction } of ramps) {
-      const [dx, dz] = direction
-      for (const side of [-1, 1]) {
-        const marker = createSparBuoy()
-        const across = side * (width / 2 + FLAG_SPREAD)
-        marker.userData.x = x - dx * RAMP_FOOT + dz * across
-        marker.userData.z = z - dz * RAMP_FOOT - dx * across
-        marker.userData.phase = random() * 6
-        app.scene.add(marker)
-        this.markers.push(marker)
+    const isOpenWater = (x, z) => islands.list.every(island => Math.hypot(island.x - x, island.z - z) > island.radius * 1.15)
+    for (const zone of zones.list) {
+      const dx = zone.x - spawn.x
+      const dz = zone.z - spawn.z
+      const length = Math.hypot(dx, dz)
+      // Facing along the run, red is to port (left), green to starboard
+      const across = { x: -dz / length, z: dx / length }
+      for (const t of [0.5, 0.42, 0.58]) {
+        const midX = spawn.x + dx * t
+        const midZ = spawn.z + dz * t
+        const spots = [
+          ['port', midX + across.x * (CHANNEL_WIDTH / 2), midZ + across.z * (CHANNEL_WIDTH / 2)],
+          ['starboard', midX - across.x * (CHANNEL_WIDTH / 2), midZ - across.z * (CHANNEL_WIDTH / 2)],
+        ]
+        if (!spots.every(([, x, z]) => isOpenWater(x, z))) continue
+        for (const [side, x, z] of spots) {
+          const marker = createSparBuoy(side)
+          Object.assign(marker.userData, { x, z, phase: random() * 6 })
+          app.scene.add(marker)
+          this.markers.push(marker)
+        }
+        break
       }
     }
   }
 
-  // Ramp markers only bob; they are not part of the physics
+  // Channel marks only bob; they are not part of the physics
   update() {
     const time = this.app.physics.renderTime
     for (const marker of this.markers) {

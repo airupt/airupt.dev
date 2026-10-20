@@ -38,16 +38,16 @@ const scenes = {
     reach: 3.2,
     plaza: 3.4,
     boards: [
-      [-4.3, 0.2],
-      [0, 0.9],
-      [4.3, 0.2],
+      [-4.5, 0],
+      [0, 0.6],
+      [4.5, 0],
     ],
     props: [
-      ['stall', -6.3, -2.6, 'plaza'],
-      ['crate', -7.5, -1.3, 'camera'],
-      ['crate-bottles', -7.7, -2.7, 'camera'],
-      ['cart', 6.2, -2.4, 'plaza'],
-      ['barrel', 7.3, -1.1, 'camera'],
+      ['stall', -7, -3.6, 'plaza'],
+      ['crate', -8.2, -2.3, 'camera'],
+      ['crate-bottles', -8.3, -3.8, 'camera'],
+      ['cart', 6.9, -3.4, 'plaza'],
+      ['barrel', 8, -2.2, 'camera'],
     ],
   },
   // A workshop yard at the foot of a timber lookout
@@ -56,10 +56,10 @@ const scenes = {
     reach: 3,
     plaza: 2.3,
     props: [
-      ['anvil', -3.2, -0.9, 'plaza'],
-      ['crate', 2.8, -0.7, 'camera'],
-      ['barrel', 3.4, 0.5, 'camera'],
-      ['crate', 2.4, 1.1, 'camera'],
+      ['anvil', -2.6, -1.8, 'plaza'],
+      ['lumber', 3, -1.2, 'plaza'],
+      ['barrel', 3.6, 0.6, 'camera'],
+      ['crate', -3.4, -0.2, 'camera'],
     ],
   },
   // A lighthouse, a post box and a bench looking out to sea
@@ -69,7 +69,7 @@ const scenes = {
     plaza: 1.9,
     props: [
       ['mailbox', -3, -1.3, 'plaza'],
-      ['bench', 3, -1.7, 'sea'],
+      ['bench', 2.4, -2.2, 'sea'],
     ],
   },
 }
@@ -91,7 +91,8 @@ export const footprints = {
   'crate-bottles': 0.8,
   barrel: 0.6,
   anvil: 1,
-  board: 2.2,
+  board: 2,
+  lumber: 1.2,
 }
 
 // Turns an island's scene into world positions. Needs the island's level
@@ -153,9 +154,9 @@ export function planIsland(island, rig) {
   // well into the ground.
   const lamps = [-1, 1].map(direction => fromShore(0.7, direction * 1.4))
   const heroSide = toLocal(hero).across
-  const sign = fromShore(2, (heroSide >= 0 ? -1 : 1) * 3.4)
+  const sign = fromShore(1.7, (heroSide >= 0 ? -1 : 1) * 3)
   // Things the props must keep clear of but never move
-  const fixed = [{ ...sign, radius: 2.4 }, ...lamps.map(lamp => ({ ...lamp, radius: 0.5 }))]
+  const fixed = [{ ...sign, radius: 1.8 }, ...lamps.map(lamp => ({ ...lamp, radius: 0.5 }))]
 
   const items = []
   if (scene.hero) items.push({ id: scene.hero, ...hero, how: null })
@@ -201,7 +202,7 @@ export function planIsland(island, rig) {
 
   const boards = (scene.boards ?? []).map(([dx, dy], index) => {
     const point = at(dx, dy, footprints.board)
-    return { ...point, rotation: cameraFacing + (1 - index) * 0.16 }
+    return { ...point, rotation: cameraFacing + (1 - index) * 0.1 }
   })
 
   // The path runs from the dock head across the plaza to the hero

@@ -15,7 +15,7 @@ const presets = {
     fogA: '#ffd2a6', fogB: '#ff79a8', sun: [-0.85, 0.36, -0.3], night: 0.45,
   },
   night: {
-    light: '#9fb0ff', intensity: 1.25, shadow: '#4a52a8', bounce: '#3a5cc4',
+    light: '#8fa2f0', intensity: 0.82, shadow: '#3a4290', bounce: '#2f4ca8',
     fogA: '#2b4686', fogB: '#121842', sun: [0.35, 0.8, -0.45], night: 1,
   },
   dawn: {

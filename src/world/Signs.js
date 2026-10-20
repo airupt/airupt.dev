@@ -1,9 +1,10 @@
 import * as THREE from 'three'
 import { createStylizedMaterial } from './shading.js'
 
-const BOARD = { width: 4.4, height: 1.45, depth: 0.1, bevel: 0.06 }
+const BOARD = { width: 3.2, height: 1.05, depth: 0.09, bevel: 0.05 }
+const HEIGHT = 1.4 // centre of the board above the ground
 // The painted panel sits inside the wooden frame by this much on each side
-const FRAME = 0.13
+const FRAME = 0.1
 
 // Painted panel in the site's ink blue: the name in the display font, with
 // a thin trim line in the section colour all round, like the map pins
@@ -63,6 +64,8 @@ function createBoardGeometry() {
 // all signs are two instanced draws; only the painted fronts are separate.
 export class Signs {
   constructor(app, islands, entries) {
+    // Where the posts meet the ground, for the baked contact shadows
+    this.contacts = []
     const woodMaterial = createStylizedMaterial({ color: '#a76c3e', flatShading: true }, { waterLine: false })
     const facing = Math.atan2(app.cameraRig.direction.x, app.cameraRig.direction.z)
     const boards = []
@@ -76,13 +79,18 @@ export class Signs {
       if (!surface) continue
 
       placement.position.set(x, surface.y, z)
-      placement.rotation.y = facing
+      // Turned a little toward the dock, as if greeting whoever lands
+      const toDock = Math.atan2(island.shore.x - x, island.shore.z - z)
+      const turn = Math.atan2(Math.sin(toDock - facing), Math.cos(toDock - facing))
+      placement.rotation.y = facing + Math.max(-0.4, Math.min(0.4, turn * 0.5))
       placement.updateMatrix()
 
-      boards.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.8, 0)))
+      boards.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, HEIGHT, 0)))
       for (const side of [-1, 1]) {
         // Reaching 0.6 m into the ground, so neither post floats on a slope
-        posts.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(side * BOARD.width * 0.36, 0.95, -0.12)))
+        posts.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(side * BOARD.width * 0.36, (HEIGHT - 0.6) / 2, -0.11)))
+        const foot = new THREE.Vector3(side * BOARD.width * 0.36, 0, -0.11).applyMatrix4(placement.matrix)
+        this.contacts.push({ x: foot.x, z: foot.z, radius: 0.32 })
       }
 
       const face = new THREE.Mesh(
@@ -100,14 +108,14 @@ export class Signs {
           }
         )
       )
-      face.applyMatrix4(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.8, BOARD.depth / 2 + BOARD.bevel + 0.005)))
+      face.applyMatrix4(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, HEIGHT, BOARD.depth / 2 + BOARD.bevel + 0.005)))
       face.receiveShadow = true
       app.scene.add(face)
     }
 
     for (const [geometry, matrices] of [
       [createBoardGeometry(), boards],
-      [new THREE.BoxGeometry(0.2, 3.1, 0.2), posts],
+      [new THREE.BoxGeometry(0.16, HEIGHT + 0.6, 0.16), posts],
     ]) {
       const mesh = new THREE.InstancedMesh(geometry, woodMaterial, matrices.length)
       matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix))
