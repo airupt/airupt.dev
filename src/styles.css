@@ -506,6 +506,15 @@ body:has(dialog[open]) .hud > * {
   right: max(1rem, env(safe-area-inset-right));
 }
 
+/* Phones: the bottle count goes under the brand so it never meets the buttons */
+@media (max-width: 480px) {
+  .hud-top-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
