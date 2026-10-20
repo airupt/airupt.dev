@@ -10,7 +10,7 @@ import { instanceStatic } from './instancing.js'
 const moorings = [
   ['sailboat', -6, 16, 2.2],
   ['fishing-boat', 26, -41, 0.6],
-  ['houseboat', -26, 22, -1.1],
+  ['houseboat', -26, 28, -1.1],
 ]
 
 // Out in open water between Contact and Skills, a reward for exploring

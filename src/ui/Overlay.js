@@ -39,6 +39,10 @@ export class Overlay {
     this.progress = this.loader.querySelector('.loader-progress')
     this.startButton = document.querySelector('#start')
     this.hud = document.querySelector('#hud')
+    // Island labels fade out before they reach the brand and bottle chips
+    this.hudEdge = 0
+    const hudTop = this.hud.querySelector('.hud-top-left')
+    new ResizeObserver(() => (this.hudEdge = hudTop.getBoundingClientRect().bottom)).observe(hudTop)
     this.controls = document.querySelector('#controls')
     this.prompt = document.querySelector('#prompt')
     this.promptButton = document.querySelector('#prompt-button')
@@ -268,7 +272,8 @@ export class Overlay {
       label.element.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`
       // Up close the painted sign on the island takes over; labels guide from afar
       const distance = camera.position.distanceTo(label.position)
-      label.element.style.opacity = Math.min(Math.max((distance - 70) / 18, 0), 1)
+      const clear = (y - 32 - this.hudEdge) / 24
+      label.element.style.opacity = Math.min(Math.max((distance - 70) / 18, 0), 1, Math.max(clear, 0))
     }
   }
 }

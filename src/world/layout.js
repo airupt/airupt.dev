@@ -21,6 +21,7 @@ export const islands = [
     // straight out into open water
     blobs: [
       [-2.8, 2.8, 8.5, 4.2],
+      [-2.6, -5.2, 3.4, 2.8],
       [-0.7, -7.8, 5, 2.4],
       [-6.5, -4, 4.5, 3],
     ],
@@ -34,11 +35,14 @@ export const islands = [
     radius: 17,
     seed: 11,
     yard: [5.5, 6.6, 8.4],
-    // A crescent: two low arms hold a sheltered bay with the dock in it
+    // A crescent: two low arms, joined on by necks, hold a sheltered bay
+    // with the dock in it
     blobs: [
       [0, 0, 9.5, 5],
       [-6, -6, 7, 7.5],
+      [7.6, 2.6, 4.2, 2.6],
       [11.6, 4.2, 4.5, 2.4],
+      [3.4, -7.4, 4.2, 2.4],
       [4.9, -11.4, 4.5, 2],
     ],
   },
@@ -92,7 +96,8 @@ export const islands = [
       [0, 0, 9, 4.5],
       [-5, -6, 5, 6.5],
       [6, 5, 5, 5.5],
-      [2, -10, 3, 1.6],
+      [1.5, -6.6, 3.4, 2.2],
+      [2.6, -10.6, 3.2, 1.8],
     ],
   },
   {
@@ -107,6 +112,8 @@ export const islands = [
     z: -47,
     radius: 25,
     seed: 97,
+    // A big cone needs a bigger wander before its coast stops looking round
+    warp: 5.5,
     blobs: [
       [0, 0, 19, 19],
       [10, 7, 8, 3],
@@ -149,11 +156,11 @@ export const islands = [
     seed: 113,
     sparse: true,
     blobs: [
-      [-7, 4.4, 2.6, 0.95],
-      [-3.5, 2.2, 3, 1],
-      [0, 0, 3.4, 1.1],
-      [3.5, -2.2, 2.8, 1],
-      [6.8, -4.2, 2.2, 0.85],
+      [-7, 4.4, 4, 1],
+      [-3.5, 2.2, 4.4, 1.05],
+      [0, 0, 4.6, 1.1],
+      [3.5, -2.2, 4.2, 1.05],
+      [6.8, -4.2, 3.6, 0.95],
     ],
   },
   {

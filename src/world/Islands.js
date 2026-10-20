@@ -63,9 +63,13 @@ export function islandHeight(island, x, z) {
 // The yard of a section island (or the home island), in metres from where
 // its ground meets the sea on the dock side: [centre inland, half length
 // inland, half width across]. Found once and kept on the island.
+function hasYard(island) {
+  return Boolean(island.section || island.label === 'name' || island.landing)
+}
+
 function yardOf(island) {
   if (island.yardShape !== undefined) return island.yardShape
-  if (!island.section && island.label !== 'name' && !island.landing) return (island.yardShape = null)
+  if (!hasYard(island)) return (island.yardShape = null)
   const out = facingDirection(island)
   let shore = 0
   for (let distance = 0; distance < island.radius * 1.3; distance += 0.25) {
@@ -83,11 +87,18 @@ function naturalHeight(island, x, z) {
   const cliff = 1 - smoothstep(-0.8, -0.1, facing)
 
   const noise = fbm(x * 0.11 + island.seed, z * 0.11, island.seed)
+  // The coast wanders: blobs are measured from a point pushed about by noise,
+  // so round blobs grow headlands and coves. It stays calm on the dock side
+  // of an inhabited island, where the beach, dock and yard need a clean shore.
+  const calm = hasYard(island) ? smoothstep(0.45, 0.85, facing) : 0
+  const warp = (island.warp ?? 3.4) * (1 - calm)
+  const wx = x + (fbm(x * 0.075 + island.seed * 3.1, z * 0.075, island.seed + 5, 2) - 0.5) * 2 * warp
+  const wz = z + (fbm(x * 0.075, z * 0.075 + island.seed * 1.7, island.seed + 9, 2) - 0.5) * 2 * warp
   let elevation = 0
   let nearest = Infinity
 
   island.blobs.forEach(([bx, bz, radius, height], index) => {
-    const distance = Math.hypot(x - bx, z - bz) / radius + (noise - 0.5) * 0.3
+    const distance = Math.hypot(wx - bx, wz - bz) / radius + (noise - 0.5) * 0.3
     nearest = Math.min(nearest, distance)
     let dome
     if (island.volcano && index === 0) {
