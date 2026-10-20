@@ -3,7 +3,7 @@ import { createStylizedMaterial, windGLSL } from './shading.js'
 import { createRandom, smoothstep } from '../utils/noise.js'
 import { pathAmount } from './Paths.js'
 
-const DENSITY = 16 // blades per square metre of grass face
+const DENSITY = 11 // blades per square metre of grass face
 
 // Grass grown on the grassy faces of each island. Every blade is a single
 // triangle: two root corners and a tip. The vertex shader gives it its height,
@@ -12,7 +12,7 @@ export class Grass {
   constructor(app, islands) {
     this.uniforms = {
       uBladeWidth: { value: 0.12 },
-      uBladeHeight: { value: 0.5 },
+      uBladeHeight: { value: 0.38 },
       // Perpendicular to the fixed camera direction, so blades show their full width
       uBladeRight: { value: new THREE.Vector3(1, 0, -1).normalize() },
     }

@@ -5,6 +5,8 @@ import { instanceStatic } from './instancing.js'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { createDockGeometry, DOCK_DECK, DOCK_INLAND, DOCK_LENGTH, DOCK_WIDTH } from './Dock.js'
 import { createStylizedMaterial } from './shading.js'
+import { footprints } from './IslandScenes.js'
+import { createBench, createCampfire, createLighthouse, createLogSeat, createLookout, createMailbox, createSignpostHub, createTent } from './Structures.js'
 
 export const DOCK_TILES = 2
 export const DOCK_TILE = 2.5 // metres per collision box along the dock
@@ -12,56 +14,16 @@ export const DOCK_HEIGHT = -0.55 // bottom of the collision boxes
 
 const palms = ['palm-straight', 'palm-bend', 'palm-detailed-straight', 'palm-detailed-bend']
 
-// Props around each island's dock: [model, metres inland from the shore,
-// metres sideways]. Each island is one small scene built around its plaza
-// (see `paths` in layout.js), and props turn to face that plaza. Keep clear
-// of the section sign at [2.5, 4] and of the footpaths.
-const setPieces = {
-  home: [
-    ['signpost', 3, -2.5],
-    ['flag', 4.5, 3],
-    ['lantern', 1.6, 1.6],
-  ],
-  // A camp: a roofed hut and a tent around the campfire
-  about: [
-    ['hut-roof', 7, -1.5],
-    ['tent', 5.2, 3],
-    ['campfire', 3.6, 0.5],
-    ['barrel', 6.4, 4.4],
-    ['lantern', 1.6, -1.8],
-  ],
-  // A little market square: a stall with its stock stacked beside it, a cart
-  // across the square, the boards behind on their own path
-  projects: [
-    ['stall', 4.8, -3.4],
-    ['crate', 3.5, -4.9],
-    ['crate-bottles', 2.4, -4.5],
-    ['cart', 5.8, 2.6],
-    ['barrel', 6.7, 3.7],
-    ['lantern', 1.2, -1.6],
-    // Room for the project boards (see ProjectBoards.js)
-    ['reserve', 8.8, -5.7, 2.6],
-    ['reserve', 8, -1.5, 2.6],
-    ['reserve', 8.8, 2.7, 2.6],
-  ],
-  // A workshop yard: the anvil bench out in the yard, stores against the
-  // stall, the lookout up the path
-  skills: [
-    ['lookout', 7, 0],
-    ['anvil', 3.3, -1.4],
-    ['stall', 4.6, 2.6],
-    ['crate', 2.4, -2.9],
-    ['barrel', 3.2, -3.6],
-    ['flag-pennant', 5.6, -3.4],
-    ['lantern', 1.6, 1.8],
-  ],
-  // The lighthouse at the end of the path, a pointer to it by the dock
-  contact: [
-    ['tower', 7, 0],
-    ['lantern', 1.6, -1.8],
-    ['flag', 3.4, 3],
-    ['signpost-single', 2.2, 1.3],
-  ],
+// Pieces built in code (see Structures.js) rather than loaded
+const builders = {
+  lantern: () => createLantern(),
+  lighthouse: createLighthouse,
+  lookout: createLookout,
+  tent: createTent,
+  campfire: createCampfire,
+  'log-seat': createLogSeat,
+  mailbox: createMailbox,
+  bench: createBench,
 }
 
 // A lamp post in the same wood as the docks: a post, a little iron lantern
@@ -98,12 +60,10 @@ function createLantern() {
 let lanternMaterialCache = null
 const lanternMaterial = () => (lanternMaterialCache ??= createStylizedMaterial({ vertexColors: true, flatShading: true }, { waterLine: false }))
 
-// Set pieces that look the same from every side keep a random turn
-const roundPieces = new Set(['tower', 'lookout', 'barrel', 'lantern', 'campfire', 'flag', 'flag-pennant'])
-
 const bushColors = ['#4fae4a', '#3f9c47', '#6cc24f', '#58b85a']
 const flowerColors = ['#ff7a59', '#ff9f43', '#ff6b8b']
-const treeColors = ['#ff5a36', '#ff7b2e', '#3f9c47', '#4fae4a']
+// Mostly broadleaf greens, with the occasional red-orange flame tree
+const treeColors = ['#e8603a', '#3f9c47', '#4fae4a', '#3a8f45', '#58b85a']
 
 // Places props on the procedural islands: a dock facing the start point, a
 // few hand-placed set pieces per section, then seeded scatter of palms,
@@ -124,12 +84,8 @@ export class Decor {
     for (const island of islands.list) {
       const random = createRandom(island.seed * 7919)
       const occupied = []
-      if (island.section || island.id === 'home') {
-        this.placeDock(island, occupied)
-        // The section sign stands here (see Signs.js): keep trees off it
-        this.placeSetPiece(island, 'reserve', 2.5, 4, occupied, 3)
-      }
-      for (const [id, along, across, radius] of setPieces[island.id] ?? []) this.placeSetPiece(island, id, along, across, occupied, radius)
+      if (island.section || island.id === 'home') this.placeDock(island, occupied)
+      if (island.plan) this.placeScene(island, occupied)
       // Nothing grows on the footpaths, and trees keep a little back from
       // them so their crowns don't hang over the trail
       for (const line of island.paths.lines) {
@@ -153,12 +109,12 @@ export class Decor {
 
     foliage.build()
     // Models other systems attach things to (lights, smoke) stay separate
-    const keep = new Set(['lantern', 'tower', 'campfire'])
+    const keep = new Set(['lantern', 'lighthouse', 'campfire'])
     instanceStatic(this.group, this.placed.filter(({ id }) => !keep.has(id)).map(({ model }) => model))
   }
 
   add(id, x, y, z, rotation = 0, scale = 1) {
-    const model = id === 'lantern' ? createLantern() : this.models.get(id)
+    const model = builders[id]?.() ?? this.models.get(id)
     model.position.set(x, y, z)
     model.rotation.y = rotation
     model.scale.multiplyScalar(scale)
@@ -197,6 +153,36 @@ export class Decor {
     }
   }
 
+  // Where a point sits on the island's level yard: under 1 inside it
+  yardShapeAt(island, x, z) {
+    const yard = island.yardShape
+    const { out } = yard
+    const dx = x - island.x
+    const dz = z - island.z
+    const along = yard.shore - (dx * out.x + dz * out.z)
+    const across = dx * out.z - dz * out.x
+    return Math.hypot((along - yard.centre) / yard.along, across / yard.across)
+  }
+
+  // Would something tall here stand between the camera and the yard?
+  blocksView(island, x, z) {
+    const { plaza } = island.plan
+    const { screenUp, screenRight } = this.app.cameraRig
+    const dx = x - plaza.x
+    const dz = z - plaza.z
+    const towardCamera = -(dx * screenUp.x + dz * screenUp.z)
+    const sideways = Math.abs(dx * screenRight.x + dz * screenRight.z)
+    return towardCamera > 0 && towardCamera < 16 && sideways < 7
+  }
+
+  // How much the ground rises and falls across a footprint of this radius
+  slopeAt(island, x, z, radius) {
+    const heights = [[radius, 0], [-radius, 0], [0, radius], [0, -radius]]
+      .map(([dx, dz]) => this.islands.surfaceAt(island, x + dx, z + dz)?.y)
+      .filter(y => y !== undefined)
+    return heights.length < 4 ? Infinity : Math.max(...heights) - Math.min(...heights)
+  }
+
   // The lowest ground under a footprint of this radius, so nothing on a slope
   // hangs over the downhill side
   groundAt(island, x, z, radius) {
@@ -208,33 +194,45 @@ export class Decor {
     return lowest
   }
 
-  placeSetPiece(island, id, along, across, occupied, radius) {
-    const { shore, out } = island
-    const x = shore.x - out.x * along + out.z * across
-    const z = shore.z - out.z * along - out.x * across
-    // A reserved spot only keeps scattered plants away; something else builds there
-    if (id === 'reserve') {
+  // The island's scene (see IslandScenes.js): hero, props, dock-head lamps.
+  // The sign and project boards are built elsewhere; here they only keep
+  // their ground clear.
+  placeScene(island, occupied) {
+    const { items, lamps, sign, boards } = island.plan
+    for (const { id, x, z, rotation } of items) {
+      const radius = footprints[id] ?? 1
+      const y = this.groundAt(island, x, z, radius * 0.6) - 0.05
+      if (id === 'signpost-hub') {
+        const model = this.createHub(island)
+        model.position.set(x, y, z)
+        this.group.add(model)
+        this.placed.push({ id, model })
+      } else {
+        this.add(id, x, y, z, rotation)
+      }
       occupied.push({ x, z, radius })
-      return
     }
-    const surface = this.islands.surfaceAt(island, x, z)
-    if (!surface) return
-    // Face the island's plaza (or, without one, the dock), a little off square
-    const target = island.paths.clearings[0] ?? island.shore
-    const jitter = (Math.sin(x * 12.9 + z * 78.2) * 0.5) * 0.35
-    const rotation = roundPieces.has(id) ? Math.sin(x * 3.1 + z) * Math.PI : Math.atan2(target.x - x, target.z - z) + jitter
-    this.add(id, x, this.groundAt(island, x, z, 0.8) - 0.05, z, rotation)
-    occupied.push({ x, z, radius: ['tower', 'hut-roof', 'lookout'].includes(id) ? 3 : 1.6 })
+    for (const { x, z } of lamps) {
+      this.add('lantern', x, this.groundAt(island, x, z, 0.2) - 0.03, z)
+      occupied.push({ x, z, radius: 0.6 })
+    }
+    occupied.push({ ...sign, radius: 2.6 })
+    for (const board of boards) occupied.push({ ...board, radius: footprints.board })
+  }
+
+  // The home signpost points an arrow at every section island, in its colour
+  createHub(island) {
+    const arrows = this.islands.list
+      .filter(other => other.section)
+      .map(other => [Math.atan2(-(other.z - island.z), other.x - island.x), other.color])
+    return createSignpostHub(arrows)
   }
 
   scatter(island, random, occupied) {
     const isFree = (x, z, radius) => occupied.every(spot => Math.hypot(spot.x - x, spot.z - z) > spot.radius + radius)
-    // The front yard of a section island, between the beach and its set
-    // pieces, is what the camera looks at when you arrive: nothing tall
-    // grows there to block the view of the dock, sign and plaza
-    const { shore, out } = island
-    const yard = { x: shore.x - out.x * 4, z: shore.z - out.z * 4 }
-    const inYard = (x, z) => (island.section || island.id === 'home') && Math.hypot(x - yard.x, z - yard.z) < 6.5
+    // Nothing tall grows on an inhabited island's level yard, nor between it
+    // and the camera, so arriving shows the dock, sign, plaza and hero clearly
+    const inYard = (x, z) => island.plan && (this.yardShapeAt(island, x, z) < 1.05 || this.blocksView(island, x, z))
 
     const tryPlace = (count, minRadius, maxRadius, accept, place) => {
       for (let placed = 0, tries = 0; placed < count && tries < count * 12; tries++) {
@@ -257,7 +255,8 @@ export class Decor {
       amount(Math.round(island.radius * 0.45)),
       0.15,
       0.75,
-      (surface, x, z) => surface.y > (island.sparse ? 0.15 : 0.4) && surface.normalY > 0.8 && !(island.volcano && surface.y > 5) && !inYard(x, z),
+      (surface, x, z) =>
+        surface.y > (island.sparse ? 0.15 : 0.4) && surface.normalY > 0.8 && !(island.volcano && surface.y > 5) && !inYard(x, z) && this.slopeAt(island, x, z, 0.7) < 0.35,
       (x, y, z) => this.add(palms[Math.floor(random() * palms.length)], x, this.groundAt(island, x, z, 0.45) - 0.1, z, random() * Math.PI * 2, 0.75 + random() * 0.4)
     )
 
@@ -281,8 +280,10 @@ export class Decor {
     })
 
     tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.6), 0.1, 0.85, onGrass, (x, y, z) => {
-      const size = 0.55 + random() * 0.6
-      const color = random() < 0.22 ? pick(flowerColors) : pick(bushColors)
+      // Mostly green bushes; the odd small flowering one
+      const flowering = random() < 0.12
+      const size = flowering ? 0.4 + random() * 0.2 : 0.55 + random() * 0.6
+      const color = flowering ? pick(flowerColors) : pick(bushColors)
       // Sunk a little so the lump grows out of the ground on every side
       this.foliage.addCluster(new THREE.Vector3(x, this.groundAt(island, x, z, size * 0.6) + size * 0.35, z), size, color)
     })

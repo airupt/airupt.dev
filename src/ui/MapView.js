@@ -101,6 +101,10 @@ export class MapView {
     shared.uFogFar.value = 1e5 + 1
     shared.uSeeThroughCenter.value.set(-1e5, -1e5)
     world.sky.dome.visible = false
+    // Boats, cargo and bottles would only read as specks of dust on the chart
+    world.props?.instances.setVisible(false)
+    const bottles = world.bottles?.items.filter(item => item.object.visible) ?? []
+    for (const item of bottles) item.object.visible = false
     world.ocean.uniforms.uGlint.value = 0
     const shadowCamera = world.sky.sun.shadow.camera
     const shadowBounds = [shadowCamera.left, shadowCamera.right, shadowCamera.top, shadowCamera.bottom]
@@ -120,6 +124,8 @@ export class MapView {
     shared.uFogFar.value = saved.far
     shared.uSeeThroughCenter.value.copy(saved.seeThrough)
     world.sky.dome.visible = true
+    world.props?.instances.setVisible(true)
+    for (const item of bottles) item.object.visible = true
     world.ocean.uniforms.uGlint.value = 3
     ;[shadowCamera.left, shadowCamera.right, shadowCamera.top, shadowCamera.bottom] = shadowBounds
     shadowCamera.updateProjectionMatrix()

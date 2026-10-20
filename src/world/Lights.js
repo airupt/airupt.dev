@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { shared } from './shading.js'
+import { islandHeight } from './Islands.js'
 
 // Bright enough to pass the bloom threshold; scaled by how dark it is
 const GLOW_STRENGTH = 5
@@ -111,16 +112,40 @@ class Beam {
 // Molten rock in the crater: slow plates of dark crust drifting over glowing
 // lava, hot cracks bright enough to bloom, and a warm light thrown on the
 // crater walls and the smoke above (see uLava* in shading.js)
+// Finds where the lava lake belongs from the terrain itself: just under
+// the lowest point of the crater rim, and as wide as the inner walls are at
+// that height, so it always sits down inside the crater
+function measureCrater(volcano) {
+  const [bx, bz, blobRadius] = volcano.blobs[0]
+  const height = (distance, angle) => islandHeight(volcano, bx + Math.cos(angle) * distance, bz + Math.sin(angle) * distance)
+  const angles = Array.from({ length: 32 }, (_, i) => (i / 32) * Math.PI * 2)
+  const floor = height(0, 0)
+  let rim = Infinity
+  for (const angle of angles) {
+    let highest = -Infinity
+    for (let d = 0; d < blobRadius * 0.4; d += 0.2) highest = Math.max(highest, height(d, angle))
+    rim = Math.min(rim, highest)
+  }
+  const level = Math.max(Math.min(rim - 0.45, floor + 3.5), floor + 0.3)
+  let inner = Infinity
+  for (const angle of angles) {
+    let d = 0
+    while (d < blobRadius * 0.4 && height(d, angle) < level) d += 0.1
+    inner = Math.min(inner, d)
+  }
+  return { position: new THREE.Vector3(volcano.x + bx, level, volcano.z + bz), radius: inner * 1.12 }
+}
+
 class Lava {
-  constructor(scene, position) {
-    // A ragged pool, slightly domed so it catches the eye from the camera's angle
-    const geometry = new THREE.CircleGeometry(3.2, 18)
+  constructor(scene, position, radius) {
+    // A ragged pool, its edge running into the crater walls
+    const geometry = new THREE.CircleGeometry(radius, 18)
     const vertices = geometry.attributes.position
     for (let i = 1; i < vertices.count; i++) {
-      const wobble = 0.75 + ((((Math.sin(i * 12.9898) * 43758.5453) % 1) + 1) % 1) * 0.35
+      const wobble = 1 + ((((Math.sin(i * 12.9898) * 43758.5453) % 1) + 1) % 1) * 0.15
       vertices.setXY(i, vertices.getX(i) * wobble, vertices.getY(i) * wobble)
     }
-    vertices.setZ(0, 0.3)
+    vertices.setZ(0, 0.15)
     geometry.rotateX(-Math.PI / 2)
 
     this.material = new THREE.ShaderMaterial({
@@ -182,23 +207,24 @@ export class Lights {
     // Lava in the volcano's crater: glows a little by day, brightly at night
     const volcano = islands.list.find(island => island.volcano)
     if (volcano) {
-      const [bx, bz] = volcano.blobs[0]
-      this.lava = new Lava(app.scene, new THREE.Vector3(volcano.x + bx, volcano.top - 5, volcano.z + bz))
+      const { position, radius } = measureCrater(volcano)
+      this.lava = new Lava(app.scene, position, radius)
     }
 
     for (const { id, model } of decor.placed) {
       if (id === 'lantern') {
-        // Kenney's lantern head sits near the top of the 1.56 unit model
-        this.glows.push(new Glow(model, new THREE.Vector3(0, 1.38, 0), '#ffb35c', 0.12))
+        // Inside the little lantern on top of the post (see Decor.js)
+        this.glows.push(new Glow(model, new THREE.Vector3(0, 1.38, 0), '#ffb35c', 0.09))
         this.pools.push(new LightPool(app.scene, model.position, 3.2))
       }
       if (id === 'campfire') {
-        this.flames.push(new Glow(model, new THREE.Vector3(0, 0.06, 0), '#ff7a2e', 0.06))
-        this.pools.push(new LightPool(app.scene, model.position, 4))
+        this.flames.push(new Glow(model, new THREE.Vector3(0, model.userData.flame, 0), '#ff7a2e', 0.22))
+        this.pools.push(new LightPool(app.scene, model.position, 4.5))
       }
-      if (id === 'tower') {
-        this.lamp = new Glow(model, new THREE.Vector3(0, 6.1, 0), '#fff0c0', 0.3)
-        this.beam = new Beam(model, new THREE.Vector3(0, 6.1, 0))
+      if (id === 'lighthouse') {
+        const lamp = new THREE.Vector3(0, model.userData.lamp, 0)
+        this.lamp = new Glow(model, lamp, '#fff0c0', 0.55)
+        this.beam = new Beam(model, lamp)
       }
     }
 

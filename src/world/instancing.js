@@ -64,6 +64,10 @@ export class DynamicInstances {
     this.update()
   }
 
+  setVisible(visible) {
+    for (const { mesh } of this.buckets.values()) if (mesh) mesh.visible = visible
+  }
+
   update() {
     for (const { mesh, items } of this.buckets.values()) {
       if (!mesh) continue

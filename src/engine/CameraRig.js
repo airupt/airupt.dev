@@ -34,6 +34,11 @@ export class CameraRig {
     this.fovBoost = 0
     // Shifts the picture (not the camera) so the focus sits off-centre, e.g.
     // beside an open panel: x and y as fractions of the screen size
+    // Inside a zone the camera leans toward that island's scene, so arriving
+    // frames the dock, plaza and hero instead of open water
+    this.attention = null
+    this.attentionWeight = 0
+    this.attentionPoint = new THREE.Vector3()
     // A small lean toward something while the camera is framing (a hovered project board)
     this.nudge = new THREE.Vector3()
     this.nudgeTarget = new THREE.Vector3()
@@ -98,6 +103,10 @@ export class CameraRig {
       this.lookAhead.y = 0
       // Keep the boat a little below centre so more of the world shows ahead
       desired.copy(boat.object.position).add(this.lookAhead).addScaledVector(this.screenUp, this.distance * 0.08)
+
+      this.attentionWeight += ((this.attention ? 1 : 0) - this.attentionWeight) * (1 - Math.exp(-1.5 * delta))
+      if (this.attention) this.attentionPoint.copy(this.attention)
+      if (this.attentionWeight > 0.001) desired.lerp(this.attentionPoint, this.attentionWeight * 0.55)
 
       if (this.establishing) {
         // Hold the opening framing until the boat has sailed a little way,

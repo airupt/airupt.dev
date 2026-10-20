@@ -109,7 +109,9 @@ export class World {
     const volcano = this.islands.list.find(island => island.volcano)
     if (volcano) {
       const [bx, bz] = volcano.blobs[0]
-      this.smoke.addEmitter(new THREE.Vector3(volcano.x + bx, volcano.top - 3.5, volcano.z + bz), {
+      // Rising off the lava lake
+      const lava = this.lights.lava?.mesh.position ?? new THREE.Vector3(volcano.x + bx, volcano.top - 3.5, volcano.z + bz)
+      this.smoke.addEmitter(lava.clone().setY(lava.y + 0.4), {
         rate: 5,
         size: 1.25,
         rise: 22,

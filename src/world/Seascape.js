@@ -3,6 +3,7 @@ import * as RAPIER from '@dimforge/rapier3d'
 import { createRandom } from '../utils/noise.js'
 import { waveHeight } from './waves.js'
 import { ramps } from './Props.js'
+import { createSparBuoy } from './Structures.js'
 import { arch, rockClusters } from './layout.js'
 import { instanceStatic } from './instancing.js'
 
@@ -16,7 +17,7 @@ const moorings = [
 // Out in open water between Contact and Skills, a reward for exploring
 const wreck = { x: 31, z: 41, yaw: 0.9 }
 
-// A flag buoy either side of the foot of every ramp, so ramps read from afar
+// A spar buoy either side of the foot of every ramp, so ramps read from afar
 const FLAG_SPREAD = 1.3 // metres beyond the ramp's edge
 const RAMP_FOOT = 3.4 // metres from a ramp's centre to its low end
 
@@ -78,8 +79,7 @@ export class Seascape {
     for (const { x, z, width, direction } of ramps) {
       const [dx, dz] = direction
       for (const side of [-1, 1]) {
-        const marker = models.get('buoy-flag')
-        marker.scale.multiplyScalar(0.85)
+        const marker = createSparBuoy()
         const across = side * (width / 2 + FLAG_SPREAD)
         marker.userData.x = x - dx * RAMP_FOOT + dz * across
         marker.userData.z = z - dz * RAMP_FOOT - dx * across
@@ -95,7 +95,7 @@ export class Seascape {
     const time = this.app.physics.renderTime
     for (const marker of this.markers) {
       const { x, z, phase } = marker.userData
-      marker.position.set(x, waveHeight(x, z, time) - 0.15, z)
+      marker.position.set(x, waveHeight(x, z, time) - 0.2, z)
       marker.rotation.set(Math.sin(time * 1.3 + phase) * 0.12, phase, Math.cos(time * 1.1 + phase) * 0.12)
     }
   }

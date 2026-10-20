@@ -78,7 +78,7 @@ function createRampGeometry(width) {
 // Floating cargo, each group with a reason to be there: crates lost by the
 // fishing boat moored off Projects, and debris around the wreck
 const flotsam = [
-  { x: 22, z: -37, count: 3 },
+  { x: 22, z: -37, count: 2 },
   { x: 35, z: 36, count: 2 },
 ]
 

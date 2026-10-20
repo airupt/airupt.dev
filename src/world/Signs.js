@@ -58,7 +58,7 @@ function createBoardGeometry() {
   return geometry
 }
 
-// Wooden signs with the section name, planted near each dock and turned to
+// Wooden signs with the section name, planted beside each dock path and turned to
 // face the camera so they read from the default view. Boards and posts of
 // all signs are two instanced draws; only the painted fronts are separate.
 export class Signs {
@@ -70,10 +70,8 @@ export class Signs {
     const placement = new THREE.Object3D()
 
     for (const { island, text, color } of entries) {
-      const { shore, out } = island
-      // On the beach, to one side of the dock
-      const x = shore.x - out.x * 2.5 + out.z * 4
-      const z = shore.z - out.z * 2.5 - out.x * 4
+      // Beside the path up from the dock (see IslandScenes.js)
+      const { x, z } = island.plan.sign
       const surface = islands.surfaceAt(island, x, z)
       if (!surface) continue
 
@@ -83,7 +81,8 @@ export class Signs {
 
       boards.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.8, 0)))
       for (const side of [-1, 1]) {
-        posts.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(side * BOARD.width * 0.36, 1.25, -0.12)))
+        // Reaching 0.6 m into the ground, so neither post floats on a slope
+        posts.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(side * BOARD.width * 0.36, 0.95, -0.12)))
       }
 
       const face = new THREE.Mesh(
@@ -108,7 +107,7 @@ export class Signs {
 
     for (const [geometry, matrices] of [
       [createBoardGeometry(), boards],
-      [new THREE.BoxGeometry(0.2, 2.5, 0.2), posts],
+      [new THREE.BoxGeometry(0.2, 3.1, 0.2), posts],
     ]) {
       const mesh = new THREE.InstancedMesh(geometry, woodMaterial, matrices.length)
       matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix))

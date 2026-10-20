@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { MAP_EXTENT, paths } from './layout.js'
+import { MAP_EXTENT } from './layout.js'
 import { fbm, smoothstep } from '../utils/noise.js'
 
 const HALF_WIDTH = 0.42 // metres either side of a trail's centre line
@@ -11,21 +11,6 @@ function distanceToSegment(px, pz, ax, az, bx, bz) {
   const dz = bz - az
   const t = Math.min(Math.max(((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz || 1), 0), 1)
   return Math.hypot(px - ax - dx * t, pz - az - dz * t)
-}
-
-// Turns an island's path layout into world-space shapes, once its shore is known
-export function placePaths(island) {
-  const layout = paths[island.id] ?? paths[island.section]
-  if (!layout) return { lines: [], clearings: [] }
-  const { shore, out } = island
-  const toWorld = (along, across) => ({
-    x: shore.x - out.x * along + out.z * across,
-    z: shore.z - out.z * along - out.x * across,
-  })
-  return {
-    lines: (layout.lines ?? []).map(line => line.map(([along, across]) => toWorld(along, across))),
-    clearings: (layout.clearings ?? []).map(([along, across, radius]) => ({ ...toWorld(along, across), radius })),
-  }
 }
 
 // How much bare earth there is at a world position, 0..1, with a ragged edge

@@ -79,29 +79,25 @@ export class ProjectBoards {
     if (!island || !projects.length) return
 
     const color = island.color
-    const facing = Math.atan2(app.cameraRig.direction.x, app.cameraRig.direction.z)
     const frameMaterial = createStylizedMaterial({ color: '#7a4f33', flatShading: true }, { waterLine: false })
     const frames = []
     const posts = []
     const placement = new THREE.Object3D()
-    const { shore, out } = island
-
     projects.slice(0, 3).forEach((project, index) => {
-      // A gentle arc a little way up the beach, beside the dock
-      const across = (index - 1) * 4.2 - 1.5
-      const along = 8 + Math.abs(index - 1) * 0.8
-      const x = shore.x - out.x * along + out.z * across
-      const z = shore.z - out.z * along - out.x * across
+      // A gentle arc at the back of the market square (see IslandScenes.js)
+      const spot = island.plan.boards[index]
+      if (!spot) return
+      const { x, z, rotation } = spot
       const surface = islands.surfaceAt(island, x, z)
       if (!surface) return
 
       placement.position.set(x, surface.y, z)
-      placement.rotation.set(0, facing + (1 - index) * 0.18, 0)
+      placement.rotation.set(0, rotation, 0)
       placement.updateMatrix()
 
       frames.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 2.6, -0.08)))
       for (const side of [-1, 1]) {
-        posts.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(side * BOARD.width * 0.42, 1.3, -0.12)))
+        posts.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(side * BOARD.width * 0.42, 1, -0.12)))
       }
 
       const canvas = document.createElement('canvas')
@@ -149,7 +145,8 @@ export class ProjectBoards {
 
     for (const [geometry, matrices] of [
       [new THREE.BoxGeometry(BOARD.width + 0.3, BOARD.height + 0.3, 0.14), frames],
-      [new THREE.BoxGeometry(0.2, 2.6, 0.2), posts],
+      // Posts reach 0.6 m into the ground
+      [new THREE.BoxGeometry(0.2, 3.2, 0.2), posts],
     ]) {
       if (!matrices.length) continue
       const mesh = new THREE.InstancedMesh(geometry, frameMaterial, matrices.length)

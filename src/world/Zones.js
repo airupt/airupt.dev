@@ -82,6 +82,8 @@ export class Zones {
       if (nearest) this.app.sounds.play('chime', 0.45)
       this.active = nearest
       this.app.overlay.setPrompt(nearest?.section ?? null)
+      const plaza = nearest?.island.plan?.plaza
+      this.app.cameraRig.attention = plaza ? new THREE.Vector3(plaza.x, 0, plaza.z) : null
     }
   }
 }

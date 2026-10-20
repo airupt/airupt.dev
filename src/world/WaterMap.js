@@ -12,7 +12,7 @@ const COAST_RANGE = 24 // metres of distance to land mapped to 0..1
 // The ocean shader reads it to colour shallow water and to draw foam lines
 // that follow the real coastline rather than circles around island centres.
 // `rocks` are [x, z, radius] spots of rock in open water: they get a little
-// ring of shallows and surf like the islands do
+// ring of turquoise shallows around them
 export function bakeWaterMap(islands, rocks = []) {
   const size = MAP_SIZE
   const metresPerTexel = (MAP_EXTENT * 2) / size
@@ -23,8 +23,9 @@ export function bakeWaterMap(islands, rocks = []) {
     for (let tz = Math.max(0, Math.floor((rz - reach + MAP_EXTENT) / metresPerTexel)); tz <= Math.min(size - 1, Math.ceil((rz + reach + MAP_EXTENT) / metresPerTexel)); tz++) {
       for (let tx = Math.max(0, Math.floor((rx - reach + MAP_EXTENT) / metresPerTexel)); tx <= Math.min(size - 1, Math.ceil((rx + reach + MAP_EXTENT) / metresPerTexel)); tx++) {
         const distance = Math.hypot((tx + 0.5) * metresPerTexel - MAP_EXTENT - rx, (tz + 0.5) * metresPerTexel - MAP_EXTENT - rz) / radius
-        // Above water at the rock, then a shelf sloping off into the deep
-        const height = 0.3 - Math.pow(Math.max(distance - 0.55, 0) / 2, 0.8) * DEPTH_RANGE * 1.1
+        // Just under the surface at the rock (no land, so no surf pad: the
+        // rocks get their own foam where they meet the water)
+        const height = -0.15 - Math.pow(Math.max(distance - 0.55, 0) / 2, 0.8) * DEPTH_RANGE * 1.1
         const index = tz * size + tx
         heights[index] = Math.max(heights[index], height)
       }

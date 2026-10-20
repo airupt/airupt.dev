@@ -3,7 +3,8 @@ import * as RAPIER from '@dimforge/rapier3d'
 import { islands as layout, spawn } from './layout.js'
 import { fbm, hash2, smoothstep } from '../utils/noise.js'
 import { createStylizedMaterial } from './shading.js'
-import { bakePathMap, pathMapGLSL, placePaths } from './Paths.js'
+import { bakePathMap, pathMapGLSL } from './Paths.js'
+import { planIsland } from './IslandScenes.js'
 
 const raycaster = new THREE.Raycaster()
 const rayOrigin = new THREE.Vector3()
@@ -236,7 +237,8 @@ export class Islands {
     // Grass triangles are in island space; offsetting them gives world space
     const island = { ...definition, mesh, top, grass }
     this.findShore(island)
-    island.paths = placePaths(island)
+    island.plan = planIsland(island, this.app.cameraRig)
+    island.paths = island.plan?.paths ?? { lines: [], clearings: [] }
     return island
   }
 

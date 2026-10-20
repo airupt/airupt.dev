@@ -16,7 +16,7 @@ export const islands = [
     // The bay opens toward the right of the screen, so from the start the
     // whole island sits beside the boat (other islands face the start point)
     facing: [0.707, -0.707],
-    yard: [4, 4.6, 6],
+    yard: [4.5, 5.4, 7],
     // Two arms hold a small bay with the dock
     blobs: [
       [-2.8, 2.8, 8.5, 4.2],
@@ -32,6 +32,7 @@ export const islands = [
     z: 14,
     radius: 17,
     seed: 11,
+    yard: [5.5, 6.6, 8.4],
     // A crescent: two low arms hold a sheltered bay with the dock in it
     blobs: [
       [0, 0, 9.5, 5],
@@ -50,7 +51,7 @@ export const islands = [
     seed: 23,
     terraces: true,
     // Big enough for the market square and the row of project boards
-    yard: [6, 7.2, 9.8],
+    yard: [6.2, 7.6, 10.4],
     blobs: [
       [0, 0, 15, 5.5],
       [9, -7, 8, 3.5],
@@ -66,6 +67,7 @@ export const islands = [
     radius: 17,
     seed: 37,
     terraces: true,
+    yard: [5.5, 6.6, 8.4],
     // A long terraced ridge running across the view
     blobs: [
       [0, 0, 8, 4],
@@ -83,6 +85,7 @@ export const islands = [
     z: -14,
     radius: 14,
     seed: 41,
+    yard: [5.5, 6.6, 8.4],
     // Twin hills and a sandy spit
     blobs: [
       [0, 0, 9, 4.5],
@@ -106,7 +109,7 @@ export const islands = [
     ],
   },
   // Beside the run from the start to Projects, not on it
-  { id: 'islet-1', x: 19, z: -26, radius: 5, seed: 53, blobs: [[0, 0, 4, 1.6]] },
+  { id: 'islet-1', x: 26, z: -18, radius: 5, seed: 53, blobs: [[0, 0, 4, 1.6]] },
   {
     id: 'islet-2',
     x: -45,
@@ -119,7 +122,8 @@ export const islands = [
     ],
   },
   { id: 'islet-3', x: 47, z: -55, radius: 7, seed: 71, blobs: [[0, 0, 6, 2.5]] },
-  { id: 'islet-4', x: -55, z: 50, radius: 6, seed: 83, blobs: [[0, 0, 5, 2]] },
+  // Off the rock arch, so the west has one cluster of things to find
+  { id: 'islet-4', x: -57, z: 37, radius: 6, seed: 83, blobs: [[0, 0, 5, 2]] },
   {
     id: 'islet-5',
     x: 47,
@@ -164,28 +168,9 @@ export const islands = [
       return [Math.cos(angle) * ring, Math.sin(angle) * ring, 2.4 + Math.cos(i * 1.9) * 0.6, 0.25]
     }),
   },
+  // A sandy cay in the middle of the reef's lagoon, so the ring reads as an atoll
+  { id: 'reef-cay', x: 60, z: -38, radius: 3, seed: 131, sparse: true, blobs: [[0, 0, 2.3, 1]] },
 ]
-
-// Footpaths worn into each island, from the end of its dock inland, in
-// metres [inland, sideways] from where the dock meets the beach (the same
-// frame as the set pieces in Decor.js). `line` is a trail, `clearing` a round
-// patch of bare earth (a little plaza the props stand on): [inland, sideways, radius].
-export const paths = {
-  home: { lines: [[[0, 0], [1.5, -0.7], [3, -1.6], [4.8, -1.4], [6.2, -0.4]]] },
-  about: {
-    lines: [[[0, 0], [1.6, 0.3], [2.8, 0.4]], [[4.4, 0], [5.6, -0.9], [6.4, -1.4]]],
-    clearings: [[3.6, 0.5, 1.7]],
-  },
-  projects: {
-    lines: [[[0, 0], [1.4, 0.1]], [[4.4, -0.4], [5.8, -1.3], [6.8, -1.5]], [[6.9, -5.9], [6.9, 2.9]]],
-    clearings: [[3, 0.2, 2.3]],
-  },
-  skills: {
-    lines: [[[0, 0], [1.6, -0.3], [2.8, -0.5]], [[4.6, -0.3], [5.8, 0]]],
-    clearings: [[3.6, -0.6, 1.5]],
-  },
-  contact: { lines: [[[0, 0], [1.8, 0.4], [3.6, 0.3], [5.4, 0]]] },
-}
 
 // Sea stacks between the islands so open water always has something in it
 export const rockClusters = [
