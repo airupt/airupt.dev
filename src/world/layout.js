@@ -29,11 +29,14 @@ export const islands = [
     color: '#ffb84a',
     x: -40,
     z: 14,
-    radius: 16,
+    radius: 17,
     seed: 11,
+    // A crescent: two low arms hold a sheltered bay with the dock in it
     blobs: [
-      [0, 0, 11, 5],
+      [0, 0, 9.5, 5],
       [-6, -6, 7, 7.5],
+      [11.6, 4.2, 4.5, 2.4],
+      [4.9, -11.4, 4.5, 2],
     ],
   },
   {
@@ -57,13 +60,16 @@ export const islands = [
     color: '#7d6bff',
     x: -14,
     z: 51,
-    radius: 16,
+    radius: 17,
     seed: 37,
     terraces: true,
+    // A long terraced ridge running across the view
     blobs: [
-      [0, 0, 9, 4],
-      [8, 4, 7, 3],
-      [-7, -4, 6, 3.6],
+      [0, 0, 8, 4],
+      [6.4, 2.9, 6, 3.2],
+      [11.4, 5.2, 4.2, 2.2],
+      [-6.4, -2.9, 6.5, 4.6],
+      [-10.9, -5, 4, 2.6],
     ],
   },
   {
@@ -72,11 +78,14 @@ export const islands = [
     color: '#2ec4a6',
     x: 48,
     z: -14,
-    radius: 13,
+    radius: 14,
     seed: 41,
+    // Twin hills and a sandy spit
     blobs: [
       [0, 0, 9, 4.5],
       [-5, -6, 5, 6.5],
+      [6, 5, 5, 5.5],
+      [2, -10, 3, 1.6],
     ],
   },
   {
@@ -119,6 +128,38 @@ export const islands = [
     ],
   },
   { id: 'islet-6', x: 23, z: 57, radius: 5, seed: 101, blobs: [[0, 0, 4, 1.8]] },
+  {
+    // A long, low sandbar with a lone palm
+    id: 'sandbar',
+    x: 33,
+    z: 12,
+    radius: 11,
+    seed: 113,
+    sparse: true,
+    blobs: [
+      [-7, 4.4, 2.6, 0.95],
+      [-3.5, 2.2, 3, 1],
+      [0, 0, 3.4, 1.1],
+      [3.5, -2.2, 2.8, 1],
+      [6.8, -4.2, 2.2, 0.85],
+    ],
+  },
+  {
+    // A ring of reef just under the surface around a deep lagoon: you see it
+    // as turquoise water, with a few rocks breaking through
+    id: 'reef',
+    x: 60,
+    z: -38,
+    radius: 9,
+    seed: 127,
+    reef: true,
+    sparse: true,
+    blobs: Array.from({ length: 11 }, (_, i) => {
+      const angle = (i / 11) * Math.PI * 2
+      const ring = 5.5 + Math.sin(i * 2.7) * 0.8
+      return [Math.cos(angle) * ring, Math.sin(angle) * ring, 2.4 + Math.cos(i * 1.9) * 0.6, 0.25]
+    }),
+  },
 ]
 
 // Footpaths worn into each island, from the end of its dock inland, in

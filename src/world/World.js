@@ -22,6 +22,7 @@ import { Props } from './Props.js'
 import { Bottles } from './Bottles.js'
 import { Smoke } from './Smoke.js'
 import { Seascape } from './Seascape.js'
+import { RockField } from './Rocks.js'
 import { ProjectBoards } from './ProjectBoards.js'
 import { profile, sections } from '../content/portfolio.js'
 
@@ -99,7 +100,8 @@ export class World {
 
   async load(onProgress) {
     await this.models.load('/models/world.glb', onProgress)
-    this.decor = new Decor(this.app, this.islands, this.models, new Foliage(this.app))
+    this.rocks = new RockField(this.app)
+    this.decor = new Decor(this.app, this.islands, this.models, new Foliage(this.app), this.rocks)
     this.boat.setModel(this.models.get('boat'))
     this.lights = new Lights(this.app, this.decor, this.zones, this.boat, this.islands)
 
@@ -124,7 +126,8 @@ export class World {
     this.smoke.build()
     this.fish = new Fish(this.app, this.models, this.splashes, this.islands)
     this.props = new Props(this.app, this.models, this.islands)
-    this.seascape = new Seascape(this.app, this.models, this.props, this.zones)
+    this.seascape = new Seascape(this.app, this.models, this.props, this.zones, this.rocks, this.islands)
+    this.rocks.build()
     this.props.instances.build()
     this.bottles = new Bottles(this.app, this.models, this.splashes)
 

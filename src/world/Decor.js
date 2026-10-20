@@ -11,7 +11,6 @@ export const DOCK_TILE = 2.5 // metres per collision box along the dock
 export const DOCK_HEIGHT = -0.55 // bottom of the collision boxes
 
 const palms = ['palm-straight', 'palm-bend', 'palm-detailed-straight', 'palm-detailed-bend']
-const rocks = ['rocks-a', 'rocks-b', 'rocks-c', 'rocks-sand-a', 'rocks-sand-b', 'rocks-sand-c']
 
 // Props around each island's dock: [model, metres inland from the shore, metres sideways]
 const setPieces = {
@@ -67,8 +66,9 @@ const treeColors = ['#ff5a36', '#ff7b2e', '#3f9c47', '#4fae4a']
 // few hand-placed set pieces per section, then seeded scatter of palms,
 // rocks, trees and bushes.
 export class Decor {
-  constructor(app, islands, models, foliage) {
+  constructor(app, islands, models, foliage, rocks) {
     this.app = app
+    this.rocks = rocks
     this.islands = islands
     this.models = models
     this.foliage = foliage
@@ -181,50 +181,41 @@ export class Decor {
       }
     }
 
+    // Sandbars and the like get a palm or two and nothing else
+    const amount = count => (island.sparse ? Math.min(count, 1) : count)
+
     tryPlace(
-      Math.round(island.radius * 0.45),
+      amount(Math.round(island.radius * 0.45)),
       0.15,
       0.75,
-      surface => surface.y > 0.4 && surface.normalY > 0.8 && !(island.volcano && surface.y > 5),
+      surface => surface.y > (island.sparse ? 0.15 : 0.4) && surface.normalY > 0.8 && !(island.volcano && surface.y > 5),
       (x, y, z) => this.add(palms[Math.floor(random() * palms.length)], x, y - 0.1, z, random() * Math.PI * 2, 0.75 + random() * 0.4)
     )
 
     tryPlace(
-      Math.max(1, Math.round(island.radius * 0.2)),
+      amount(Math.max(1, Math.round(island.radius * 0.2))),
       0.7,
       1.0,
       surface => surface.y > -0.8,
-      (x, y, z) => {
-        const scale = 0.25 + random() * 0.35
-        this.add(rocks[Math.floor(random() * rocks.length)], x, y - 0.3, z, random() * Math.PI * 2, scale)
-        this.addRockCollider(x, y, z, scale)
-      }
+      (x, y, z) => this.rocks.add(x, y - 0.25, z, { width: 1 + random() * 1.3, height: 0.5 + random() * 0.9, mossy: y > 0.6 })
     )
 
     const pick = list => list[Math.floor(random() * list.length)]
     // Nothing grows on the volcano's ash cone
     const onGrass = surface => surface.y > 0.6 && surface.normalY > 0.75 && !(island.volcano && surface.y > 5)
 
-    tryPlace(Math.round(island.radius * 0.15), 0.1, 0.6, onGrass, (x, y, z) => {
+    tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.15), 0.1, 0.6, onGrass, (x, y, z) => {
       this.foliage.addTree(new THREE.Vector3(x, y - 0.1, z), 2.2 + random() * 1.2, 1.3 + random() * 0.6, pick(treeColors), random)
     })
 
-    tryPlace(Math.round(island.radius * 0.6), 0.1, 0.85, onGrass, (x, y, z) => {
+    tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.6), 0.1, 0.85, onGrass, (x, y, z) => {
       const size = 0.55 + random() * 0.6
       const color = random() < 0.22 ? pick(flowerColors) : pick(bushColors)
       this.foliage.addCluster(new THREE.Vector3(x, y + size * 0.45, z), size, color)
     })
 
-    tryPlace(Math.round(island.radius * 0.25), 0.1, 0.8, onGrass, (x, y, z) =>
+    tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.25), 0.1, 0.8, onGrass, (x, y, z) =>
       this.add('grass-plant', x, y, z, random() * Math.PI * 2, 1 + random() * 0.8)
     )
-  }
-
-  addRockCollider(x, y, z, scale) {
-    const { world } = this.app.physics
-    const radius = 2.1 * scale
-    const halfHeight = 1.6 * scale
-    const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x, y + halfHeight - 0.3, z))
-    world.createCollider(RAPIER.ColliderDesc.cylinder(halfHeight, radius), body)
   }
 }

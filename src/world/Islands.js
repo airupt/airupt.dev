@@ -186,8 +186,10 @@ export class Islands {
     mesh.updateMatrixWorld()
     this.app.scene.add(mesh)
 
-    let top = 0
+    let top = -Infinity
     for (let i = 1; i < vertices.length; i += 3) top = Math.max(top, vertices[i])
+    // A reef lies wholly under the opaque sea: only the sea map shows it
+    mesh.visible = top > 0
 
     // Grass triangles are in island space; offsetting them gives world space
     const island = { ...definition, mesh, top, grass }
