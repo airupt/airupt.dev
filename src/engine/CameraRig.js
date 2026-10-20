@@ -30,6 +30,10 @@ export class CameraRig {
 
     this.baseFov = 25
     this.fovBoost = 0
+    // Shifts the picture (not the camera) so the focus sits off-centre, e.g.
+    // beside an open panel: x and y as fractions of the screen size
+    this.viewShift = new THREE.Vector2()
+    this.viewShiftTarget = new THREE.Vector2()
     this.shakeAmount = 0
     this.shakeTime = 0
 
@@ -93,6 +97,14 @@ export class CameraRig {
 
     this.camera.position.copy(this.focus).addScaledVector(this.direction, this.distance)
     this.camera.lookAt(this.focus)
+
+    this.viewShift.lerp(this.viewShiftTarget, 1 - Math.exp(-4 * delta))
+    if (this.viewShift.lengthSq() > 1e-6) {
+      const { width, height } = this.app.viewport
+      this.camera.setViewOffset(width, height, this.viewShift.x * width, this.viewShift.y * height, width, height)
+    } else if (this.camera.view?.enabled) {
+      this.camera.clearViewOffset()
+    }
 
     // Boosting at speed widens the view slightly, which reads as acceleration
     const boosting = this.app.inputs.state.boost && Math.abs(boat.speed) > 10

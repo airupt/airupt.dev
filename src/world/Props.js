@@ -18,27 +18,44 @@ const ramps = [
 
 const RAMP = { length: 6, low: -0.7, high: 1.5, bottom: -1.6 }
 
-// Orange and white hazard stripes, mapped in world units across the ramp
-function createStripeTexture() {
+// Weathered planks for the ramp deck and sides
+function createPlankTexture() {
   const canvas = document.createElement('canvas')
   canvas.width = 64
   canvas.height = 64
   const context = canvas.getContext('2d')
-  context.fillStyle = '#ff7b2e'
+  context.fillStyle = '#b9834f'
   context.fillRect(0, 0, 64, 64)
-  context.fillStyle = '#fff4e6'
-  for (let i = -64; i < 64; i += 32) {
+  context.fillStyle = '#8f6038'
+  for (let x = 0; x < 64; x += 16) context.fillRect(x, 0, 2, 64)
+  context.fillStyle = 'rgba(255, 240, 220, 0.12)'
+  for (let x = 4; x < 64; x += 16) context.fillRect(x, 0, 5, 64)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+  texture.repeat.set(0.6, 0.6)
+  return texture
+}
+
+// Hazard stripes, only on the lip at the top of the ramp
+function createStripeTexture() {
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 16
+  const context = canvas.getContext('2d')
+  context.fillStyle = '#d0652f'
+  context.fillRect(0, 0, 128, 16)
+  context.fillStyle = '#f6ead8'
+  for (let x = -16; x < 128; x += 24) {
     context.beginPath()
-    context.moveTo(i, 64)
-    context.lineTo(i + 16, 64)
-    context.lineTo(i + 80, 0)
-    context.lineTo(i + 64, 0)
+    context.moveTo(x, 16)
+    context.lineTo(x + 12, 16)
+    context.lineTo(x + 28, 0)
+    context.lineTo(x + 16, 0)
     context.fill()
   }
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping
-  texture.repeat.set(0.5, 0.5)
   return texture
 }
 
@@ -58,12 +75,12 @@ function createRampGeometry(width) {
 }
 
 // Clusters of floating cargo near the islands
+// A few small groups rather than confetti: cargo drifting off the Projects
+// island, debris trailing from the wreck, a pair by the Contact channel
 const flotsam = [
-  { x: 24, z: -32, count: 4 },
-  { x: -24, z: -6, count: 3 },
-  { x: -36, z: 40, count: 4 },
-  { x: 36, z: 12, count: 3 },
-  { x: 10, z: 32, count: 3 },
+  { x: 24, z: -32, count: 3 },
+  { x: -31, z: -22, count: 3 },
+  { x: 36, z: 12, count: 2 },
 ]
 
 // Floating crates and barrels the boat can shove around, and jump ramps
@@ -75,7 +92,8 @@ export class Props {
     this.instances = new DynamicInstances(app.scene)
     const { world } = app.physics
 
-    const rampMaterial = createStylizedMaterial({ map: createStripeTexture(), flatShading: true })
+    const rampMaterial = createStylizedMaterial({ map: createPlankTexture(), flatShading: true })
+    const lipMaterial = createStylizedMaterial({ map: createStripeTexture(), flatShading: true })
     for (const { x, z, width, direction } of ramps) {
       const geometry = createRampGeometry(width)
       const ramp = new THREE.Mesh(geometry, rampMaterial)
@@ -84,6 +102,11 @@ export class Props {
       ramp.castShadow = true
       ramp.receiveShadow = true
       app.scene.add(ramp)
+
+      const lip = new THREE.Mesh(new THREE.BoxGeometry(width + 0.1, 0.14, 0.45), lipMaterial)
+      lip.position.set(0, RAMP.high + 0.02, RAMP.length / 2 - 0.22)
+      lip.castShadow = true
+      ramp.add(lip)
 
       const body = world.createRigidBody(
         RAPIER.RigidBodyDesc.fixed().setTranslation(x, 0, z).setRotation(new THREE.Quaternion().setFromEuler(ramp.rotation))
@@ -95,8 +118,8 @@ export class Props {
     const isOpenWater = (px, pz) => islands.list.every(island => Math.hypot(island.x - px, island.z - pz) > island.radius * 1.2)
     for (const cluster of flotsam) {
       for (let i = 0; i < cluster.count; i++) {
-        const px = cluster.x + (random() - 0.5) * 8
-        const pz = cluster.z + (random() - 0.5) * 8
+        const px = cluster.x + (random() - 0.5) * 5
+        const pz = cluster.z + (random() - 0.5) * 5
         if (!isOpenWater(px, pz)) continue
         this.addFloater(models, random() < 0.6 ? 'barrel' : 'crate-bottles', px, pz, random() * Math.PI * 2)
       }
