@@ -198,15 +198,21 @@ export function createSignpostHub(arrows) {
   canvas.width = 512
   canvas.height = rowHeight * arrows.length
   const context = canvas.getContext('2d')
-  context.fillStyle = '#f4f1ea'
   context.textBaseline = 'middle'
+  // Light letters in a dark rim, so the names read on every arrow colour
+  context.fillStyle = '#fffaf0'
+  context.strokeStyle = '#1a2233'
+  context.lineWidth = 12
+  context.lineJoin = 'round'
   arrows.forEach(([, , name], index) => {
-    let size = 76
+    let size = 72
     do {
       context.font = `800 ${size}px "Bricolage Grotesque", system-ui, sans-serif`
       size -= 2
-    } while (context.measureText(name).width > canvas.width - 24)
-    context.fillText(name, 12, rowHeight * (index + 0.5) + 2)
+    } while (context.measureText(name).width > canvas.width - 36)
+    const y = rowHeight * (index + 0.5) + 2
+    context.strokeText(name, 18, y)
+    context.fillText(name, 18, y)
   })
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
