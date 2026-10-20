@@ -47,6 +47,7 @@ export class Overlay {
     })
     this.panel.addEventListener('close', () => {
       this.app?.sounds.play('click', 0.4, 0.85)
+      this.onSectionClose?.()
       this.setSailing(true)
     })
 
@@ -67,6 +68,20 @@ export class Overlay {
     this.progress.setAttribute('aria-valuenow', percent)
   }
 
+  // Quick wave of colour across the screen to hide a jump cut (respawn)
+  wipe() {
+    this.wipeElement ??= Object.assign(document.createElement('div'), { className: 'wipe' })
+    if (!this.wipeElement.isConnected) document.body.append(this.wipeElement)
+    this.wipeElement.classList.remove('is-active')
+    void this.wipeElement.offsetWidth // restart the animation
+    this.wipeElement.classList.add('is-active')
+  }
+
+  // Once the scene is drawing, the loader becomes a light frame over it
+  showLiveScene() {
+    this.loader.classList.add('is-live')
+  }
+
   ready(onStart) {
     this.startButton.disabled = false
     this.startButton.textContent = 'Set sail'
@@ -75,6 +90,7 @@ export class Overlay {
       () => {
         this.started = true
         this.loader.classList.add('is-hidden')
+        document.body.classList.add('is-sailing')
         this.hud.hidden = false
         this.joystick.hidden = !this.app.viewport.isTouch
         onStart()
@@ -107,6 +123,7 @@ export class Overlay {
     this.panelBody.replaceChildren(renderSection(section, profile, 'panel'))
     this.panel.showModal()
     this.app.sounds.play('click', 0.5)
+    this.onSectionOpen?.(id)
     this.setSailing(false)
   }
 

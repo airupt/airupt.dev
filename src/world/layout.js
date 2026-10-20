@@ -11,7 +11,9 @@ export const islands = [
   { id: 'islet-4', x: -78, z: -24, radius: 5, height: 2.2, seed: 83 },
 ]
 
-export const spawn = { x: 0, z: 0 }
+// The boat starts just off the home island, bow pointing at it. The camera
+// looks diagonally toward -x/-z, so the island sits straight up the screen.
+export const spawn = { x: 13, z: -13, yaw: Math.PI / 4 }
 
 // Past this distance from the centre the sea pushes the boat back
 export const worldRadius = 105

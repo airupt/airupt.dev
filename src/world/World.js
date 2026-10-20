@@ -16,6 +16,8 @@ import { Splashes } from './Splashes.js'
 import { BoatEffects } from './BoatEffects.js'
 import { Fish } from './Fish.js'
 import { Birds } from './Birds.js'
+import { ZoneRings } from './ZoneRings.js'
+import { Signs } from './Signs.js'
 import { profile, sections } from '../content/portfolio.js'
 
 export class World {
@@ -31,8 +33,11 @@ export class World {
     this.wake = new Wake(app, this.boat)
     this.splashes = new Splashes(app)
     this.boatEffects = new BoatEffects(this.boat, this.splashes)
+    this.boatEffects.onImpact = strength => app.cameraRig.shake(strength)
+    this.boat.onRespawn = () => app.overlay.wipe()
     this.birds = new Birds(app, this.islands)
     this.zones = new Zones(app, this.islands)
+    this.zoneRings = new ZoneRings(app, this.zones)
 
     for (const island of this.islands.list) {
       const text = island.label === 'name' ? profile.name : sections.find(section => section.id === island.section)?.title
@@ -48,6 +53,20 @@ export class World {
     this.boat.setModel(this.models.get('boat'))
     this.lights = new Lights(this.app, this.decor, this.zones, this.boat)
     this.fish = new Fish(this.app, this.models, this.splashes, this.islands)
+
+    // Signs are painted with the display font, so wait until it has loaded
+    await document.fonts.load('800 96px "Bricolage Grotesque"')
+    this.signs = new Signs(
+      this.app,
+      this.islands,
+      this.islands.list
+        .filter(island => island.section || island.label === 'name')
+        .map(island => ({
+          island,
+          text: island.label === 'name' ? profile.name : sections.find(section => section.id === island.section).title,
+          color: island.color ?? '#ff6b4a',
+        }))
+    )
   }
 
   update(delta) {
@@ -68,5 +87,6 @@ export class World {
     this.ocean.update(focus)
     this.sky.update(focus, this.app.cameraRig.distance)
     this.zones.update()
+    this.zoneRings.update(delta)
   }
 }

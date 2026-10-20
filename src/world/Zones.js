@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import { Buoy } from './Buoy.js'
 import { DOCK_TILE, DOCK_TILES } from './Decor.js'
 
@@ -19,12 +20,32 @@ export class Zones {
       const z = shore.z + out.z * reach
       // Buoy sits beside the dock end so the boat can pull right up to it
       const buoy = new Buoy(app, { x: x + out.z * 3, z: z - out.x * 3, color: island.color })
-      this.list.push({ section: island.section, x, z, buoy })
+      this.list.push({ section: island.section, island, x, z, buoy })
     }
 
-    app.inputs.on('interact', () => {
-      if (this.active) app.overlay.openSection(this.active.section)
-    })
+    app.inputs.on('interact', () => this.open())
+    app.overlay.onSectionOpen = id => this.frame(id)
+    app.overlay.onSectionClose = () => this.release()
+  }
+
+  open() {
+    if (this.active) this.app.overlay.openSection(this.active.section)
+  }
+
+  // While a section is open the camera glides over to its island
+  frame(id) {
+    const zone = this.list.find(candidate => candidate.section === id)
+    if (!zone) return
+    const rig = this.app.cameraRig
+    this.returnDistance = rig.targetDistance
+    rig.override = new THREE.Vector3((zone.x + zone.island.x) / 2, 0, (zone.z + zone.island.z) / 2)
+    rig.zoomTo(rig.limits.min + 8)
+  }
+
+  release() {
+    const rig = this.app.cameraRig
+    rig.override = null
+    if (this.returnDistance) rig.zoomTo(this.returnDistance)
   }
 
   update() {

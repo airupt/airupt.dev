@@ -48,12 +48,8 @@ export class Experience {
     this.resize()
     this.viewport.onResize(() => this.resize())
 
-    await Promise.all([
-      this.world.load(progress => this.overlay.setProgress(0.2 + progress * 0.75)),
-      this.sounds.load(),
-    ])
-    this.overlay.setProgress(1)
-
+    // The sea and islands render behind the loader while models and sounds
+    // stream in, with the camera drifting over the archipelago
     this.ticker.add(() => this.inputs.update(), 0)
     this.ticker.add(delta => this.physics.update(delta), 10)
     this.ticker.add(delta => this.world.update(delta), 20)
@@ -62,11 +58,23 @@ export class Experience {
     this.ticker.add(() => this.overlay.update(), 40)
     this.ticker.add(delta => this.render(delta), 100)
     this.ticker.start()
+    requestAnimationFrame(() => this.overlay.showLiveScene())
+
+    await Promise.all([
+      this.world.load(progress => this.overlay.setProgress(0.2 + progress * 0.7)),
+      this.sounds.load(),
+    ])
+
+    // Compile every shader now rather than the first time each thing comes into view
+    await this.renderer.compileAsync(this.scene, this.cameraRig.camera)
+    this.overlay.setProgress(1)
 
     this.overlay.ready(() => {
       this.inputs.enabled = true
       this.sounds.start()
+      this.cameraRig.attract = false
       this.cameraRig.zoomTo(this.cameraRig.limits.start)
+      this.world.boat.drop()
     })
   }
 

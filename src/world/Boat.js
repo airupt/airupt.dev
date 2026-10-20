@@ -29,6 +29,8 @@ const tuning = {
   lean: 0.22,
 }
 
+const spawnRotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), spawn.yaw)
+
 const quaternion = new THREE.Quaternion()
 const forward = new THREE.Vector3()
 const right = new THREE.Vector3()
@@ -73,6 +75,7 @@ export class Boat {
     this.body = world.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()
         .setTranslation(spawn.x, 0.4, spawn.z)
+        .setRotation(spawnRotation)
         .setLinearDamping(0.1)
         .setAngularDamping(0.8)
         .setCanSleep(false)
@@ -153,9 +156,19 @@ export class Boat {
     if (this.capsizedTime > 2 || translation.y < -5) this.respawn()
   }
 
+  // Intro: the boat falls into the sea from a little height and splashes down
+  drop() {
+    this.body.setTranslation({ x: spawn.x, y: 4, z: spawn.z }, true)
+    this.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+    this.body.setRotation(spawnRotation, true)
+    this.body.setAngvel({ x: 0.4, y: 0, z: 0.25 }, true)
+    this.sync.reset()
+  }
+
   respawn() {
+    this.onRespawn?.()
     this.body.setTranslation({ x: spawn.x, y: 0.4, z: spawn.z }, true)
-    this.body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true)
+    this.body.setRotation(spawnRotation, true)
     this.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
     this.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
     this.sync.reset()

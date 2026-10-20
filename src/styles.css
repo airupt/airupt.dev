@@ -96,15 +96,20 @@ body {
 
 /* Loader */
 
+/* Covers the page until the 3D scene draws, then turns into a soft frame over it */
 .loader {
   position: fixed;
   inset: 0;
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: linear-gradient(180deg, #3f9ee8 0%, var(--sky) 55%, #2389cf 55%, #13609f 100%);
-  transition: opacity 0.6s ease, visibility 0.6s;
+  background: linear-gradient(180deg, #8fd8f5 0%, #2389cf 100%);
+  transition: opacity 0.6s ease, visibility 0.6s, background 1.2s ease;
   z-index: 30;
+}
+
+.loader.is-live {
+  background: radial-gradient(ellipse at center, rgb(13 43 69 / 0) 30%, rgb(13 43 69 / 0.35) 100%);
 }
 
 .loader.is-hidden {
@@ -162,6 +167,12 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 5;
+  opacity: 0;
+  transition: opacity 1s ease 1.2s;
+}
+
+.is-sailing .labels {
+  opacity: 1;
 }
 
 .label {
@@ -268,6 +279,27 @@ body {
   background: var(--paper);
   border: 2px solid var(--ink);
   pointer-events: none;
+}
+
+/* Respawn transition: a band of sea colour sweeps across */
+
+.wipe {
+  position: fixed;
+  inset: -20%;
+  pointer-events: none;
+  z-index: 20;
+  background: linear-gradient(110deg, transparent 30%, #2fd6cf 38%, #1f86cc 50%, #2fd6cf 62%, transparent 70%);
+  transform: translateX(-120%);
+}
+
+.wipe.is-active {
+  animation: wipe 0.7s cubic-bezier(0.6, 0, 0.4, 1);
+}
+
+@keyframes wipe {
+  to {
+    transform: translateX(120%);
+  }
 }
 
 /* Section panel */
