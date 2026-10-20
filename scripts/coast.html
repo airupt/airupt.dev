@@ -1,0 +1,46 @@
+<!doctype html>
+<!-- Dev-only page (not part of the build): every island's coast drawn from
+     above, straight from terrain.js, for working on the layout. Open
+     http://localhost:5173/scripts/coast.html (add ?ids=home,about for a few) -->
+<html lang="en"><head><meta charset="UTF-8" /><title>Coastlines</title></head>
+<body style="margin:0;background:#123;color:#fff;font:12px system-ui">
+<div id="out" style="display:flex;flex-wrap:wrap;gap:6px;padding:6px"></div>
+<script type="module">
+import { islands } from '/src/world/layout.js'
+import { islandHeight, facingDirection } from '/src/world/terrain.js'
+const S = 7 // px per metre
+const ids = new URLSearchParams(location.search).get('ids')?.split(',')
+for (const island of islands.filter(i => !ids || ids.includes(i.id))) {
+  if (island.reef) continue
+  const extent = island.radius * 1.3
+  const size = Math.round(extent * 2 * S)
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')
+  const img = ctx.createImageData(size, size)
+  for (let py = 0; py < size; py++) for (let px = 0; px < size; px++) {
+    const x = px / S - extent, z = py / S - extent
+    const y = islandHeight(island, x, z)
+    let c
+    if (y < -1.2) c = [22, 70, 120]
+    else if (y < 0) c = [40, 130, 180]
+    else if (y < 0.5) c = [237, 210, 155]
+    else c = [100 + y * 8, 170 + y * 3, 80]
+    const i = (py * size + px) * 4
+    img.data.set([...c, 255], i)
+  }
+  ctx.putImageData(img, 0, 0)
+  // facing arrow from centre
+  const f = facingDirection(island)
+  ctx.strokeStyle = '#f0f'; ctx.lineWidth = 2
+  ctx.beginPath(); ctx.moveTo(size / 2, size / 2); ctx.lineTo(size / 2 + f.x * extent * S * 0.9, size / 2 + f.z * extent * S * 0.9); ctx.stroke()
+  // grid every 5 m
+  ctx.fillStyle = 'rgba(0,0,0,.35)'
+  for (let m = -Math.floor(extent / 5) * 5; m <= extent; m += 5) { const p = (m + extent) * S; ctx.fillRect(p, 0, 1, size); ctx.fillRect(0, p, size, 1) }
+  const wrap = document.createElement('div')
+  wrap.innerHTML = `<div>${island.id} (grid 5 m, +x right, +z down)</div>`
+  wrap.append(canvas)
+  document.querySelector('#out').append(wrap)
+}
+</script>
+</body></html>
