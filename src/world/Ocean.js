@@ -29,6 +29,11 @@ export class Ocean {
       uCrest: { value: new THREE.Color('#7ccdee') },
       // Turned off when the map photographs the sea from straight above
       uGlint: { value: 3 },
+      // Churned water glows like plankton at night
+      uFoamGlow: { value: 0 },
+      uTrail: { value: null },
+      uTrailCenter: { value: new THREE.Vector2() },
+      uTrailSize: { value: 1 },
     }
 
     const material = createStylizedMaterial(
@@ -75,6 +80,10 @@ export class Ocean {
         uniform vec3 uDeep;
         uniform vec3 uCrest;
         uniform float uGlint;
+        uniform float uFoamGlow;
+        uniform sampler2D uTrail;
+        uniform vec2 uTrailCenter;
+        uniform float uTrailSize;
         varying float vWave;
         varying vec2 vOceanPosition;
         ${waterMapGLSL}`
@@ -103,7 +112,18 @@ export class Ocean {
         float roll = fract(coast / 3.2 + uTime * 0.2);
         float lines = smoothstep(0.84, 0.9, roll) * (1.0 - smoothstep(0.94, 1.0, roll));
         lines *= (1.0 - smoothstep(1.5, 6.5, coast)) * smoothstep(0.3, 0.6, coast) * smoothstep(0.45, 0.6, breakup);
-        diffuseColor.rgb = mix(water, vec3(1.0), max(surf, lines * 0.55));`
+        // Water churned up by the boat: lighter where it was stirred, foam
+        // where it is still fresh, broken up by fine noise
+        vec2 trailUv = vec2((vOceanPosition.x - uTrailCenter.x) / uTrailSize + 0.5, -(vOceanPosition.y - uTrailCenter.y) / uTrailSize + 0.5);
+        float inside = step(0.0, trailUv.x) * step(trailUv.x, 1.0) * step(0.0, trailUv.y) * step(trailUv.y, 1.0);
+        float trail = texture2D(uTrail, trailUv).r * inside;
+        float churn = texture2D(uNoise, vOceanPosition * 0.31 + uTime * 0.04).r * 0.6 + texture2D(uNoise, vOceanPosition * 0.83 - uTime * 0.03).g * 0.4;
+        water = mix(water, uCrest, smoothstep(0.03, 0.25, trail) * 0.28);
+        float trailFoam = smoothstep(0.4, 0.62, trail * (0.3 + churn * 1.15));
+
+        vec3 trailColor = mix(vec3(1.0), vec3(0.3, 2.2, 2.6), uFoamGlow);
+        diffuseColor.rgb = mix(water, vec3(1.0), max(surf, lines * 0.55));
+        diffuseColor.rgb = mix(diffuseColor.rgb, trailColor, trailFoam);`
       )
       // The swell barely tilts the surface, so read the light on a much
       // narrower range than land does: wave backs fall into soft shade.
@@ -124,6 +144,15 @@ export class Ocean {
         float glint = pow(max(dot(stylizedNormal, normalize(uSunDirection + viewDirection)), 0.0), 260.0);
         stylizedColor += uLightColor * glint * uGlint * (1.0 - shade) * smoothstep(0.2, 0.6, depth);`
       )
+  }
+
+  // The boat's trail map (see TrailMap.js) shares its uniforms with the sea
+  useTrail(trail) {
+    Object.assign(this.uniforms, trail.uniforms)
+  }
+
+  setNight(night) {
+    this.uniforms.uFoamGlow.value = THREE.MathUtils.smoothstep(night, 0.4, 0.9)
   }
 
   update(focus) {

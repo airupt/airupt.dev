@@ -4,7 +4,7 @@ import { Ocean } from './Ocean.js'
 import { Islands } from './Islands.js'
 import { Boat } from './Boat.js'
 import { Zones } from './Zones.js'
-import { Wake } from './Wake.js'
+import { TrailMap } from './TrailMap.js'
 import { Models } from './Models.js'
 import { Decor } from './Decor.js'
 import { shared } from './shading.js'
@@ -37,13 +37,14 @@ export class World {
     this.islands = new Islands(app)
     this.grass = new Grass(app, this.islands)
     this.boat = new Boat(app)
-    this.wake = new Wake(app, this.boat)
+    this.trail = new TrailMap(app, this.boat)
+    this.ocean.useTrail(this.trail)
     this.splashes = new Splashes(app)
     this.boatEffects = new BoatEffects(this.boat, this.splashes)
     this.boatEffects.onImpact = strength => app.cameraRig.shake(strength)
     this.boat.onRespawn = () => {
       app.overlay.wipe()
-      this.wake.reset()
+      this.trail.reset()
     }
     this.birds = new Birds(app, this.islands)
     this.zones = new Zones(app, this.islands)
@@ -140,12 +141,12 @@ export class World {
     const focus = this.app.cameraRig.focus
     this.dayCycle.update(delta)
     this.lights?.update(delta, this.dayCycle.night)
-    this.wake.setNight(this.dayCycle.night)
+    this.ocean.setNight(this.dayCycle.night)
     shared.uTime.value = this.app.physics.renderTime
     // Wind time runs faster in stronger wind, so gusts speed up instead of just growing
     shared.uWindTime.value += delta * 0.1 * shared.uWindStrength.value
     this.boat.update(delta)
-    this.wake.update(delta)
+    this.trail.update(delta)
     this.boatEffects.update(delta)
     this.fish?.update(delta)
     this.bottles?.update(delta)
