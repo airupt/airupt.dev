@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 
 const desired = new THREE.Vector3()
-const midpoint = new THREE.Vector3()
 
 // Fixed-angle follow camera looking down diagonally across the world, with a
 // narrow field of view so the scene reads like a miniature. It never rotates,
@@ -24,9 +23,12 @@ export class CameraRig {
     // Before the visit starts the camera drifts slowly over the archipelago
     this.attract = true
     this.attractTime = 0
-    // Opening shot: while the boat is still near where it started, frame the
-    // boat together with this point (the home island)
+    // Opening shot: while the boat is still near where it started, the
+    // camera holds this framing of boat and home island
     this.establishing = null
+    // A scripted move from wherever the camera is to a framing, eased, with
+    // a callback part-way (the boat drops in while the camera arrives)
+    this.flight = null
 
     this.baseFov = 25
     this.fovBoost = 0
@@ -50,6 +52,18 @@ export class CameraRig {
   // A short jolt, e.g. when the boat hits a dock
   shake(amount) {
     this.shakeAmount = Math.min(this.shakeAmount + amount, 1.2)
+  }
+
+  flyTo(focus, distance, duration, cue = null) {
+    this.flight = {
+      fromFocus: this.focus.clone(),
+      fromDistance: this.distance,
+      focus: focus.clone(),
+      distance,
+      duration,
+      cue,
+      t: 0,
+    }
   }
 
   zoomTo(distance) {
@@ -83,10 +97,13 @@ export class CameraRig {
       desired.copy(boat.object.position).add(this.lookAhead).addScaledVector(this.screenUp, this.distance * 0.08)
 
       if (this.establishing) {
-        const { point, origin } = this.establishing
+        // Hold the opening framing until the boat has sailed a little way,
+        // then hand over to following it
+        const { focus, distance, origin } = this.establishing
         const travelled = Math.hypot(boat.object.position.x - origin.x, boat.object.position.z - origin.z)
-        const hold = 1 - THREE.MathUtils.smoothstep(travelled, 4, 14)
-        desired.lerp(midpoint.copy(boat.object.position).lerp(point, 0.4), hold)
+        const hold = 1 - THREE.MathUtils.smoothstep(travelled, 3, 14)
+        desired.lerp(focus, hold)
+        this.targetDistance = THREE.MathUtils.lerp(this.limits.start, distance, hold)
         if (hold === 0) this.establishing = null
       }
     }
@@ -94,8 +111,26 @@ export class CameraRig {
 
     // The camera trails a little further behind under boost, which sells the speed
     const boosting = this.app.inputs.state.boost && Math.abs(boat.speed) > 10
-    this.focus.lerp(desired, 1 - Math.exp(-(boosting ? 2.2 : 3) * delta))
-    this.distance += (this.targetDistance - this.distance) * (1 - Math.exp(-1.6 * delta))
+    if (this.flight) {
+      // Ease in and out, rising a little in the middle like a drone
+      const flight = this.flight
+      flight.t = Math.min(flight.t + delta / flight.duration, 1)
+      const t = flight.t
+      const eased = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
+      this.focus.lerpVectors(flight.fromFocus, flight.focus, eased)
+      this.distance = THREE.MathUtils.lerp(flight.fromDistance, flight.distance, eased) + Math.sin(Math.PI * eased) * 10
+      if (flight.cue && t > 0.55) {
+        flight.cue()
+        flight.cue = null
+      }
+      if (t === 1) {
+        this.flight = null
+        this.targetDistance = this.distance
+      }
+    } else {
+      this.focus.lerp(desired, 1 - Math.exp(-(boosting ? 2.2 : 3) * delta))
+      this.distance += (this.targetDistance - this.distance) * (1 - Math.exp(-1.6 * delta))
+    }
 
     this.camera.position.copy(this.focus).addScaledVector(this.direction, this.distance)
     this.camera.lookAt(this.focus)

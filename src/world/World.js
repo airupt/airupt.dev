@@ -48,7 +48,7 @@ export class World {
     }
     this.birds = new Birds(app, this.islands)
     this.zones = new Zones(app, this.islands)
-    this.zoneRings = new ZoneRings(app, this.zones)
+    this.zoneRings = new ZoneRings(app, this.zones, this.ocean.uniforms.uWaterMap.value)
 
     const volcano = this.islands.list.find(island => island.volcano)
     if (volcano) {
@@ -107,13 +107,14 @@ export class World {
     const volcano = this.islands.list.find(island => island.volcano)
     if (volcano) {
       const [bx, bz] = volcano.blobs[0]
-      this.smoke.addEmitter(new THREE.Vector3(volcano.x + bx, volcano.top - 1.5, volcano.z + bz), {
-        rate: 3,
-        size: 1.6,
+      this.smoke.addEmitter(new THREE.Vector3(volcano.x + bx, volcano.top - 3.5, volcano.z + bz), {
+        rate: 5,
+        size: 1.25,
         rise: 22,
         life: 9,
-        spread: 2,
-        color: '#ebe6e1',
+        spread: 2.4,
+        color: '#f3f0ea',
+        fade: '#8c8782',
       })
     }
     for (const { id, model } of this.decor.placed) {
@@ -148,6 +149,7 @@ export class World {
     this.dayCycle.update(delta)
     this.lights?.update(delta, this.dayCycle.night)
     this.ocean.setNight(this.dayCycle.night)
+    this.zoneRings.setNight(this.dayCycle.night)
     shared.uTime.value = this.app.physics.renderTime
     // Wind time runs faster in stronger wind, so gusts speed up instead of just growing
     shared.uWindTime.value += delta * 0.1 * shared.uWindStrength.value

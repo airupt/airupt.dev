@@ -80,14 +80,17 @@ export class Experience {
       this.inputs.enabled = true
       this.sounds.start()
       this.cameraRig.attract = false
-      this.cameraRig.zoomTo(this.cameraRig.limits.start)
-      this.world.boat.drop()
+      // One continuous move from the volcano down to the opening shot: the
+      // whole home island with the boat in the lower third. The boat drops
+      // in as the camera arrives.
+      const rig = this.cameraRig
       const home = this.world.islands.list.find(island => island.label === 'name')
-      const [bx, bz] = home.blobs[0]
-      this.cameraRig.establishing = {
-        point: new THREE.Vector3(home.x + bx, 0, home.z + bz),
-        origin: this.world.boat.object.position.clone(),
-      }
+      const focus = new THREE.Vector3(home.x, 0, home.z)
+        .addScaledVector(rig.screenRight, 3.5)
+        .addScaledVector(rig.screenUp, 4.5)
+      const distance = 66
+      rig.establishing = { focus, distance, origin: this.world.boat.object.position.clone() }
+      rig.flyTo(focus, distance, 3.2, () => this.world.boat.drop())
     })
   }
 

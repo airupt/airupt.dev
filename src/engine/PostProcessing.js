@@ -15,7 +15,7 @@ const FinishShader = {
     tDiffuse: { value: null },
     uResolution: { value: new THREE.Vector2(1, 1) },
     uFocus: { value: 0.5 },
-    uBlur: { value: 7 },
+    uBlur: { value: 5.5 },
     uSaturation: { value: 1.06 },
     uContrast: { value: 1.03 },
     uWarmth: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
@@ -42,7 +42,7 @@ const FinishShader = {
     void main() {
       vec3 color = texture2D(tDiffuse, vUv).rgb;
 
-      float radius = smoothstep(0.14, 0.55, abs(vUv.y - uFocus)) * uBlur;
+      float radius = smoothstep(0.18, 0.6, abs(vUv.y - uFocus)) * uBlur;
       if (radius > 0.25) {
         vec3 sum = color;
         // Golden-angle spiral: an even disc of taps from a single loop
@@ -94,6 +94,10 @@ export class PostProcessing {
   }
 
   render(delta) {
+    // Behind the loader the subject (the volcano) sits high in the frame,
+    // so the sharp band moves up with it
+    const focus = this.finish.uniforms.uFocus
+    focus.value += ((this.app.cameraRig.attract ? 0.66 : 0.5) - focus.value) * (1 - Math.exp(-2 * delta))
     this.composer.render(delta)
   }
 }

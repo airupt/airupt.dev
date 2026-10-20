@@ -121,9 +121,34 @@ export const islands = [
   { id: 'islet-6', x: 23, z: 57, radius: 5, seed: 101, blobs: [[0, 0, 4, 1.8]] },
 ]
 
+// Footpaths worn into each island, from the end of its dock inland, in
+// metres [inland, sideways] from where the dock meets the beach (the same
+// frame as the set pieces in Decor.js). `line` is a trail, `clearing` a round
+// patch of bare earth (a little plaza the props stand on): [inland, sideways, radius].
+export const paths = {
+  home: { lines: [[[0, 0], [1.5, -0.7], [3, -1.6], [4.8, -1.4], [6.2, -0.4]]] },
+  about: {
+    lines: [[[0, 0], [1.6, 0.3], [2.8, 0.4]], [[4.4, 0], [5.6, -0.9], [6.4, -1.4]]],
+    clearings: [[3.6, 0.5, 1.7]],
+  },
+  projects: {
+    lines: [[[0, 0], [1.4, 0.1]], [[4.4, -0.4], [5.8, -1.3], [6.8, -1.5]], [[6.9, -5.9], [6.9, 2.9]]],
+    clearings: [[3, 0.2, 2.3]],
+  },
+  skills: {
+    lines: [[[0, 0], [1.6, -0.3], [2.8, -0.5]], [[4.6, -0.3], [5.8, 0]]],
+    clearings: [[3.6, -0.6, 1.5]],
+  },
+  contact: { lines: [[[0, 0], [1.8, 0.4], [3.6, 0.3], [5.4, 0]]] },
+}
+
 // The boat starts beside the home island, bow pointing along a clear run to
 // the Projects island so the first press of W goes somewhere
 export const spawn = { x: 13.4, z: -9.2, yaw: 0.21 }
 
 // Past this distance from the centre the sea pushes the boat back
 export const worldRadius = 100
+
+// Metres from the centre to each edge of the textures baked over the whole
+// archipelago (sea map, path map)
+export const MAP_EXTENT = 128

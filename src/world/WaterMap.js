@@ -1,8 +1,8 @@
 import * as THREE from 'three'
 import { islandHeight } from './Islands.js'
+import { MAP_EXTENT } from './layout.js'
 
 export const MAP_SIZE = 512
-export const MAP_EXTENT = 128 // metres from the centre to each edge
 const DEPTH_RANGE = 3 // metres of depth mapped to 0..1
 const COAST_RANGE = 24 // metres of distance to land mapped to 0..1
 
@@ -32,34 +32,67 @@ export function bakeWaterMap(islands) {
     }
   }
 
-  // Distance to land with a two-pass chamfer transform (good enough for foam)
+  // Exact Euclidean distance to land (Felzenszwalb & Huttenlocher), so foam
+  // lines stay round instead of turning into octagons like a chamfer metric
   const distance = new Float32Array(size * size)
-  for (let i = 0; i < distance.length; i++) distance[i] = heights[i] > 0 ? 0 : 1e9
-  const diagonal = Math.SQRT2
-  const relax = (index, neighbour, cost) => {
-    if (distance[neighbour] + cost < distance[index]) distance[index] = distance[neighbour] + cost
+  for (let i = 0; i < distance.length; i++) distance[i] = heights[i] > 0 ? 0 : 1e12
+  const line = new Float32Array(size)
+  const result = new Float32Array(size)
+  const hull = new Int32Array(size)
+  const bounds = new Float32Array(size + 1)
+  const transform = () => {
+    let k = 0
+    hull[0] = 0
+    bounds[0] = -Infinity
+    bounds[1] = Infinity
+    for (let q = 1; q < size; q++) {
+      let s = (line[q] + q * q - (line[hull[k]] + hull[k] * hull[k])) / (2 * q - 2 * hull[k])
+      while (s <= bounds[k]) {
+        k--
+        s = (line[q] + q * q - (line[hull[k]] + hull[k] * hull[k])) / (2 * q - 2 * hull[k])
+      }
+      k++
+      hull[k] = q
+      bounds[k] = s
+      bounds[k + 1] = Infinity
+    }
+    k = 0
+    for (let q = 0; q < size; q++) {
+      while (bounds[k + 1] < q) k++
+      result[q] = (q - hull[k]) ** 2 + line[hull[k]]
+    }
+  }
+  for (let x = 0; x < size; x++) {
+    for (let z = 0; z < size; z++) line[z] = distance[z * size + x]
+    transform()
+    for (let z = 0; z < size; z++) distance[z * size + x] = result[z]
   }
   for (let z = 0; z < size; z++) {
-    for (let x = 0; x < size; x++) {
-      const i = z * size + x
-      if (x > 0) relax(i, i - 1, 1)
-      if (z > 0) {
-        relax(i, i - size, 1)
-        if (x > 0) relax(i, i - size - 1, diagonal)
-        if (x < size - 1) relax(i, i - size + 1, diagonal)
-      }
-    }
+    line.set(distance.subarray(z * size, (z + 1) * size))
+    transform()
+    for (let x = 0; x < size; x++) distance[z * size + x] = Math.sqrt(result[x])
   }
-  for (let z = size - 1; z >= 0; z--) {
-    for (let x = size - 1; x >= 0; x--) {
-      const i = z * size + x
-      if (x < size - 1) relax(i, i + 1, 1)
-      if (z < size - 1) {
-        relax(i, i + size, 1)
-        if (x < size - 1) relax(i, i + size + 1, diagonal)
-        if (x > 0) relax(i, i + size - 1, diagonal)
+
+  // A light blur takes the staircase of the texel grid out of the contours
+  const blurred = new Float32Array(distance.length)
+  for (let pass = 0; pass < 2; pass++) {
+    for (let z = 0; z < size; z++) {
+      for (let x = 0; x < size; x++) {
+        let sum = 0
+        let count = 0
+        for (let dz = -1; dz <= 1; dz++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx
+            const nz = z + dz
+            if (nx < 0 || nz < 0 || nx >= size || nz >= size) continue
+            sum += distance[nz * size + nx]
+            count++
+          }
+        }
+        blurred[z * size + x] = sum / count
       }
     }
+    distance.set(blurred)
   }
 
   const data = new Uint8Array(size * size * 4)

@@ -3,6 +3,7 @@ import * as RAPIER from '@dimforge/rapier3d'
 import { islands as layout, spawn } from './layout.js'
 import { fbm, hash2, smoothstep } from '../utils/noise.js'
 import { createStylizedMaterial } from './shading.js'
+import { bakePathMap, pathMapGLSL, placePaths } from './Paths.js'
 
 const raycaster = new THREE.Raycaster()
 const rayOrigin = new THREE.Vector3()
@@ -16,7 +17,6 @@ const palette = {
   darkGrass: new THREE.Color('#5ea84a'),
   rock: new THREE.Color('#b8ad9a'),
   darkRock: new THREE.Color('#7c776f'),
-  dirt: new THREE.Color('#b49a64'),
   ash: new THREE.Color('#6e6058'),
   scorched: new THREE.Color('#4f4440'),
 }
@@ -55,9 +55,10 @@ export function islandHeight(island, x, z) {
     let dome
     if (island.volcano && index === 0) {
       // Concave flanks rising to a steep summit, like a real stratovolcano
-      dome = Math.pow(Math.max(0, 1 - distance), 1.4)
-      // The crater: a bowl sunk into the summit
-      dome -= 0.45 * (1 - smoothstep(0.08, 0.24, distance))
+      // The crater: a flat-floored bowl sunk into the summit (the cone is
+      // levelled off inside it so no peak pokes up through the lava)
+      dome = Math.pow(Math.max(0, 1 - Math.max(distance, 0.2)), 1.4)
+      dome -= 0.4 * (1 - smoothstep(0.08, 0.24, distance))
     } else {
       dome = Math.pow(Math.max(0, 1 - distance * distance), 1.2 + beach * 0.9 - cliff * 0.5)
     }
@@ -113,19 +114,23 @@ function paint(geometry, island, grass) {
     const variation = hash2(i, 3, seed)
 
     const volcanic = island.volcano && height > 5.5
-    // Only truly steep faces are bare rock; moderately steep ones are dry earth
-    const isGrass = !volcanic && height >= 0.5 && normal.y >= 0.75
-    const isRock = normal.y < 0.62
+    // Steep faces are bare rock; everything gentler above the beach is grass
+    // (bare earth only shows where paths are worn in, see Paths.js)
+    const isRock = normal.y < 0.64
+    const isGrass = !volcanic && !isRock && height >= 0.5
+    // Sand faces just below the grass get a sparse fringe of blades
+    const isFringe = !volcanic && !isRock && height >= 0.1 && height < 0.5
     if (height < -0.2) color.copy(palette.wetSand)
     else if (height < 0.5) color.copy(palette.sand).lerp(palette.drySand, variation)
     else if (volcanic) color.copy(height > 11 ? palette.scorched : palette.ash).lerp(palette.darkRock, variation * 0.4)
     // Rock is warm and light up high, cooler and darker toward the sea
     else if (isRock) color.copy(palette.darkRock).lerp(palette.rock, smoothstep(0.5, 5, height) * 0.8 + variation * 0.2)
-    else if (!isGrass) color.copy(palette.dirt).lerp(palette.grass, variation * 0.35)
-    else color.copy(palette.grass).lerp(palette.darkGrass, variation)
+    // Steeper grass (terrace risers, banks) a shade darker
+    else color.copy(palette.grass).lerp(palette.darkGrass, Math.min(variation + smoothstep(0.85, 0.7, normal.y) * 0.6, 1))
 
     color.multiplyScalar(0.96 + hash2(i, 4, seed) * 0.08)
     if (isGrass) grass.push({ a: a.clone(), b: b.clone(), c: c.clone(), color: color.clone() })
+    if (isFringe) grass.push({ a: a.clone(), b: b.clone(), c: c.clone(), color: palette.grass.clone().lerp(palette.drySand, 0.3) })
     for (let j = 0; j < 3; j++) color.toArray(colors, (i + j) * 3)
   }
 
@@ -136,8 +141,28 @@ function paint(geometry, island, grass) {
 export class Islands {
   constructor(app) {
     this.app = app
-    this.material = createStylizedMaterial({ vertexColors: true, flatShading: true })
+    this.material = createStylizedMaterial({ vertexColors: true, flatShading: true }, { key: 'island', extend: shader => this.extend(shader) })
     this.list = layout.map(definition => this.create(definition))
+    this.uniforms = {
+      uPathMap: { value: bakePathMap(this.list) },
+      uEarth: { value: new THREE.Color('#c29b66') },
+      uDarkEarth: { value: new THREE.Color('#a17c52') },
+    }
+  }
+
+  // Worn footpaths blended into the ground per pixel, so their edges are
+  // soft and wobbly instead of following the terrain's triangles
+  extend(shader) {
+    Object.assign(shader.uniforms, this.uniforms)
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\nuniform vec3 uEarth;\nuniform vec3 uDarkEarth;\n${pathMapGLSL}`)
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+        float bare = samplePathMap(vStylizedWorld.xz) * smoothstep(0.15, 0.45, vStylizedWorld.y);
+        vec3 earth = mix(uEarth, uDarkEarth, texture2D(uNoise, vStylizedWorld.xz * 0.45).r);
+        diffuseColor.rgb = mix(diffuseColor.rgb, earth, bare);`
+      )
   }
 
   create(definition) {
@@ -167,6 +192,7 @@ export class Islands {
     // Grass triangles are in island space; offsetting them gives world space
     const island = { ...definition, mesh, top, grass }
     this.findShore(island)
+    island.paths = placePaths(island)
     return island
   }
 

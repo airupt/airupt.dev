@@ -51,6 +51,11 @@ export const shared = {
   uFogNear: { value: 40 },
   uFogFar: { value: 120 },
 
+  // The crater's lava lights up everything near it: crater walls, the smoke
+  uLavaPosition: { value: new THREE.Vector3(0, -1000, 0) },
+  uLavaColor: { value: new THREE.Color('#ff6a2a') },
+  uLavaGlow: { value: 0 },
+
   // Anything standing between the camera and the boat thins out around it
   uSeeThroughCenter: { value: new THREE.Vector2(-1000, -1000) }, // drawing-buffer pixels
   uSeeThroughRadius: { value: 120 },
@@ -101,6 +106,9 @@ const fragmentHeader = /* glsl */ `
   uniform vec2 uSeeThroughCenter;
   uniform float uSeeThroughRadius;
   uniform float uSeeThroughDepth;
+  uniform vec3 uLavaPosition;
+  uniform vec3 uLavaColor;
+  uniform float uLavaGlow;
   varying vec3 vStylizedWorld;
 
   // 4x4 ordered-dither threshold for screen-door transparency
@@ -156,6 +164,8 @@ const lightingBlock = /* glsl */ `
 
   // STYLIZED_SHADE
   vec3 stylizedColor = mix(baseColor * uLightColor * uLightIntensity, baseColor * uShadowColor, shade);
+  float lavaLight = 1.0 - smoothstep(0.0, 10.0, distance(vStylizedWorld, uLavaPosition));
+  stylizedColor += baseColor * uLavaColor * lavaLight * uLavaGlow;
   // STYLIZED_EXTRA
 `
 

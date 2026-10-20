@@ -2,10 +2,13 @@ import * as THREE from 'three'
 import * as RAPIER from '@dimforge/rapier3d'
 import { createRandom } from '../utils/noise.js'
 import { instanceStatic } from './instancing.js'
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
+import { createDockGeometry, DOCK_DECK, DOCK_INLAND, DOCK_LENGTH, DOCK_WIDTH } from './Dock.js'
+import { createStylizedMaterial } from './shading.js'
 
 export const DOCK_TILES = 2
-export const DOCK_TILE = 2.5 // metres per dock model
-export const DOCK_HEIGHT = -0.55 // posts sink into the sea, deck stays just above the waves
+export const DOCK_TILE = 2.5 // metres per collision box along the dock
+export const DOCK_HEIGHT = -0.55 // bottom of the collision boxes
 
 const palms = ['palm-straight', 'palm-bend', 'palm-detailed-straight', 'palm-detailed-bend']
 const rocks = ['rocks-a', 'rocks-b', 'rocks-c', 'rocks-sand-a', 'rocks-sand-b', 'rocks-sand-c']
@@ -32,6 +35,7 @@ const setPieces = {
     ['crate-bottles', 2.6, 1.4],
     ['chest', 3.4, 0],
     ['barrel', 2, 4.2],
+    ['lantern', 1.6, -3.4],
     // Room for the project boards (see ProjectBoards.js)
     ['reserve', 8.8, -5.7, 2.6],
     ['reserve', 8, -1.5, 2.6],
@@ -45,6 +49,7 @@ const setPieces = {
     ['crate', 2.5, -2.8],
     ['barrel', 2.4, -3.9],
     ['flag-pennant', 5.5, -3.5],
+    ['lantern', 1.8, 2.4],
   ],
   contact: [
     ['tower', 7, 0],
@@ -72,13 +77,31 @@ export class Decor {
     this.group = new THREE.Group()
     app.scene.add(this.group)
 
+    this.docks = []
     for (const island of islands.list) {
       const random = createRandom(island.seed * 7919)
       const occupied = []
       if (island.section || island.id === 'home') this.placeDock(island, occupied)
       for (const [id, along, across, radius] of setPieces[island.id] ?? []) this.placeSetPiece(island, id, along, across, occupied, radius)
+      // Nothing grows on the footpaths
+      for (const line of island.paths.lines) {
+        for (let i = 1; i < line.length; i++) {
+          const length = Math.hypot(line[i].x - line[i - 1].x, line[i].z - line[i - 1].z)
+          for (let t = 0; t <= length; t += 0.8) {
+            const f = t / length
+            occupied.push({ x: line[i - 1].x + (line[i].x - line[i - 1].x) * f, z: line[i - 1].z + (line[i].z - line[i - 1].z) * f, radius: 0.5 })
+          }
+        }
+      }
+      for (const { x, z, radius } of island.paths.clearings) occupied.push({ x, z, radius })
       this.scatter(island, random, occupied)
     }
+
+    // Every jetty in one draw
+    const docks = new THREE.Mesh(mergeGeometries(this.docks), createStylizedMaterial({ vertexColors: true, flatShading: true }))
+    docks.castShadow = true
+    docks.receiveShadow = true
+    app.scene.add(docks)
 
     foliage.build()
     // Models other systems attach things to (lights, smoke) stay separate
@@ -101,11 +124,20 @@ export class Decor {
     const rotation = Math.atan2(out.x, out.z)
     const { world } = this.app.physics
 
+    const geometry = createDockGeometry(island.seed)
+    geometry.rotateY(rotation)
+    geometry.translate(shore.x - out.x * DOCK_INLAND, 0, shore.z - out.z * DOCK_INLAND)
+    this.docks.push(geometry)
+
+    // A lantern at the far end, for boats coming in after dark
+    const reach = DOCK_LENGTH - DOCK_INLAND - 0.55
+    const across = -(DOCK_WIDTH / 2 - 0.3)
+    this.add('lantern', shore.x + out.x * reach + out.z * across, DOCK_DECK, shore.z + out.z * reach - out.x * across, rotation, 0.85)
+
     for (let i = 0; i < DOCK_TILES; i++) {
-      const distance = (i + 0.5) * DOCK_TILE - 0.6
+      const distance = (i + 0.5) * DOCK_TILE - DOCK_INLAND
       const x = shore.x + out.x * distance
       const z = shore.z + out.z * distance
-      this.add('dock', x, DOCK_HEIGHT, z, rotation)
       occupied.push({ x, z, radius: DOCK_TILE })
 
       const body = world.createRigidBody(

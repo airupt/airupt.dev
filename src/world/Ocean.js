@@ -7,6 +7,7 @@ import { bakeWaterMap, waterMapGLSL } from './WaterMap.js'
 const SIZE = 300
 const SEGMENTS = 200
 const CELL = SIZE / SEGMENTS
+const MAX_LAMPS = 12
 
 // A large plane displaced by the shared wave function, lit with the exact
 // wave normal so the swell reads as smooth rolling water rather than a grid
@@ -32,6 +33,9 @@ export class Ocean {
       // Churned water glows like plankton at night
       uFoamGlow: { value: 0 },
       uNight: { value: 0 },
+      // Lamps near the shore: xy position, radius, strength (see setLamps)
+      uLamps: { value: Array.from({ length: MAX_LAMPS }, () => new THREE.Vector4(0, 0, 1, 0)) },
+      uLampStrength: { value: 0 },
       uTrail: { value: null },
       uTrailCenter: { value: new THREE.Vector2() },
       uTrailSize: { value: 1 },
@@ -83,6 +87,8 @@ export class Ocean {
         uniform float uGlint;
         uniform float uFoamGlow;
         uniform float uNight;
+        uniform vec4 uLamps[${MAX_LAMPS}];
+        uniform float uLampStrength;
         uniform sampler2D uTrail;
         uniform vec2 uTrailCenter;
         uniform float uTrailSize;
@@ -95,7 +101,8 @@ export class Ocean {
         `#include <color_fragment>
         vec2 sea = sampleWaterMap(vOceanPosition);
         float depth = sea.x;
-        float coast = sea.y;
+        // Big slow patches vary everything that would otherwise repeat in a grid
+        float patches = texture2D(uNoise, vOceanPosition * 0.011 + uTime * 0.0025).g;
 
         // Sandy turquoise over the shallows, teal on the shelf, blue offshore
         vec3 water = mix(uShallow, uMid, smoothstep(0.02, 0.4, depth));
@@ -104,30 +111,47 @@ export class Ocean {
         // At night open water sinks to a deep navy, the shallows keep a little glow
         water *= mix(1.0, mix(0.4, 0.75, 1.0 - smoothstep(0.1, 0.6, depth)), uNight);
 
-        // Troughs a touch darker, crests lighter out in open water; facets come from flat shading
+        // Troughs a touch darker, crests lighter out in open water, in patches
         water = mix(water * 0.86, water, smoothstep(-0.55, 0.0, vWave));
-        water = mix(water, uCrest, smoothstep(0.3, 0.6, vWave) * 0.35 * smoothstep(0.3, 0.8, depth));
+        float crestMask = smoothstep(0.3, 0.75, patches);
+        water = mix(water, uCrest, smoothstep(0.3, 0.6, vWave) * 0.35 * smoothstep(0.3, 0.8, depth) * crestMask);
 
-        // Surf: a frothy band hugging the shore, and broken lines that roll in
-        // toward it, following the real coastline
-        float breakup = texture2D(uNoise, vOceanPosition * 0.045 + uTime * vec2(0.01, 0.006)).g;
-        float surf = 1.0 - smoothstep(0.15, 0.75 + sin(uTime * 1.4 + vOceanPosition.x * 0.25) * 0.25, coast);
-        surf *= smoothstep(0.2, 0.45, breakup + 0.25);
-        // Only the line nearest the beach: further out, broken contours read as scribbles
-        float roll = fract(coast / 2.4 + uTime * 0.22);
-        float lines = smoothstep(0.86, 0.91, roll) * (1.0 - smoothstep(0.94, 0.99, roll));
-        lines *= (1.0 - smoothstep(0.8, 3.2, coast)) * smoothstep(0.3, 0.6, coast) * smoothstep(0.35, 0.5, breakup);
-        // Water churned up by the boat: lighter where it was stirred, foam
-        // where it is still fresh, broken up by fine noise
+        // Surf hugging the beach: its width wanders along the shore between
+        // about 0.4 and 2 metres, breathes with the swell, and frays into
+        // flecks toward its outer edge
+        float bandWidth = mix(0.4, 2.0, texture2D(uNoise, vOceanPosition * 0.021 + vec2(uTime * 0.003, 0.0)).g);
+        bandWidth *= 1.0 + sin(uTime * 1.3 + dot(vOceanPosition, vec2(0.21, 0.15))) * 0.22;
+        float flecks = texture2D(uNoise, vOceanPosition * 0.33 + uTime * vec2(0.018, 0.011)).r;
+        float density = 1.0 - sea.y / bandWidth;
+        float surf = smoothstep(0.42, 0.52, density + (flecks - 0.5) * 0.85);
+
+        // Broken lines of surf that roll in toward the beach over about four
+        // seconds, fading in offshore and melting into the surf. The distance
+        // is warped by noise so they never trace the coast exactly.
+        float coast = sea.y + (texture2D(uNoise, vOceanPosition * 0.02).r - 0.5) * 3.4;
+        float roll = fract(coast / 2.6 + uTime * 0.24);
+        float lines = smoothstep(0.87, 0.91, roll) * (1.0 - smoothstep(0.93, 0.97, roll));
+        lines *= (1.0 - smoothstep(1.6, 3.8, coast)) * smoothstep(0.5, 1.1, sea.y);
+        // Only stretches of the shore have a wave coming in at any moment
+        float sets = texture2D(uNoise, vOceanPosition * 0.04 + uTime * vec2(0.012, -0.008)).g;
+        lines *= smoothstep(0.47, 0.6, sets) * smoothstep(0.3, 0.42, flecks);
+
+        // Churn from the boat. Red: a narrow line behind the motor that widens
+        // and fades. Green: the V of the wake and the waterline foam.
         vec2 trailUv = vec2((vOceanPosition.x - uTrailCenter.x) / uTrailSize + 0.5, -(vOceanPosition.y - uTrailCenter.y) / uTrailSize + 0.5);
         float inside = step(0.0, trailUv.x) * step(trailUv.x, 1.0) * step(0.0, trailUv.y) * step(trailUv.y, 1.0);
-        float trail = texture2D(uTrail, trailUv).r * inside;
+        vec2 trailTexel = texture2D(uTrail, trailUv).rg * inside;
         float churn = texture2D(uNoise, vOceanPosition * 0.31 + uTime * 0.04).r * 0.6 + texture2D(uNoise, vOceanPosition * 0.83 - uTime * 0.03).g * 0.4;
-        water = mix(water, uCrest, smoothstep(0.03, 0.25, trail) * 0.28);
-        float trailFoam = smoothstep(0.4, 0.62, trail * (0.3 + churn * 1.15));
+        water = mix(water, uCrest, smoothstep(0.04, 0.3, trailTexel.r + trailTexel.g * 0.3) * 0.16);
+        float trailFoam = smoothstep(0.42, 0.6, trailTexel.r * (0.3 + churn * 1.15));
+        float fray = texture2D(uNoise, vOceanPosition * 1.7 + uTime * 0.05).r;
+        trailFoam = max(trailFoam, smoothstep(0.46, 0.56, trailTexel.g + (churn - 0.5) * 0.9 + (fray - 0.5) * 0.5));
 
+        // At night the surf dims to a cool blue so lights stay the brightest thing
+        vec3 foamColor = mix(vec3(1.0), vec3(0.44, 0.56, 0.78), uNight);
+        float foamAmount = mix(1.0, 0.4, uNight);
+        diffuseColor.rgb = mix(water, foamColor, max(surf, lines * 0.5) * foamAmount);
         vec3 trailColor = mix(vec3(1.0), vec3(0.3, 2.2, 2.6), uFoamGlow);
-        diffuseColor.rgb = mix(water, vec3(1.0), max(surf, lines * 0.45));
         diffuseColor.rgb = mix(diffuseColor.rgb, trailColor, trailFoam);`
       )
       // The swell barely tilts the surface, so read the light on a much
@@ -136,7 +160,7 @@ export class Ocean {
       .replace(
         '// STYLIZED_SHADE',
         `shade = (1.0 - dropShadow) * 0.55;
-        shade = max(shade, (1.0 - smoothstep(0.6, 0.88, dot(stylizedNormal, uSunDirection))) * 0.45);
+        shade = max(shade, (1.0 - smoothstep(0.6, 0.88, dot(stylizedNormal, uSunDirection))) * 0.45 * mix(0.5, 1.0, patches));
         // Cloud shadows only dim the water a little, with soft edges
         float softCloud = smoothstep(0.5, 0.78, cloud) * uCloudShadow;
         shade = max(shade, softCloud * 0.45);`
@@ -147,7 +171,19 @@ export class Ocean {
         // It goes above 1.0, so only these sparkles reach the bloom threshold.
         vec3 viewDirection = normalize(cameraPosition - vStylizedWorld);
         float glint = pow(max(dot(stylizedNormal, normalize(uSunDirection + viewDirection)), 0.0), 260.0);
-        stylizedColor += uLightColor * glint * uGlint * (1.0 - shade) * smoothstep(0.2, 0.6, depth);`
+        stylizedColor += uLightColor * glint * uGlint * (1.0 - shade) * smoothstep(0.2, 0.6, depth) * mix(1.0, 0.25, uNight);
+
+        // Warm lamplight spilling onto the water at night, broken up by the ripples
+        if (uLampStrength > 0.0) {
+          float lampLight = 0.0;
+          for (int i = 0; i < ${MAX_LAMPS}; i++) {
+            vec4 lamp = uLamps[i];
+            float fall = 1.0 - smoothstep(0.0, lamp.z, distance(vOceanPosition, lamp.xy));
+            lampLight += fall * fall * lamp.w;
+          }
+          float shimmer = 0.45 + texture2D(uNoise, vOceanPosition * 0.8 + uTime * vec2(0.05, -0.03)).r * 1.1;
+          stylizedColor += vec3(1.0, 0.58, 0.26) * lampLight * shimmer * uLampStrength;
+        }`
       )
   }
 
@@ -156,7 +192,13 @@ export class Ocean {
     Object.assign(this.uniforms, trail.uniforms)
   }
 
+  // Lights by the water whose glow shows on the sea after dark
+  setLamps(positions) {
+    positions.slice(0, MAX_LAMPS).forEach((position, index) => this.uniforms.uLamps.value[index].set(position.x, position.z, 4.5, 0.55))
+  }
+
   setNight(night) {
+    this.uniforms.uLampStrength.value = THREE.MathUtils.smoothstep(night, 0.3, 0.85)
     this.uniforms.uFoamGlow.value = THREE.MathUtils.smoothstep(night, 0.4, 0.9)
     this.uniforms.uNight.value = night
   }

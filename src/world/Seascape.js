@@ -29,7 +29,8 @@ const moorings = [
   ['houseboat', -26, 22, -1.1],
 ]
 
-const wreck = { x: -38, z: -28, yaw: 0.9 }
+// Out in open water between Contact and Skills, a reward for exploring
+const wreck = { x: 31, z: 41, yaw: 0.9 }
 
 // Pairs of flag buoys, like harbour channel markers, halfway along the route
 // from the start to each section dock

@@ -2,10 +2,9 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { createStylizedMaterial } from './shading.js'
 import { createRandom } from '../utils/noise.js'
-import { DOCK_HEIGHT, DOCK_TILE, DOCK_TILES } from './Decor.js'
+import { DOCK_INLAND, DOCK_LENGTH, DOCK_POST_TOP, DOCK_WIDTH } from './Dock.js'
 
 const FLOCK = 8
-const DOCK_TOP = 0.76 // the Kenney dock deck sits this high above the sea
 const SHOULDER = 0.08
 
 // Body, head and two wings merged into one geometry. `aWing` marks wing
@@ -55,19 +54,19 @@ export class Birds {
     this.app = app
     this.time = 0
 
-    // Two gulls on the end of each dock
+    // A gull on each of the two posts at the end of every dock
     this.perched = []
     for (const island of islands.list) {
       if (!island.section && island.label !== 'name') continue
-      const reach = DOCK_TILES * DOCK_TILE - 0.9
-      for (const side of [-0.5, 0.5]) {
+      const reach = DOCK_LENGTH - DOCK_INLAND - 0.12
+      for (const side of [-1, 1].map(direction => direction * (DOCK_WIDTH / 2 + 0.03))) {
         this.perched.push({
           home: new THREE.Vector3(
             island.shore.x + island.out.x * reach + island.out.z * side,
-            DOCK_HEIGHT + DOCK_TOP + 0.65,
+            DOCK_POST_TOP + 0.1,
             island.shore.z + island.out.z * reach - island.out.x * side
           ),
-          heading: Math.atan2(island.out.x, island.out.z) + side,
+          heading: Math.atan2(island.out.x, island.out.z) + side * 0.5,
           state: 'perched',
           timer: 0,
           position: new THREE.Vector3(),

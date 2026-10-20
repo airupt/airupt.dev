@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { shared } from './shading.js'
 
 // Bright enough to pass the bloom threshold; scaled by how dark it is
 const GLOW_STRENGTH = 5
@@ -107,6 +108,67 @@ class Beam {
   }
 }
 
+// Molten rock in the crater: slow plates of dark crust drifting over glowing
+// lava, hot cracks bright enough to bloom, and a warm light thrown on the
+// crater walls and the smoke above (see uLava* in shading.js)
+class Lava {
+  constructor(scene, position) {
+    // A ragged pool, slightly domed so it catches the eye from the camera's angle
+    const geometry = new THREE.CircleGeometry(3.2, 18)
+    const vertices = geometry.attributes.position
+    for (let i = 1; i < vertices.count; i++) {
+      const wobble = 0.75 + ((((Math.sin(i * 12.9898) * 43758.5453) % 1) + 1) % 1) * 0.35
+      vertices.setXY(i, vertices.getX(i) * wobble, vertices.getY(i) * wobble)
+    }
+    vertices.setZ(0, 0.3)
+    geometry.rotateX(-Math.PI / 2)
+
+    this.material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: shared.uTime,
+        uNoise: shared.uNoise,
+        uHeat: { value: 1 },
+      },
+      vertexShader: /* glsl */ `
+        varying vec2 vLocal;
+        void main() {
+          vLocal = position.xz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform float uTime;
+        uniform sampler2D uNoise;
+        uniform float uHeat;
+        varying vec2 vLocal;
+        void main() {
+          float centre = 1.0 - smoothstep(0.0, 2.4, length(vLocal));
+          vec3 lava = mix(vec3(1.0, 0.3, 0.1), vec3(1.0, 0.7, 0.28), centre);
+          // Two layers of noise drifting apart: where they agree, crust forms
+          float plates = texture2D(uNoise, vLocal * 0.09 + uTime * vec2(0.006, 0.004)).r;
+          float detail = texture2D(uNoise, vLocal * 0.23 - uTime * vec2(0.004, 0.009)).g;
+          float crust = smoothstep(0.5, 0.58, plates * 0.75 + detail * 0.4);
+          // Thin bright seams along the edges of the plates
+          float seam = 1.0 - smoothstep(0.0, 0.05, abs(plates * 0.75 + detail * 0.4 - 0.54));
+          vec3 color = lava * (1.2 + seam * 1.6) * uHeat;
+          color = mix(color, vec3(0.3, 0.08, 0.04), crust * (1.0 - seam) * 0.85);
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `,
+    })
+    this.mesh = new THREE.Mesh(geometry, this.material)
+    this.mesh.position.copy(position)
+    scene.add(this.mesh)
+    shared.uLavaPosition.value.copy(position).y += 1.5
+  }
+
+  update(time, night) {
+    const flicker = 0.9 + Math.sin(time * 2.3) * 0.06 + Math.sin(time * 7.1) * 0.04
+    this.material.uniforms.uHeat.value = (1 + night * 0.4) * flicker
+    shared.uLavaGlow.value = (0.9 + night * 1.6) * flicker
+  }
+}
+
 // Everything that lights up when the sun goes down
 export class Lights {
   constructor(app, decor, zones, boat, islands) {
@@ -121,20 +183,7 @@ export class Lights {
     const volcano = islands.list.find(island => island.volcano)
     if (volcano) {
       const [bx, bz] = volcano.blobs[0]
-      this.lava = new Glow(app.scene, new THREE.Vector3(volcano.x + bx, volcano.top - 3.4, volcano.z + bz), '#ff5a1a', 1)
-      // An irregular pool rather than a perfect polygon: a disc with a ragged
-      // rim, slightly domed so it catches the eye from the camera's angle
-      const pool = new THREE.CircleGeometry(1.9, 14)
-      const position = pool.attributes.position
-      for (let i = 1; i < position.count; i++) {
-        const wobble = 0.72 + ((Math.sin(i * 12.9898) * 43758.5453) % 1 + 1) % 1 * 0.42
-        position.setXY(i, position.getX(i) * wobble, position.getY(i) * wobble)
-      }
-      position.setZ(0, 0.25)
-      pool.rotateX(-Math.PI / 2)
-      pool.computeVertexNormals()
-      this.lava.mesh.geometry.dispose()
-      this.lava.mesh.geometry = pool
+      this.lava = new Lava(app.scene, new THREE.Vector3(volcano.x + bx, volcano.top - 5, volcano.z + bz))
     }
 
     for (const { id, model } of decor.placed) {
@@ -152,6 +201,13 @@ export class Lights {
         this.beam = new Beam(model, new THREE.Vector3(0, 6.1, 0))
       }
     }
+
+    // Only lamps close to the sea light it up
+    const waterside = decor.placed
+      .filter(({ id }) => id === 'lantern' || id === 'campfire')
+      .map(({ model }) => model.position)
+      .filter(position => position.y < 1.6)
+    app.world.ocean.setLamps(waterside)
 
     zones.list.forEach((zone, index) => {
       const glow = new Glow(zone.buoy.object, new THREE.Vector3(0, 1.05, 0), zone.buoy.color, 0.11)
@@ -183,7 +239,7 @@ export class Lights {
     }
 
     this.lamp?.set(strength * 0.9)
-    this.lava?.set((1.4 + strength * 0.5) * (0.9 + Math.sin(this.time * 2.3) * 0.1))
+    this.lava?.update(this.time, strength / GLOW_STRENGTH)
     this.beam?.update(delta, strength / GLOW_STRENGTH)
   }
 }

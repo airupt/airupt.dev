@@ -67,7 +67,62 @@ const brushMaterial = new THREE.ShaderMaterial({
   depthWrite: false,
 })
 
+// The V of the wake: soft points written into the green channel, which the
+// decay pass clears every frame, so they are redrawn where they are now
+const wakeMaterial = new THREE.ShaderMaterial({
+  vertexShader: /* glsl */ `
+    attribute float aStrength;
+    varying vec2 vUv;
+    varying float vStrength;
+    void main() {
+      vUv = uv;
+      vStrength = aStrength;
+      gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    varying vec2 vUv;
+    varying float vStrength;
+    void main() {
+      float falloff = 1.0 - smoothstep(0.1, 0.5, length(vUv - 0.5));
+      gl_FragColor = vec4(0.0, falloff * vStrength, 0.0, 1.0);
+    }
+  `,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
+  depthTest: false,
+  depthWrite: false,
+})
+
+// Where the hull meets the water: a thin oval of foam around it, so the boat
+// sits in the sea instead of on it
+const ringMaterial = new THREE.ShaderMaterial({
+  uniforms: { uStrength: { value: 1 } },
+  vertexShader: brushMaterial.vertexShader,
+  fragmentShader: /* glsl */ `
+    uniform float uStrength;
+    varying vec2 vUv;
+    void main() {
+      float radius = length(vUv - 0.5);
+      float ring = smoothstep(0.3, 0.4, radius) * (1.0 - smoothstep(0.42, 0.5, radius));
+      gl_FragColor = vec4(0.0, ring * uStrength, 0.0, 1.0);
+    }
+  `,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
+  depthTest: false,
+  depthWrite: false,
+})
+
+const WAKE_POINTS = 220
+const WAKE_SPACING = 0.32 // metres travelled between two pairs of points
+const WAKE_LIFE = 2.8
+// Points drift sideways at this fraction of the boat's speed, which opens
+// the two arms of the wake at about 19 degrees, like a real one
+const WAKE_SPREAD = 0.34
+
 const stern = new THREE.Vector3()
+const matrix = new THREE.Matrix4()
 
 // A world-space map of churned water around the boat, rendered every frame:
 // the hull leaves a ring of contact foam, the motor a trail that widens and
@@ -89,14 +144,19 @@ export class TrailMap {
     this.stampScene = new THREE.Scene()
     this.stampCamera = new THREE.OrthographicCamera(-SIZE / 2, SIZE / 2, SIZE / 2, -SIZE / 2, -1, 1)
     this.hull = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), brushMaterial.clone())
-    // Two stamps at the stern corners and a weaker one between them: as the
-    // boat moves on they spread into the V of a real wake
-    this.wakes = [-0.85, 0, 0.85].map(side => {
-      const stamp = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), brushMaterial.clone())
-      stamp.userData.side = side
-      return stamp
-    })
-    this.stampScene.add(this.hull, ...this.wakes)
+    // The motor churns a narrow line straight behind the boat
+    this.prop = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), brushMaterial.clone())
+    this.ring = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), ringMaterial)
+
+    this.points = Array.from({ length: WAKE_POINTS }, () => ({ x: 0, z: 0, vx: 0, vz: 0, age: WAKE_LIFE, strength: 0 }))
+    this.nextPoint = 0
+    this.travelled = 0
+    this.wake = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), wakeMaterial, WAKE_POINTS)
+    this.wake.frustumCulled = false
+    this.wakeStrength = new THREE.InstancedBufferAttribute(new Float32Array(WAKE_POINTS), 1)
+    this.wakeStrength.setUsage(THREE.DynamicDrawUsage)
+    this.wake.geometry.setAttribute('aStrength', this.wakeStrength)
+    this.stampScene.add(this.hull, this.prop, this.ring, this.wake)
 
     // What the ocean shader needs
     this.uniforms = {
@@ -108,6 +168,55 @@ export class TrailMap {
 
   reset() {
     this.cleared = false
+    for (const point of this.points) point.age = WAKE_LIFE
+  }
+
+  // Leaves pairs of foam points at the stern corners as the boat moves; each
+  // drifts outward, spreads and fades
+  updateWake(delta, speed, inWater, nextX, nextZ) {
+    const { quaternion, position } = this.boat.object
+    this.travelled += speed * delta * inWater
+    const strength = Math.min(Math.max(speed - 1.2, 0) / 9, 1)
+    while (this.travelled > WAKE_SPACING) {
+      this.travelled -= WAKE_SPACING
+      if (strength <= 0) continue
+      for (const side of [-1, 1]) {
+        const point = this.points[this.nextPoint]
+        this.nextPoint = (this.nextPoint + 1) % WAKE_POINTS
+        stern.set(side * 0.7, 0, 1.5).applyQuaternion(quaternion).add(position)
+        // Sideways relative to the hull, scaled by speed
+        const outward = new THREE.Vector3(side, 0, 0).applyQuaternion(quaternion).setY(0).normalize()
+        Object.assign(point, {
+          x: stern.x,
+          z: stern.z,
+          vx: outward.x * speed * WAKE_SPREAD,
+          vz: outward.z * speed * WAKE_SPREAD,
+          age: 0,
+          strength,
+        })
+      }
+    }
+
+    const drag = Math.exp(-0.7 * delta)
+    this.points.forEach((point, index) => {
+      let value = 0
+      let size = 0
+      if (point.age < WAKE_LIFE) {
+        point.age += delta
+        point.x += point.vx * delta
+        point.z += point.vz * delta
+        point.vx *= drag
+        point.vz *= drag
+        const life = point.age / WAKE_LIFE
+        value = point.strength * Math.pow(Math.max(1 - life, 0), 1.8) * 0.5
+        size = 1 + life * 1.4
+      }
+      matrix.makeScale(size, size, 1).setPosition(point.x - nextX, -(point.z - nextZ), 0)
+      this.wake.setMatrixAt(index, matrix)
+      this.wakeStrength.array[index] = value
+    })
+    this.wake.instanceMatrix.needsUpdate = true
+    this.wakeStrength.needsUpdate = true
   }
 
   update(delta) {
@@ -145,17 +254,22 @@ export class TrailMap {
 
     this.hull.position.set(position.x - nextX, -(position.z - nextZ), 0)
     this.hull.rotation.z = yaw
-    this.hull.scale.set(2.6, 4.6, 1)
-    this.hull.material.uniforms.uStrength.value = inWater * (0.008 + Math.min(speed / 10, 1) * 0.07) * delta * 60
+    this.hull.scale.set(2.2, 4.2, 1)
+    this.hull.material.uniforms.uStrength.value = inWater * Math.min(speed / 10, 1) * 0.05 * delta * 60
 
-    const wakeStrength = inWater * Math.min(Math.max(speed - 1.5, 0) / 8, 1) * 0.24 * delta * 60
-    for (const stamp of this.wakes) {
-      const side = stamp.userData.side
-      stern.set(side, 0, 1.9).applyQuaternion(this.boat.object.quaternion).add(position)
-      stamp.position.set(stern.x - nextX, -(stern.z - nextZ), 0)
-      stamp.scale.setScalar(side === 0 ? 1.4 : 1.1 + Math.min(speed / 12, 1) * 0.6)
-      stamp.material.uniforms.uStrength.value = wakeStrength * (side === 0 ? 0.45 : 1)
-    }
+    // A narrow, rough line down the middle of the wake
+    stern.set(0, 0, 1.9).applyQuaternion(this.boat.object.quaternion).add(position)
+    this.prop.position.set(stern.x - nextX, -(stern.z - nextZ), 0)
+    this.prop.scale.setScalar(0.9 + Math.min(speed / 12, 1) * 0.4)
+    this.prop.material.uniforms.uStrength.value = inWater * Math.min(Math.max(speed - 1, 0) / 8, 1) * 0.11 * delta * 60
+
+    // The waterline foam is strongest at rest; at speed the wake takes over
+    this.ring.position.copy(this.hull.position)
+    this.ring.rotation.z = yaw
+    this.ring.scale.set(2.05, 4.1, 1)
+    this.ring.material.uniforms.uStrength.value = inWater * (0.75 - Math.min(speed / 8, 1) * 0.35)
+
+    this.updateWake(delta, speed, inWater, nextX, nextZ)
 
     renderer.autoClear = false
     renderer.render(this.stampScene, this.stampCamera)

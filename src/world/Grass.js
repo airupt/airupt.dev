@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { createStylizedMaterial, windGLSL } from './shading.js'
-import { createRandom } from '../utils/noise.js'
+import { createRandom, smoothstep } from '../utils/noise.js'
+import { pathAmount } from './Paths.js'
 
 const DENSITY = 16 // blades per square metre of grass face
 
@@ -52,6 +53,9 @@ export class Grass {
           v = 1 - v
         }
         point.copy(a).addScaledVector(edgeA.subVectors(b, a), u).addScaledVector(edgeB.subVectors(c, a), v)
+        // Thins out toward the beach and stays off the footpaths
+        if (random() > smoothstep(0.12, 0.75, point.y)) continue
+        if (random() < pathAmount(island.paths, point.x + island.x, point.z + island.z) * 1.4) continue
 
         const height = random()
         const shade = 0.85 + random() * 0.3

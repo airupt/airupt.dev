@@ -6,6 +6,7 @@ const rotation = new THREE.Quaternion()
 const euler = new THREE.Euler()
 const scale = new THREE.Vector3()
 const position = new THREE.Vector3()
+const color = new THREE.Color()
 
 // Low-poly smoke: faceted puffs that rise, swell, drift with the wind and
 // shrink away. They are lit like everything else, so they pick up the
@@ -18,9 +19,21 @@ export class Smoke {
     this.capacity = 0
   }
 
-  // rate: puffs per second, size: start radius, height: how far they rise
-  addEmitter(origin, { rate, size, rise, life, color, spread = 0.4 }) {
-    this.emitters.push({ origin: origin.clone(), rate, size, rise, life, color: new THREE.Color(color), spread, budget: Math.random(), burst: 0 })
+  // rate: puffs per second, size: start radius, rise: how far they climb,
+  // color → fade: the colour a puff starts with and turns to as it rises
+  addEmitter(origin, { rate, size, rise, life, color, fade = color, spread = 0.4 }) {
+    this.emitters.push({
+      origin: origin.clone(),
+      rate,
+      size,
+      rise,
+      life,
+      color: new THREE.Color(color),
+      fade: new THREE.Color(fade),
+      spread,
+      budget: Math.random(),
+      burst: 0,
+    })
     // Room for the steady plume plus a burst
     this.capacity += Math.ceil(rate * life * 2.5) + 2
   }
@@ -32,7 +45,11 @@ export class Smoke {
   }
 
   build() {
-    const material = createStylizedMaterial({ color: '#ffffff', flatShading: true }, { waterLine: false, key: 'smoke' })
+    // Smoke is thin: its shadowed side only takes part of the shadow tint
+    const material = createStylizedMaterial(
+      { color: '#ffffff', flatShading: true },
+      { waterLine: false, key: 'smoke', extend: shader => (shader.fragmentShader = shader.fragmentShader.replace('// STYLIZED_SHADE', 'shade *= 0.55;')) }
+    )
     this.mesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), material, this.capacity)
     this.mesh.count = 0
     this.mesh.castShadow = true
@@ -58,7 +75,7 @@ export class Smoke {
           spin: new THREE.Vector3(Math.random() * 6, Math.random() * 6, Math.random() * 6),
           age: 0,
           life: emitter.life * (0.8 + Math.random() * 0.4),
-          scale: 1 + emitter.burst * 0.8,
+          scale: (0.75 + Math.random() * 0.5) * (1 + emitter.burst * 0.8),
           speed: 1 + emitter.burst * 0.9,
         })
       }
@@ -82,7 +99,7 @@ export class Smoke {
       euler.set(puff.spin.x + t, puff.spin.y + t * 0.5, puff.spin.z)
       matrix.compose(position.copy(puff.position), rotation.setFromEuler(euler), scale.setScalar(size))
       this.mesh.setMatrixAt(count, matrix)
-      this.mesh.setColorAt(count, emitter.color)
+      this.mesh.setColorAt(count, color.copy(emitter.color).lerp(emitter.fade, Math.min(t * 1.4, 1)))
       count++
       return true
     })
