@@ -197,6 +197,17 @@ export class Decor {
     }
   }
 
+  // The lowest ground under a footprint of this radius, so nothing on a slope
+  // hangs over the downhill side
+  groundAt(island, x, z, radius) {
+    let lowest = Infinity
+    for (const [dx, dz] of [[0, 0], [radius, 0], [-radius, 0], [0, radius], [0, -radius]]) {
+      const surface = this.islands.surfaceAt(island, x + dx, z + dz)
+      if (surface) lowest = Math.min(lowest, surface.y)
+    }
+    return lowest
+  }
+
   placeSetPiece(island, id, along, across, occupied, radius) {
     const { shore, out } = island
     const x = shore.x - out.x * along + out.z * across
@@ -212,7 +223,7 @@ export class Decor {
     const target = island.paths.clearings[0] ?? island.shore
     const jitter = (Math.sin(x * 12.9 + z * 78.2) * 0.5) * 0.35
     const rotation = roundPieces.has(id) ? Math.sin(x * 3.1 + z) * Math.PI : Math.atan2(target.x - x, target.z - z) + jitter
-    this.add(id, x, surface.y - 0.05, z, rotation)
+    this.add(id, x, this.groundAt(island, x, z, 0.8) - 0.05, z, rotation)
     occupied.push({ x, z, radius: ['tower', 'hut-roof', 'lookout'].includes(id) ? 3 : 1.6 })
   }
 
@@ -247,7 +258,7 @@ export class Decor {
       0.15,
       0.75,
       (surface, x, z) => surface.y > (island.sparse ? 0.15 : 0.4) && surface.normalY > 0.8 && !(island.volcano && surface.y > 5) && !inYard(x, z),
-      (x, y, z) => this.add(palms[Math.floor(random() * palms.length)], x, y - 0.1, z, random() * Math.PI * 2, 0.75 + random() * 0.4)
+      (x, y, z) => this.add(palms[Math.floor(random() * palms.length)], x, this.groundAt(island, x, z, 0.45) - 0.1, z, random() * Math.PI * 2, 0.75 + random() * 0.4)
     )
 
     tryPlace(
@@ -255,7 +266,10 @@ export class Decor {
       0.7,
       1.0,
       surface => surface.y > -0.8,
-      (x, y, z) => this.rocks.add(x, y - 0.25, z, { width: 1 + random() * 1.3, height: 0.5 + random() * 0.9, mossy: y > 0.6 })
+      (x, y, z) => {
+        const width = 1 + random() * 1.3
+        this.rocks.add(x, this.groundAt(island, x, z, width * 0.4) - 0.2, z, { width, height: 0.5 + random() * 0.9, mossy: y > 0.6 })
+      }
     )
 
     const pick = list => list[Math.floor(random() * list.length)]
@@ -263,13 +277,14 @@ export class Decor {
     const onGrass = surface => surface.y > 0.6 && surface.normalY > 0.75 && !(island.volcano && surface.y > 5)
 
     tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.15), 0.1, 0.6, (surface, x, z) => onGrass(surface) && !inYard(x, z), (x, y, z) => {
-      this.foliage.addTree(new THREE.Vector3(x, y - 0.1, z), 2.2 + random() * 1.2, 1.3 + random() * 0.6, pick(treeColors), random)
+      this.foliage.addTree(new THREE.Vector3(x, this.groundAt(island, x, z, 0.4) - 0.1, z), 2.2 + random() * 1.2, 1.3 + random() * 0.6, pick(treeColors), random)
     })
 
     tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.6), 0.1, 0.85, onGrass, (x, y, z) => {
       const size = 0.55 + random() * 0.6
       const color = random() < 0.22 ? pick(flowerColors) : pick(bushColors)
-      this.foliage.addCluster(new THREE.Vector3(x, y + size * 0.45, z), size, color)
+      // Sunk a little so the lump grows out of the ground on every side
+      this.foliage.addCluster(new THREE.Vector3(x, this.groundAt(island, x, z, size * 0.6) + size * 0.35, z), size, color)
     })
 
   }

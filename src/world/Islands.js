@@ -33,13 +33,48 @@ export function facingDirection(island) {
   return { x: dx / length, z: dz / length }
 }
 
+const YARD_HEIGHT = 0.85 // metres above the sea
+
 // Ground height at a point given relative to the island centre. Mesh vertices
 // and the baked sea map both come from here, so they always agree.
 //  - every blob is a dome; the island is the highest dome at each point
 //  - the side facing the start slopes gently into a beach, the far side rises
 //    into a cliff
 //  - terraced islands step their slopes; the volcano is a cone with a crater
+//  - an inhabited island has a level yard cut into it behind its beach, where
+//    the dock path, plaza, props and sign stand (props on a slope float on
+//    one side and sink on the other; on level ground they simply sit)
 export function islandHeight(island, x, z) {
+  const y = naturalHeight(island, x, z)
+  const yard = yardOf(island)
+  if (!yard) return y
+  const { out, shore } = yard
+  const inland = shore - (x * out.x + z * out.z)
+  const across = x * out.z - z * out.x
+  const shape = Math.hypot((inland - yard.centre) / yard.along, across / yard.across)
+  const inside = 1 - smoothstep(0.72, 1, shape)
+  // A gentle ramp up from the beach, then level
+  const level = 0.25 + (YARD_HEIGHT - 0.25) * smoothstep(0, 2.6, inland)
+  return y + (level - y) * inside
+}
+
+// The yard of a section island (or the home island), in metres from where
+// its ground meets the sea on the dock side: [centre inland, half length
+// inland, half width across]. Found once and kept on the island.
+function yardOf(island) {
+  if (island.yardShape !== undefined) return island.yardShape
+  if (!island.section && island.label !== 'name') return (island.yardShape = null)
+  const out = facingDirection(island)
+  let shore = 0
+  for (let distance = 0; distance < island.radius * 1.3; distance += 0.25) {
+    shore = distance
+    if (naturalHeight(island, out.x * distance, out.z * distance) < 0.25) break
+  }
+  const [centre, along, across] = island.yard ?? [5.5, 6, 7.5]
+  return (island.yardShape = { out, shore, centre, along, across })
+}
+
+function naturalHeight(island, x, z) {
   const toward = facingDirection(island)
   const facing = (x * toward.x + z * toward.z) / (Math.hypot(x, z) || 1)
   const beach = smoothstep(0.1, 0.9, facing)
