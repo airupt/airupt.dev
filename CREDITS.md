@@ -1,13 +1,22 @@
 # Credits
 
 All code in this repository is original work written for airupt.dev.
-Islands, ocean, sky, wake and section buoys are generated in code.
+Islands, ocean, sky, grass, foliage, gulls, wake, ramps, signs and section buoys are generated in code.
 
 ## Inspiration
 
 The idea of an explorable 3D portfolio was inspired by Bruno Simon's
-[folio-2025](https://github.com/brunosimon/folio-2025) (MIT). It was studied for
-techniques only; no code, models, textures, sounds or fonts from it are used here.
+[folio-2025](https://github.com/brunosimon/folio-2025) (MIT). Its source was studied to learn
+techniques, which were then written from scratch here in our own GLSL and JavaScript:
+- shadows tinted with a colour instead of darkened
+- a tilt-shift blur and HDR-only bloom
+- fog that doubles as the sky gradient
+- single-triangle grass blades
+- leaf-card foliage with bent normals
+- noise baked into a texture at boot
+- a colour-preset day cycle
+
+No code, models, textures, sounds or fonts from it are used.
 
 ## 3D models
 
@@ -15,8 +24,8 @@ All by [Kenney](https://www.kenney.nl), CC0 1.0 (public domain). Thank you, Kenn
 Source files and licence texts are in `assets/kenney/`.
 
 - Watercraft Kit: speedboat
-- Pirate Kit: palm trees, rocks, grass, docks, barrels, crates, chest, flags, tower
-- Survival Kit: signposts, tent, campfire
+- Pirate Kit: palm trees, rocks, grass, docks, barrels, crates, chest, flags, tower, bottle
+- Survival Kit: signposts, tent, campfire, fish
 - Fantasy Town Kit: lantern, market stall, cart, banner
 
 ## Sound
