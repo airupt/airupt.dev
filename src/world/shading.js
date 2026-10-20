@@ -50,6 +50,11 @@ export const shared = {
   uFogRadial: { value: new THREE.Vector2(0.2, 1.3) },
   uFogNear: { value: 40 },
   uFogFar: { value: 120 },
+
+  // Anything standing between the camera and the boat thins out around it
+  uSeeThroughCenter: { value: new THREE.Vector2(-1000, -1000) }, // drawing-buffer pixels
+  uSeeThroughRadius: { value: 120 },
+  uSeeThroughDepth: { value: 0 }, // the boat's distance along the view axis
 }
 
 // Usable in vertex and fragment shaders that declare uNoise and the wind uniforms
@@ -93,9 +98,30 @@ const fragmentHeader = /* glsl */ `
   uniform vec2 uFogRadial;
   uniform float uFogNear;
   uniform float uFogFar;
+  uniform vec2 uSeeThroughCenter;
+  uniform float uSeeThroughRadius;
+  uniform float uSeeThroughDepth;
   varying vec3 vStylizedWorld;
+
+  // 4x4 ordered-dither threshold for screen-door transparency
+  float bayer4(vec2 pixel) {
+    vec2 cell = mod(floor(pixel), 4.0);
+    int index = int(cell.x + cell.y * 4.0);
+    const float matrix[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+    return (matrix[index] + 0.5) / 16.0;
+  }
   ${waveHeightGLSL()}
   ${fogColorGLSL}
+`
+
+const seeThroughBlock = /* glsl */ `
+  #include <clipping_planes_fragment>
+  #ifdef STYLIZED_SEE_THROUGH
+    float seeThrough = length(gl_FragCoord.xy - uSeeThroughCenter) / uSeeThroughRadius;
+    if (seeThrough < 1.0 && vViewPosition.z < uSeeThroughDepth - 2.0) {
+      if (bayer4(gl_FragCoord.xy) < (1.0 - seeThrough * seeThrough) * 0.8) discard;
+    }
+  #endif
 `
 
 // Replaces three's light accumulation. The shadow map is still read, but
@@ -141,7 +167,8 @@ const fogBlock = /* glsl */ `
 
 // Turns a MeshLambertMaterial into the stylised look. `extend` can patch the
 // shader further (the ocean adds waves); `key` must then be unique to it.
-export function stylize(material, { waterLine = true, extend = null, key = 'default' } = {}) {
+// `seeThrough` lets the boat show through it (off for the sea and the boat).
+export function stylize(material, { waterLine = true, seeThrough = true, extend = null, key = 'default' } = {}) {
   material.onBeforeCompile = shader => {
     Object.assign(shader.uniforms, shared)
 
@@ -157,8 +184,10 @@ export function stylize(material, { waterLine = true, extend = null, key = 'defa
         vStylizedWorld = (modelMatrix * stylizedWorld).xyz;`
       )
 
+    const defines = `${waterLine ? '#define STYLIZED_WATERLINE\n' : ''}${seeThrough ? '#define STYLIZED_SEE_THROUGH\n' : ''}`
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `${waterLine ? '#define STYLIZED_WATERLINE\n' : ''}#include <common>\n${fragmentHeader}`)
+      .replace('#include <common>', `${defines}#include <common>\n${fragmentHeader}`)
+      .replace('#include <clipping_planes_fragment>', seeThroughBlock)
       .replace('#include <lights_fragment_begin>', lightingBlock)
       .replace('#include <lights_fragment_maps>', '')
       .replace('#include <lights_fragment_end>', '')
@@ -170,7 +199,7 @@ export function stylize(material, { waterLine = true, extend = null, key = 'defa
 
     extend?.(shader)
   }
-  material.customProgramCacheKey = () => `stylized-${key}-${waterLine}`
+  material.customProgramCacheKey = () => `stylized-${key}-${waterLine}-${seeThrough}`
   return material
 }
 

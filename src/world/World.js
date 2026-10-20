@@ -24,6 +24,8 @@ import { Smoke } from './Smoke.js'
 import { Seascape } from './Seascape.js'
 import { profile, sections } from '../content/portfolio.js'
 
+const seeThroughPoint = new THREE.Vector3()
+
 export class World {
   constructor(app) {
     this.app = app
@@ -53,6 +55,18 @@ export class World {
       const variant = island.label === 'name' ? 'home' : island.section ? 'section' : 'landmark'
       app.overlay.addLabel(text, anchor, variant, island.color)
     }
+  }
+
+  // Tells the shaders where the boat is on screen so whatever stands in
+  // front of it can thin out (runs after the camera has moved)
+  updateSeeThrough(camera) {
+    const position = seeThroughPoint.copy(this.boat.object.position)
+    const depth = -position.applyMatrix4(camera.matrixWorldInverse).z
+    position.copy(this.boat.object.position).project(camera)
+    const resolution = shared.uResolution.value
+    shared.uSeeThroughCenter.value.set((position.x * 0.5 + 0.5) * resolution.x, (position.y * 0.5 + 0.5) * resolution.y)
+    shared.uSeeThroughDepth.value = depth
+    shared.uSeeThroughRadius.value = resolution.y * 0.13
   }
 
   async load(onProgress) {

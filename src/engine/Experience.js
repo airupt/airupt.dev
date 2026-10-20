@@ -58,6 +58,7 @@ export class Experience {
     this.ticker.add(delta => this.physics.update(delta), 10)
     this.ticker.add(delta => this.world.update(delta), 20)
     this.ticker.add(delta => this.cameraRig.update(delta), 30)
+    this.ticker.add(() => this.world.updateSeeThrough(this.cameraRig.camera), 31)
     this.ticker.add(delta => this.sounds.update(delta), 35)
     this.ticker.add(() => this.overlay.update(), 40)
     this.ticker.add(() => this.map.update(), 41)

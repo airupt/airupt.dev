@@ -21,7 +21,7 @@ export class Ocean {
 
     this.uniforms = {
       uWaterMap: { value: bakeWaterMap(islands) },
-      uShallow: { value: new THREE.Color('#86e6cf') },
+      uShallow: { value: new THREE.Color('#5fd9c9') },
       uMid: { value: new THREE.Color('#21b6c8') },
       uDeep: { value: new THREE.Color('#1270bb') },
       uCrest: { value: new THREE.Color('#8adcff') },
@@ -29,7 +29,7 @@ export class Ocean {
 
     const material = createStylizedMaterial(
       { color: '#ffffff', flatShading: true },
-      { waterLine: false, key: 'ocean', extend: shader => this.extend(shader) }
+      { waterLine: false, seeThrough: false, key: 'ocean', extend: shader => this.extend(shader) }
     )
 
     this.mesh = new THREE.Mesh(geometry, material)
@@ -88,7 +88,7 @@ export class Ocean {
         // Surf: a frothy band hugging the shore, and broken lines that roll in
         // toward it, following the real coastline
         float breakup = texture2D(uNoise, vOceanPosition * 0.045 + uTime * vec2(0.01, 0.006)).g;
-        float surf = 1.0 - smoothstep(0.3, 1.2 + sin(uTime * 1.4 + vOceanPosition.x * 0.25) * 0.35, coast);
+        float surf = 1.0 - smoothstep(0.15, 0.75 + sin(uTime * 1.4 + vOceanPosition.x * 0.25) * 0.25, coast);
         surf *= smoothstep(0.2, 0.45, breakup + 0.25);
         float roll = fract(coast / 3.2 + uTime * 0.2);
         float lines = smoothstep(0.84, 0.9, roll) * (1.0 - smoothstep(0.94, 1.0, roll));
