@@ -18,12 +18,6 @@ const models = {
   'palm-bend': ['pirate-kit', 'palm-bend'],
   'palm-detailed-straight': ['pirate-kit', 'palm-detailed-straight'],
   'palm-detailed-bend': ['pirate-kit', 'palm-detailed-bend'],
-  'rocks-a': ['pirate-kit', 'rocks-a'],
-  'rocks-b': ['pirate-kit', 'rocks-b'],
-  'rocks-c': ['pirate-kit', 'rocks-c'],
-  'rocks-sand-a': ['pirate-kit', 'rocks-sand-a'],
-  'rocks-sand-b': ['pirate-kit', 'rocks-sand-b'],
-  'rocks-sand-c': ['pirate-kit', 'rocks-sand-c'],
   'grass-plant': ['pirate-kit', 'grass-plant'],
   'grass-patch': ['pirate-kit', 'patch-grass-foliage'],
   barrel: ['pirate-kit', 'barrel'],
@@ -33,9 +27,6 @@ const models = {
   bottle: ['pirate-kit', 'bottle'],
   flag: ['pirate-kit', 'flag-high'],
   'flag-pennant': ['pirate-kit', 'flag-high-pennant'],
-  dock: ['pirate-kit', 'structure-platform-dock'],
-  'dock-small': ['pirate-kit', 'structure-platform-dock-small'],
-  planks: ['pirate-kit', 'platform-planks'],
   tower: ['pirate-kit', 'tower-complete-small'],
   wreck: ['pirate-kit', 'ship-wreck'],
   'hut-roof': ['pirate-kit', 'structure-roof'],
@@ -52,7 +43,6 @@ const models = {
   lantern: ['fantasy-town-kit', 'lantern'],
   stall: ['fantasy-town-kit', 'stall-red'],
   cart: ['fantasy-town-kit', 'cart'],
-  banner: ['fantasy-town-kit', 'banner-red'],
 }
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS)

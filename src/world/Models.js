@@ -11,7 +11,6 @@ const scales = {
   lantern: 1.3,
   stall: 2.4,
   cart: 2,
-  banner: 2.4,
   'hut-roof': 1.4,
   lookout: 1.3,
   anvil: 5,
