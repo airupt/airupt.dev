@@ -1,7 +1,7 @@
 # Credits
 
 All code in this repository is original work written for airupt.dev.
-Islands, ocean, sky, grass, foliage, gulls, wake, ramps, signs and section buoys are generated in code.
+Islands, Mount Airupt, ocean, sky, grass, foliage, gulls, wake, smoke, ramps, signs, project boards, the map picture and section buoys are generated in code.
 
 ## Inspiration
 
@@ -24,8 +24,8 @@ All by [Kenney](https://www.kenney.nl), CC0 1.0 (public domain). Thank you, Kenn
 Source files and licence texts are in `assets/kenney/`.
 
 - Watercraft Kit: speedboat, sailboat, fishing boat, houseboat, channel buoys
-- Pirate Kit: palm trees, rocks, grass, docks, barrels, crates, chest, flags, tower, bottle, shipwreck
-- Survival Kit: signposts, tent, campfire, fish
+- Pirate Kit: palm trees, rocks, grass, docks, barrels, crates, chest, flags, lighthouse tower, stone lookout, thatched hut, bottle, shipwreck
+- Survival Kit: signposts, tent, campfire, anvil bench, fish
 - Fantasy Town Kit: lantern, market stall, cart, banner
 
 ## Sound
