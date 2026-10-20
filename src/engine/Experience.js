@@ -66,10 +66,9 @@ export class Experience {
     this.ticker.start()
     requestAnimationFrame(() => this.overlay.showLiveScene())
 
-    await Promise.all([
-      this.world.load(progress => this.overlay.setProgress(0.2 + progress * 0.7)),
-      this.sounds.load(),
-    ])
+    // Audio is fetched alongside but never holds up the start (see Sounds)
+    this.sounds.load()
+    await this.world.load(progress => this.overlay.setProgress(0.2 + progress * 0.7))
 
     // Compile every shader now rather than the first time each thing comes into view
     await this.renderer.compileAsync(this.scene, this.cameraRig.camera)

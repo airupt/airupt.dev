@@ -1,16 +1,17 @@
-const files = {
-  ocean: '/sounds/ocean.mp3',
-  engine: '/sounds/engine.wav',
-  splash: '/sounds/splash.mp3',
-  bump: '/sounds/bump.mp3',
-  gulls: '/sounds/gulls.mp3',
-  click: '/sounds/click.mp3',
-  chime: '/sounds/chime.mp3',
-  open: '/sounds/open.mp3',
-  close: '/sounds/close.mp3',
-  glass: '/sounds/glass.mp3',
-  lapping: '/sounds/lapping.mp3',
-}
+import ocean from '../assets/sounds/ocean.mp3?url'
+import engine from '../assets/sounds/engine.wav?url'
+import splash from '../assets/sounds/splash.mp3?url'
+import bump from '../assets/sounds/bump.mp3?url'
+import gulls from '../assets/sounds/gulls.mp3?url'
+import click from '../assets/sounds/click.mp3?url'
+import chime from '../assets/sounds/chime.mp3?url'
+import open from '../assets/sounds/open.mp3?url'
+import close from '../assets/sounds/close.mp3?url'
+import glass from '../assets/sounds/glass.mp3?url'
+import lapping from '../assets/sounds/lapping.mp3?url'
+
+// Imported, so the build gives each a hashed, long-cached name
+const files = { ocean, engine, splash, bump, gulls, click, chime, open, close, glass, lapping }
 
 const STORAGE_KEY = 'airupt-muted'
 
@@ -44,7 +45,14 @@ export class Sounds {
     })
   }
 
-  async load() {
+  // Sounds stream in after the world: the site never waits on them, and
+  // start() begins the loops once they have arrived
+  load() {
+    this.loading ??= this.fetchAll()
+    return this.loading
+  }
+
+  async fetchAll() {
     await Promise.all(
       Object.entries(files).map(async ([name, url]) => {
         try {
@@ -60,9 +68,11 @@ export class Sounds {
   start() {
     this.started = true
     this.context.resume()
-    this.ocean = this.loop('ocean', 0.3)
-    this.engine = this.loop('engine', 0)
-    this.lapping = this.loop('lapping', 0)
+    this.load().then(() => {
+      this.ocean = this.loop('ocean', 0.3)
+      this.engine = this.loop('engine', 0)
+      this.lapping = this.loop('lapping', 0)
+    })
   }
 
   // A deep volcanic rumble made on the spot: brown noise through a low-pass

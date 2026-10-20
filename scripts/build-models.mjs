@@ -1,4 +1,5 @@
-// Bundles the hand-picked Kenney models in assets/kenney into public/models/world.glb.
+// Bundles the hand-picked Kenney models in assets/kenney into src/assets/models/world.glb
+// (imported by World.js, so the build gives it a hashed, long-cached name).
 // Every model becomes one root node named by its id, so the app looks models up by name.
 // Run with: npm run models
 import { Document, NodeIO } from '@gltf-transform/core'
@@ -62,5 +63,5 @@ const stripTangents = document => {
 }
 
 await target.transform(stripTangents, unpartition(), dedup(), prune(), quantize())
-await io.write('public/models/world.glb', target)
-console.log(`\nWrote public/models/world.glb with ${Object.keys(models).length} models`)
+await io.write('src/assets/models/world.glb', target)
+console.log(`\nWrote src/assets/models/world.glb with ${Object.keys(models).length} models`)

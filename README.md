@@ -10,7 +10,7 @@ A classic HTML view shows the same content without 3D.
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # outputs dist/
-npm run models   # rebuilds public/models/world.glb from assets/kenney
+npm run models   # rebuilds src/assets/models/world.glb from assets/kenney
 npm run deploy   # build + deploy to Cloudflare (needs `npx wrangler login` once)
 ```
 

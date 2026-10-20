@@ -35,7 +35,7 @@ function sway(shader) {
     )
 }
 
-// Loads public/models/world.glb (built by scripts/build-models.mjs) and hands
+// Loads src/assets/models/world.glb (built by scripts/build-models.mjs) and hands
 // out copies by id. Copies share geometry and materials with the original.
 export class Models {
   async load(url, onProgress) {
