@@ -37,6 +37,11 @@ export const shared = {
   uBounceStrength: { value: 0.4 },
   uWaterLine: { value: 0.09 },
 
+  // Wind: two scrolling noise samples give a gusty 2D offset (see windGLSL)
+  uWindDirection: { value: new THREE.Vector2(Math.sin(2.2), Math.cos(2.2)) },
+  uWindStrength: { value: 0.55 },
+  uWindTime: { value: 0 },
+
   // Fog colour is a screen-space gradient; the sky uses the very same one,
   // so the far sea dissolves into the sky without a visible horizon
   uFogColorA: { value: new THREE.Color('#bff6ff') },
@@ -46,6 +51,18 @@ export const shared = {
   uFogNear: { value: 40 },
   uFogFar: { value: 120 },
 }
+
+// Usable in vertex and fragment shaders that declare uNoise and the wind uniforms
+export const windGLSL = /* glsl */ `
+  uniform vec2 uWindDirection;
+  uniform float uWindStrength;
+  uniform float uWindTime;
+  vec2 windOffset(vec2 position) {
+    float gust = texture2D(uNoise, position * 0.1 + uWindDirection * uWindTime).r - 0.5;
+    float swell = texture2D(uNoise, position * 0.05 + uWindDirection * uWindTime * 0.2).r - 0.5;
+    return uWindDirection * (gust + swell) * uWindStrength;
+  }
+`
 
 export const fogColorGLSL = /* glsl */ `
   vec3 stylizedFogColor() {
@@ -111,6 +128,7 @@ const lightingBlock = /* glsl */ `
     baseColor = mix(baseColor, vec3(1.0), 1.0 - step(uWaterLine, waterDistance));
   #endif
 
+  // STYLIZED_SHADE
   vec3 stylizedColor = mix(baseColor * uLightColor * uLightIntensity, baseColor * uShadowColor, shade);
   // STYLIZED_EXTRA
 `

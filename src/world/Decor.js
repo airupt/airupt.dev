@@ -44,13 +44,19 @@ const setPieces = {
   ],
 }
 
-// Places Kenney props on the procedural islands: a dock facing the start
-// point, a few hand-placed set pieces per section, then seeded scatter.
+const bushColors = ['#4fae4a', '#3f9c47', '#6cc24f', '#58b85a']
+const flowerColors = ['#ff7a59', '#ff9f43', '#ff6b8b']
+const treeColors = ['#ff5a36', '#ff7b2e', '#3f9c47', '#4fae4a']
+
+// Places props on the procedural islands: a dock facing the start point, a
+// few hand-placed set pieces per section, then seeded scatter of palms,
+// rocks, trees and bushes.
 export class Decor {
-  constructor(app, islands, models) {
+  constructor(app, islands, models, foliage) {
     this.app = app
     this.islands = islands
     this.models = models
+    this.foliage = foliage
     this.group = new THREE.Group()
     app.scene.add(this.group)
 
@@ -61,6 +67,8 @@ export class Decor {
       for (const [id, along, across] of setPieces[island.id] ?? []) this.placeSetPiece(island, id, along, across, occupied)
       this.scatter(island, random, occupied)
     }
+
+    foliage.build()
   }
 
   add(id, x, y, z, rotation = 0, scale = 1) {
@@ -140,12 +148,21 @@ export class Decor {
       }
     )
 
-    tryPlace(
-      Math.round(island.radius * 0.7),
-      0.1,
-      0.8,
-      surface => surface.y > 0.6 && surface.normalY > 0.75,
-      (x, y, z) => this.add('grass-plant', x, y, z, random() * Math.PI * 2, 1 + random() * 0.8)
+    const pick = list => list[Math.floor(random() * list.length)]
+    const onGrass = surface => surface.y > 0.6 && surface.normalY > 0.75
+
+    tryPlace(Math.round(island.radius * 0.15), 0.1, 0.6, onGrass, (x, y, z) => {
+      this.foliage.addTree(new THREE.Vector3(x, y - 0.1, z), 2.2 + random() * 1.2, 1.3 + random() * 0.6, pick(treeColors), random)
+    })
+
+    tryPlace(Math.round(island.radius * 0.6), 0.1, 0.85, onGrass, (x, y, z) => {
+      const size = 0.55 + random() * 0.6
+      const color = random() < 0.22 ? pick(flowerColors) : pick(bushColors)
+      this.foliage.addCluster(new THREE.Vector3(x, y + size * 0.45, z), size, color)
+    })
+
+    tryPlace(Math.round(island.radius * 0.25), 0.1, 0.8, onGrass, (x, y, z) =>
+      this.add('grass-plant', x, y, z, random() * Math.PI * 2, 1 + random() * 0.8)
     )
   }
 

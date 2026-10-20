@@ -42,8 +42,9 @@ function createTerrain({ radius, height, seed }) {
   return geometry
 }
 
-// One flat colour per face, picked from height and slope
-function paint(geometry, seed) {
+// One flat colour per face, picked from height and slope. Grass faces are
+// collected (positions and colour) so blades can be grown on them later.
+function paint(geometry, seed, grass) {
   const position = geometry.attributes.position
   const colors = new Float32Array(position.count * 3)
   const a = new THREE.Vector3()
@@ -59,12 +60,14 @@ function paint(geometry, seed) {
     normal.subVectors(c, b).cross(a.clone().sub(b)).normalize()
     const height = (a.y + b.y + c.y) / 3
 
+    const isGrass = height >= 0.5 && normal.y >= 0.75
     if (height < -0.2) color.copy(palette.wetSand)
     else if (height < 0.5) color.copy(palette.sand)
-    else if (normal.y < 0.75) color.copy(palette.rock)
+    else if (!isGrass) color.copy(palette.rock)
     else color.copy(palette.grass).lerp(palette.darkGrass, hash2(i, 3, seed))
 
     color.multiplyScalar(0.96 + hash2(i, 4, seed) * 0.08)
+    if (isGrass) grass.push({ a: a.clone(), b: b.clone(), c: c.clone(), color: color.clone() })
     for (let j = 0; j < 3; j++) color.toArray(colors, (i + j) * 3)
   }
 
@@ -90,7 +93,8 @@ export class Islands {
     this.app.physics.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices, indices).setFriction(0.6), body)
 
     const geometry = terrain.toNonIndexed()
-    paint(geometry, definition.seed)
+    const grass = []
+    paint(geometry, definition.seed, grass)
 
     const mesh = new THREE.Mesh(geometry, this.material)
     mesh.position.set(definition.x, 0, definition.z)
@@ -102,7 +106,8 @@ export class Islands {
     let top = 0
     for (let i = 1; i < vertices.length; i += 3) top = Math.max(top, vertices[i])
 
-    const island = { ...definition, mesh, top }
+    // Grass triangles are in island space; offsetting them gives world space
+    const island = { ...definition, mesh, top, grass }
     this.findShore(island)
     return island
   }

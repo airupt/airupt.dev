@@ -15,6 +15,8 @@ export class CameraRig {
     this.targetDistance = 120
     this.focus = new THREE.Vector3()
     this.lookAhead = new THREE.Vector3()
+    // When set, the camera frames this point instead of following the boat
+    this.override = null
 
     window.addEventListener(
       'wheel',
@@ -40,9 +42,13 @@ export class CameraRig {
   update(delta) {
     const boat = this.app.world.boat
 
-    this.lookAhead.copy(boat.velocity).multiplyScalar(0.45)
-    this.lookAhead.y = 0
-    desired.copy(boat.object.position).add(this.lookAhead)
+    if (this.override) {
+      desired.copy(this.override)
+    } else {
+      this.lookAhead.copy(boat.velocity).multiplyScalar(0.45)
+      this.lookAhead.y = 0
+      desired.copy(boat.object.position).add(this.lookAhead)
+    }
     desired.y = 0
 
     this.focus.lerp(desired, 1 - Math.exp(-3 * delta))

@@ -8,6 +8,8 @@ import { Wake } from './Wake.js'
 import { Models } from './Models.js'
 import { Decor } from './Decor.js'
 import { shared } from './shading.js'
+import { Grass } from './Grass.js'
+import { Foliage } from './Foliage.js'
 import { profile, sections } from '../content/portfolio.js'
 
 export class World {
@@ -17,6 +19,7 @@ export class World {
     this.sky = new Sky(app)
     this.ocean = new Ocean(app)
     this.islands = new Islands(app)
+    this.grass = new Grass(app, this.islands)
     this.boat = new Boat(app)
     this.wake = new Wake(app, this.boat)
     this.zones = new Zones(app, this.islands)
@@ -31,13 +34,15 @@ export class World {
 
   async load(onProgress) {
     await this.models.load('/models/world.glb', onProgress)
-    this.decor = new Decor(this.app, this.islands, this.models)
+    this.decor = new Decor(this.app, this.islands, this.models, new Foliage(this.app))
     this.boat.setModel(this.models.get('boat'))
   }
 
   update(delta) {
     const focus = this.app.cameraRig.focus
     shared.uTime.value = this.app.physics.renderTime
+    // Wind time runs faster in stronger wind, so gusts speed up instead of just growing
+    shared.uWindTime.value += delta * 0.1 * shared.uWindStrength.value
     this.boat.update(delta)
     this.wake.update(delta)
     this.ocean.update(focus)
