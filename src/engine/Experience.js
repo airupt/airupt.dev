@@ -82,6 +82,12 @@ export class Experience {
       this.cameraRig.attract = false
       this.cameraRig.zoomTo(this.cameraRig.limits.start)
       this.world.boat.drop()
+      const home = this.world.islands.list.find(island => island.label === 'name')
+      const [bx, bz] = home.blobs[0]
+      this.cameraRig.establishing = {
+        point: new THREE.Vector3(home.x + bx, 0, home.z + bz),
+        origin: this.world.boat.object.position.clone(),
+      }
     })
   }
 

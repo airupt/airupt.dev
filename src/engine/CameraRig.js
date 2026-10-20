@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 
 const desired = new THREE.Vector3()
+const midpoint = new THREE.Vector3()
 
 // Fixed-angle follow camera looking down diagonally across the world, with a
 // narrow field of view so the scene reads like a miniature. It never rotates,
@@ -13,7 +14,7 @@ export class CameraRig {
     // The ground direction that points up the screen
     this.screenUp = new THREE.Vector3(-this.direction.x, 0, -this.direction.z).normalize()
     this.screenRight = new THREE.Vector3(-this.screenUp.z, 0, this.screenUp.x)
-    this.limits = { min: 24, max: 80, start: 42 }
+    this.limits = { min: 24, max: 80, start: 46 }
     this.distance = 105
     this.targetDistance = 105
     this.focus = new THREE.Vector3()
@@ -23,6 +24,9 @@ export class CameraRig {
     // Before the visit starts the camera drifts slowly over the archipelago
     this.attract = true
     this.attractTime = 0
+    // Opening shot: while the boat is still near where it started, frame the
+    // boat together with this point (the home island)
+    this.establishing = null
 
     this.baseFov = 25
     this.fovBoost = 0
@@ -69,6 +73,14 @@ export class CameraRig {
       this.lookAhead.y = 0
       // Keep the boat a little below centre so more of the world shows ahead
       desired.copy(boat.object.position).add(this.lookAhead).addScaledVector(this.screenUp, this.distance * 0.08)
+
+      if (this.establishing) {
+        const { point, origin } = this.establishing
+        const travelled = Math.hypot(boat.object.position.x - origin.x, boat.object.position.z - origin.z)
+        const hold = 1 - THREE.MathUtils.smoothstep(travelled, 4, 14)
+        desired.lerp(midpoint.copy(boat.object.position).lerp(point, 0.4), hold)
+        if (hold === 0) this.establishing = null
+      }
     }
     desired.y = 0
 

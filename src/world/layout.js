@@ -13,13 +13,14 @@ export const islands = [
     z: 0,
     radius: 15,
     seed: 3,
-    // The beach and dock face into the bay (other islands face the start point)
-    facing: [0.707, 0.707],
+    // The bay opens toward the right of the screen, so from the start the
+    // whole island sits beside the boat (other islands face the start point)
+    facing: [0.707, -0.707],
     // Two arms hold a small bay with the dock
     blobs: [
-      [-3, -3, 8.5, 4.2],
-      [9, -3, 5, 2.4],
-      [-3, 9, 5, 2.4],
+      [-2.8, 2.8, 8.5, 4.2],
+      [-0.7, -7.8, 5, 2.4],
+      [7.8, 0.7, 5, 2.4],
     ],
   },
   {
@@ -122,7 +123,7 @@ export const islands = [
 
 // The boat starts beside the home island, bow pointing along a clear run to
 // the Projects island so the first press of W goes somewhere
-export const spawn = { x: 20, z: 6, yaw: 0.27 }
+export const spawn = { x: 13.4, z: -9.2, yaw: 0.21 }
 
 // Past this distance from the centre the sea pushes the boat back
 export const worldRadius = 100
