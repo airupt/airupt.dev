@@ -19,11 +19,13 @@ export class Ticker {
   }
 
   loop(now) {
+    // Scheduled first so one failing callback can't stop every frame after it
+    requestAnimationFrame(this.loop)
+
     // Clamp so returning to a background tab doesn't produce one huge step
     this.delta = Math.min((now - this.last) / 1000, 0.1)
     this.last = now
     this.elapsed += this.delta
     for (const { callback } of this.callbacks) callback(this.delta, this.elapsed)
-    requestAnimationFrame(this.loop)
   }
 }

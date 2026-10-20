@@ -6,15 +6,15 @@ import { Inputs } from './Inputs.js'
 import { Physics } from './Physics.js'
 import { CameraRig } from './CameraRig.js'
 import { World } from '../world/World.js'
-import { Overlay } from '../ui/Overlay.js'
 
 // Owns the renderer and wires every system together. Systems receive this
 // object and read what they need from it instead of importing each other.
 export class Experience {
-  constructor(canvas) {
+  constructor(canvas, overlay) {
     this.canvas = canvas
-    this.paused = false
-    this.overlay = new Overlay(this)
+    this.paused = overlay.isClassicOpen
+    this.overlay = overlay
+    overlay.app = this
   }
 
   async start() {

@@ -1,8 +1,5 @@
-import * as THREE from 'three'
 import { profile, sections } from '../content/portfolio.js'
 import { renderSection, renderClassic } from './render.js'
-
-const projected = new THREE.Vector3()
 
 const hints = {
   keyboard: 'WASD or arrow keys to sail · Shift to boost · E to explore · R to reset',
@@ -11,10 +8,12 @@ const hints = {
 }
 
 // All HTML on top of the canvas: loader, HUD, island labels, section panel
-// and the classic (no-3D) view.
+// and the classic (no-3D) view. It runs before the 3D code has downloaded;
+// the Experience attaches itself as `app` once it exists.
 export class Overlay {
-  constructor(app) {
-    this.app = app
+  constructor() {
+    this.app = null
+    this.projected = null
     this.started = false
     this.activeSection = null
     this.device = null
@@ -75,8 +74,12 @@ export class Overlay {
     )
   }
 
+  get isClassicOpen() {
+    return !this.classic.hidden
+  }
+
   setSailing(enabled) {
-    if (!this.app.inputs) return
+    if (!this.app?.inputs) return
     this.app.inputs.enabled = enabled && this.started && this.classic.hidden && !this.panel.open
   }
 
@@ -101,7 +104,7 @@ export class Overlay {
     this.classic.hidden = false
     this.classic.classList.toggle('is-fallback', fallback)
     document.body.classList.add('is-classic')
-    this.app.paused = true
+    if (this.app) this.app.paused = true
     this.setSailing(false)
   }
 
@@ -109,7 +112,7 @@ export class Overlay {
     this.classic.hidden = true
     document.body.classList.remove('is-classic')
     document.activeElement?.blur()
-    this.app.paused = false
+    if (this.app) this.app.paused = false
     this.setSailing(true)
   }
 
@@ -133,6 +136,8 @@ export class Overlay {
     const camera = this.app.cameraRig.camera
     const { width, height } = this.app.viewport
     for (const label of this.labels) {
+      // Scratch vector borrowed from the first label, so this file needs no three.js import
+      const projected = (this.projected ??= label.position.clone())
       projected.copy(label.position).project(camera)
       const visible = projected.z < 1 && Math.abs(projected.x) < 1.2 && Math.abs(projected.y) < 1.2
       label.element.classList.toggle('is-hidden', !visible)

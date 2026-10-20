@@ -4,6 +4,7 @@ import { Ocean } from './Ocean.js'
 import { Islands } from './Islands.js'
 import { Boat } from './Boat.js'
 import { Zones } from './Zones.js'
+import { Wake } from './Wake.js'
 import { profile, sections } from '../content/portfolio.js'
 
 export class World {
@@ -13,6 +14,7 @@ export class World {
     this.ocean = new Ocean(app)
     this.islands = new Islands(app)
     this.boat = new Boat(app)
+    this.wake = new Wake(app, this.boat)
     this.zones = new Zones(app, this.islands)
 
     for (const island of this.islands.list) {
@@ -31,6 +33,7 @@ export class World {
   update(delta) {
     const focus = this.app.cameraRig.focus
     this.boat.update(delta)
+    this.wake.update(delta)
     this.ocean.update(focus)
     this.sky.update(focus, this.app.cameraRig.distance)
     this.zones.update()

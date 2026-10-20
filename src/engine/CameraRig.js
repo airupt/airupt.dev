@@ -9,7 +9,7 @@ export class CameraRig {
     this.app = app
     this.camera = new THREE.PerspectiveCamera(40, 1, 0.5, 450)
     this.direction = new THREE.Vector3(0, 1, 1.25).normalize()
-    this.limits = { min: 14, max: 50, start: 26 }
+    this.limits = { min: 14, max: 50, start: 30 }
     this.distance = 80
     this.targetDistance = 80
     this.focus = new THREE.Vector3()
