@@ -4,8 +4,10 @@ import { createRandom } from '../utils/noise.js'
 
 export const DOCK_LENGTH = 5
 export const DOCK_WIDTH = 1.9
-export const DOCK_DECK = 0.42 // top of the planks above the calm sea
-export const DOCK_POST_TOP = 0.8 // the last pair of posts stands proud as bollards
+// Top of the planks: above the highest wave crest (about 0.6), so the
+// waterline foam never washes over the deck
+export const DOCK_DECK = 0.74
+export const DOCK_POST_TOP = 1.1 // the last pair of posts stands proud as bollards
 // The dock starts this far inland so its first planks rest on the beach
 export const DOCK_INLAND = 0.6
 
@@ -49,7 +51,7 @@ export function createDockGeometry(seed) {
     parts.push(paint(stringer, beam))
   }
 
-  for (const z of [1.3, 2.85, DOCK_LENGTH - 0.12]) {
+  for (const z of [0.3, 1.8, 3.3, DOCK_LENGTH - 0.12]) {
     const last = z > DOCK_LENGTH - 1
     for (const side of [-1, 1]) {
       const top = last ? DOCK_POST_TOP : DOCK_DECK + 0.04

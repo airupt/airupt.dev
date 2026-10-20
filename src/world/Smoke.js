@@ -52,7 +52,7 @@ export class Smoke {
     )
     this.mesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), material, this.capacity)
     this.mesh.count = 0
-    this.mesh.castShadow = true
+    // No cast shadows: a tall plume threw a long hard stripe across the sea
     this.mesh.frustumCulled = false
     this.app.scene.add(this.mesh)
 
