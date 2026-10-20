@@ -10,6 +10,7 @@ import { PostProcessing } from './PostProcessing.js'
 import { World } from '../world/World.js'
 import { shared } from '../world/shading.js'
 import { MapView } from '../ui/MapView.js'
+import { Quality } from './Quality.js'
 
 // Owns the renderer and wires every system together. Systems receive this
 // object and read what they need from it instead of importing each other.
@@ -47,7 +48,8 @@ export class Experience {
     // Colours are art-directed in the stylised shader; tone mapping would only wash them out
     this.renderer.toneMapping = THREE.NoToneMapping
     this.postProcessing = new PostProcessing(this)
-    this.resize()
+    this.quality = new Quality(this)
+    this.quality.apply()
     this.viewport.onResize(() => this.resize())
 
     // The sea and islands render behind the loader while models and sounds
@@ -60,6 +62,7 @@ export class Experience {
     this.ticker.add(() => this.overlay.update(), 40)
     this.ticker.add(() => this.map.update(), 41)
     this.ticker.add(delta => this.render(delta), 100)
+    this.ticker.add(delta => this.inputs.enabled && this.quality.update(delta), 110)
     this.ticker.start()
     requestAnimationFrame(() => this.overlay.showLiveScene())
 
@@ -84,7 +87,7 @@ export class Experience {
   resize() {
     const { width, height } = this.viewport
     // The tilt-shift blur hides softness, so post-processing can run below full retina resolution
-    const pixelRatio = Math.min(this.viewport.pixelRatio, 1.5)
+    const pixelRatio = Math.min(this.viewport.pixelRatio, this.quality.pixelRatioCap)
     this.renderer.setPixelRatio(pixelRatio)
     this.renderer.setSize(width, height, false)
     this.postProcessing.resize(width, height, pixelRatio)

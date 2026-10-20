@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import RAPIER from '@dimforge/rapier3d-compat'
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { applyBuoyancy } from './buoyancy.js'
 import { createStylizedMaterial } from './shading.js'
 
@@ -10,19 +11,29 @@ const FLOAT_POINTS = [0, 1, 2, 3].map(i => {
   return new THREE.Vector3(Math.cos(angle) * 0.6, -0.2, Math.sin(angle) * 0.6)
 })
 
-function createModel(color) {
-  const material = createStylizedMaterial({ color, flatShading: true })
-  const white = createStylizedMaterial({ color: '#ffffff', flatShading: true })
+const material = createStylizedMaterial({ vertexColors: true, flatShading: true }, { key: 'buoy' })
 
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.48, 0.9, 8), material)
-  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.46, 0.18, 8), white)
-  band.position.y = 0.12
-  const top = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.55, 6), material)
-  top.position.y = 0.72
+// Body, white band and cone merged into one mesh, coloured per vertex
+function createModel(color) {
+  const paint = (geometry, hex, y) => {
+    geometry.translate(0, y, 0)
+    const value = new THREE.Color(hex)
+    const colors = new Float32Array(geometry.attributes.position.count * 3)
+    for (let i = 0; i < colors.length; i += 3) value.toArray(colors, i)
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    return geometry.toNonIndexed()
+  }
+
+  const geometry = mergeGeometries([
+    paint(new THREE.CylinderGeometry(0.42, 0.48, 0.9, 8), color, 0),
+    paint(new THREE.CylinderGeometry(0.44, 0.46, 0.18, 8), '#ffffff', 0.12),
+    paint(new THREE.ConeGeometry(0.22, 0.55, 6), color, 0.72),
+  ])
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.castShadow = true
 
   const model = new THREE.Group()
-  model.add(body, band, top)
-  model.traverse(child => (child.castShadow = true))
+  model.add(mesh)
   return model
 }
 

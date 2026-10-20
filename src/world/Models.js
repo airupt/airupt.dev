@@ -25,7 +25,11 @@ function sway(shader) {
     .replace('#include <common>', `#include <common>\nuniform sampler2D uNoise;\n${windGLSL}`)
     .replace(
       '#include <project_vertex>',
-      `vec4 swayWorld = modelMatrix * vec4(transformed, 1.0);
+      `vec4 swayLocal = vec4(transformed, 1.0);
+      #ifdef USE_INSTANCING
+        swayLocal = instanceMatrix * swayLocal;
+      #endif
+      vec4 swayWorld = modelMatrix * swayLocal;
       float bend = pow(clamp(transformed.y / 4.2, 0.0, 1.0), 2.0);
       swayWorld.xz += windOffset(swayWorld.xz) * bend * 1.6;
       vec4 mvPosition = viewMatrix * swayWorld;

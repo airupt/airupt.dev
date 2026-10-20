@@ -36,12 +36,15 @@ function createBoardTexture(text, accent) {
 }
 
 // Wooden signs with the section name, planted near each dock and turned to
-// face the camera so they read from the default view
+// face the camera so they read from the default view. Boards and posts of
+// all signs are two instanced draws; only the painted fronts are separate.
 export class Signs {
   constructor(app, islands, entries) {
-    const postMaterial = createStylizedMaterial({ color: '#8a5a3c', flatShading: true }, { waterLine: false })
-    const edgeMaterial = createStylizedMaterial({ color: '#a76c3e', flatShading: true }, { waterLine: false })
+    const woodMaterial = createStylizedMaterial({ color: '#a76c3e', flatShading: true }, { waterLine: false })
     const facing = Math.atan2(app.cameraRig.direction.x, app.cameraRig.direction.z)
+    const boards = []
+    const posts = []
+    const placement = new THREE.Object3D()
 
     for (const { island, text, color } of entries) {
       const { shore, out } = island
@@ -51,30 +54,34 @@ export class Signs {
       const surface = islands.surfaceAt(island, x, z)
       if (!surface) continue
 
-      const sign = new THREE.Group()
-      sign.position.set(x, surface.y, z)
-      sign.rotation.y = facing
+      placement.position.set(x, surface.y, z)
+      placement.rotation.y = facing
+      placement.updateMatrix()
 
-      const face = createStylizedMaterial({ map: createBoardTexture(text, color) }, { waterLine: false, key: 'sign' })
-      // BoxGeometry material order: +x, -x, +y, -y, +z (front), -z
-      const board = new THREE.Mesh(
-        new THREE.BoxGeometry(BOARD.width, BOARD.height, BOARD.depth),
-        [edgeMaterial, edgeMaterial, edgeMaterial, edgeMaterial, face, edgeMaterial]
-      )
-      board.position.y = 1.55
-      sign.add(board)
-
+      boards.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.55, 0)))
       for (const side of [-1, 1]) {
-        const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.1, 0.16), postMaterial)
-        post.position.set(side * BOARD.width * 0.36, 1.05, -0.1)
-        sign.add(post)
+        posts.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(side * BOARD.width * 0.36, 1.05, -0.1)))
       }
 
-      sign.traverse(child => {
-        child.castShadow = true
-        child.receiveShadow = true
-      })
-      app.scene.add(sign)
+      const face = new THREE.Mesh(
+        new THREE.PlaneGeometry(BOARD.width, BOARD.height),
+        createStylizedMaterial({ map: createBoardTexture(text, color) }, { waterLine: false, key: 'sign' })
+      )
+      face.applyMatrix4(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.55, BOARD.depth / 2 + 0.005)))
+      face.receiveShadow = true
+      app.scene.add(face)
+    }
+
+    for (const [geometry, matrices] of [
+      [new THREE.BoxGeometry(BOARD.width, BOARD.height, BOARD.depth), boards],
+      [new THREE.BoxGeometry(0.16, 2.1, 0.16), posts],
+    ]) {
+      const mesh = new THREE.InstancedMesh(geometry, woodMaterial, matrices.length)
+      matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix))
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+      mesh.computeBoundingSphere()
+      app.scene.add(mesh)
     }
   }
 }
