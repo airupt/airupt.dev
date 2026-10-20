@@ -4,8 +4,8 @@ import { islands } from './layout.js'
 import { createStylizedMaterial } from './shading.js'
 import { bakeWaterMap, waterMapGLSL } from './WaterMap.js'
 
-const SIZE = 400
-const SEGMENTS = 160
+const SIZE = 300
+const SEGMENTS = 200
 const CELL = SIZE / SEGMENTS
 
 // A large plane displaced by the shared wave function, lit with the exact

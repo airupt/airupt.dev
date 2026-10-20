@@ -5,7 +5,7 @@ import { instanceStatic } from './instancing.js'
 
 export const DOCK_TILES = 2
 export const DOCK_TILE = 2.5 // metres per dock model
-const DOCK_HEIGHT = -0.55 // posts sink into the sea, deck stays just above the waves
+export const DOCK_HEIGHT = -0.55 // posts sink into the sea, deck stays just above the waves
 
 const palms = ['palm-straight', 'palm-bend', 'palm-detailed-straight', 'palm-detailed-bend']
 const rocks = ['rocks-a', 'rocks-b', 'rocks-c', 'rocks-sand-a', 'rocks-sand-b', 'rocks-sand-c']

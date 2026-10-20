@@ -27,7 +27,7 @@ export class ZoneRings {
           void main() {
             vLocal = position.xz;
             vec4 world = modelMatrix * vec4(position, 1.0);
-            world.y = waveHeight(world.xz, uTime) + 0.06;
+            world.y = waveHeight(world.xz, uTime) + 0.1;
             gl_Position = projectionMatrix * viewMatrix * world;
           }
         `,

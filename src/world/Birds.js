@@ -2,8 +2,10 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { createStylizedMaterial } from './shading.js'
 import { createRandom } from '../utils/noise.js'
+import { DOCK_HEIGHT, DOCK_TILE, DOCK_TILES } from './Decor.js'
 
-const COUNT = 8
+const FLOCK = 8
+const DOCK_TOP = 0.76 // the Kenney dock deck sits this high above the sea
 const SHOULDER = 0.08
 
 // Body, head and two wings merged into one geometry. `aWing` marks wing
@@ -44,12 +46,36 @@ function createGullGeometry() {
   return mergeGeometries([tag(body, 0, 1), tag(head, 0, 1), ...wings])
 }
 
-// Gulls circling the islands, flapping in bursts and gliding in between.
-// All of them are one instanced draw; wings flap in the vertex shader.
+// Gulls circling the islands, flapping in bursts and gliding in between,
+// plus pairs resting on the end of every dock that take off when the boat
+// comes close and drift back later. All one instanced draw; wings flap in
+// the vertex shader.
 export class Birds {
   constructor(app, islands) {
     this.app = app
     this.time = 0
+
+    // Two gulls on the end of each dock
+    this.perched = []
+    for (const island of islands.list) {
+      if (!island.section && island.label !== 'name') continue
+      const reach = DOCK_TILES * DOCK_TILE - 0.9
+      for (const side of [-0.5, 0.5]) {
+        this.perched.push({
+          home: new THREE.Vector3(
+            island.shore.x + island.out.x * reach + island.out.z * side,
+            DOCK_HEIGHT + DOCK_TOP + 0.65,
+            island.shore.z + island.out.z * reach - island.out.x * side
+          ),
+          heading: Math.atan2(island.out.x, island.out.z) + side,
+          state: 'perched',
+          timer: 0,
+          position: new THREE.Vector3(),
+          velocity: new THREE.Vector3(),
+        })
+      }
+    }
+    const COUNT = FLOCK + this.perched.length
 
     const geometry = createGullGeometry()
     this.flaps = new THREE.InstancedBufferAttribute(new Float32Array(COUNT), 1)
@@ -85,7 +111,7 @@ export class Birds {
 
     const random = createRandom(77)
     const homes = islands.list.filter(island => island.radius >= 9)
-    this.flock = Array.from({ length: COUNT }, (_, i) => {
+    this.flock = Array.from({ length: FLOCK }, (_, i) => {
       const island = homes[i % homes.length]
       return {
         center: new THREE.Vector2(island.x, island.z),
@@ -124,7 +150,57 @@ export class Birds {
       this.flaps.array[index] = flapping ? Math.sin(this.time * 9 + bird.phase) * 0.55 : 0.12
     })
 
+    this.updatePerched(delta)
     this.mesh.instanceMatrix.needsUpdate = true
     this.flaps.needsUpdate = true
+  }
+
+  updatePerched(delta) {
+    const { dummy } = this
+    const boat = this.app.world.boat.object.position
+
+    this.perched.forEach((gull, index) => {
+      const slot = FLOCK + index
+      let scale = 0.7
+
+      if (gull.state === 'perched') {
+        gull.position.copy(gull.home)
+        dummy.rotation.set(0, gull.heading + Math.sin(this.time * 0.8 + index) * 0.25, 0)
+        // Wings folded, with the odd stretch
+        this.flaps.array[slot] = Math.sin(this.time * 0.5 + index * 2) > 0.97 ? 0.5 : -0.35
+        if (boat.distanceTo(gull.home) < 8) {
+          gull.state = 'flying'
+          gull.timer = 0
+          const away = gull.home.clone().sub(boat).setY(0).normalize()
+          gull.velocity.set(away.x * 4.5, 3.2, away.z * 4.5)
+          if (index % 2 === 0) this.app.sounds.play('gulls', 0.3, 1.05 + Math.random() * 0.1)
+        }
+      } else if (gull.state === 'flying') {
+        gull.timer += delta
+        gull.velocity.y = Math.max(gull.velocity.y - delta * 0.6, 1.2)
+        gull.position.addScaledVector(gull.velocity, delta)
+        dummy.rotation.set(-0.35, Math.atan2(-gull.velocity.x, -gull.velocity.z), 0)
+        this.flaps.array[slot] = Math.sin(this.time * 14 + index) * 0.7
+        // Shrink away into the distance, then wait before coming back
+        scale *= Math.min(1, Math.max(0, (5 - gull.timer) / 1.5))
+        if (gull.timer > 5) {
+          gull.state = 'away'
+          gull.timer = 0
+        }
+      } else {
+        gull.timer += delta
+        scale = 0
+        const clear = boat.distanceTo(gull.home) > 14
+        if (gull.timer > 20 && clear) {
+          gull.state = 'perched'
+          gull.timer = 0
+        }
+      }
+
+      dummy.position.copy(gull.position)
+      dummy.scale.setScalar(scale)
+      dummy.updateMatrix()
+      this.mesh.setMatrixAt(slot, dummy.matrix)
+    })
   }
 }
