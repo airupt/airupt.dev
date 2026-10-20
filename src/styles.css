@@ -411,14 +411,17 @@ body {
   pointer-events: none;
   z-index: 5;
   opacity: 0;
-  /* Gone at once when a panel or the map opens… */
-  transition: opacity 0.2s ease;
+  transition: opacity 1s ease 1.2s;
 }
 
 .is-sailing .labels {
   opacity: 1;
-  /* …and back gently once sailing again */
-  transition: opacity 1s ease 1.2s;
+}
+
+/* Gone at once while a panel or the map is open */
+body:has(dialog[open]) .labels {
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .label {
