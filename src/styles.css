@@ -638,6 +638,21 @@ body:has(dialog[open]) .hud > * {
   transform: none;
 }
 
+/* Touch screens: the bottom belongs to the stick and the prompts, so tips
+   and bottle messages drop in from the top instead */
+@media (pointer: coarse), (max-width: 600px) {
+  .toast {
+    top: calc(max(1rem, env(safe-area-inset-top)) + 7.2rem);
+    bottom: auto;
+    left: 50%;
+    transform: translate(-50%, calc(-100% - 9rem));
+  }
+
+  .toast.is-visible {
+    transform: translate(-50%, 0);
+  }
+}
+
 .toast-title {
   margin: 0 0 0.35rem;
   font: 800 0.85rem/1 var(--font-display);

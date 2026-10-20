@@ -60,8 +60,11 @@ export class Overlay {
       button.addEventListener('click', () => this.showClassic())
     }
 
+    // Same as pressing E: the boat comes alongside, then the section opens
     this.promptButton.addEventListener('click', () => {
-      if (this.activeSection) this.openSection(this.activeSection)
+      const zones = this.app?.world?.zones
+      if (zones?.active) zones.open()
+      else if (this.activeSection) this.openSection(this.activeSection)
     })
     this.panel.addEventListener('close', () => {
       this.app?.sounds.play('close', 0.5)
