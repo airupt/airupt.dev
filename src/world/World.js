@@ -167,6 +167,7 @@ export class World {
     this.smoke?.update(delta)
     this.updateVolcano(delta)
     this.seascape?.update()
+    this.projectBoards?.update(delta)
     this.props?.instances.update()
     this.ocean.update(focus)
     this.sky.update(focus, this.app.cameraRig.distance)

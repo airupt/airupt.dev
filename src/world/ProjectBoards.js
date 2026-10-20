@@ -72,6 +72,8 @@ function paintCard(context, project, color, image) {
 // the work is visible in the world before you open the panel
 export class ProjectBoards {
   constructor(app, islands) {
+    this.app = app
+    this.boards = []
     const island = islands.list.find(candidate => candidate.section === 'projects')
     const projects = sections.find(section => section.id === 'projects')?.projects ?? []
     if (!island || !projects.length) return
@@ -120,6 +122,8 @@ export class ProjectBoards {
         image.src = project.image
       }
 
+      // Lights up while its card is hovered in the panel (see highlight())
+      const highlight = { value: 0 }
       const face = new THREE.Mesh(
         new THREE.PlaneGeometry(BOARD.width, BOARD.height),
         createStylizedMaterial(
@@ -128,7 +132,11 @@ export class ProjectBoards {
             waterLine: false,
             key: 'board',
             extend: shader => {
-              shader.fragmentShader = shader.fragmentShader.replace('// STYLIZED_SHADE', 'shade = (1.0 - dropShadow) * 0.6;')
+              shader.uniforms.uHighlight = highlight
+              shader.fragmentShader = shader.fragmentShader
+                .replace('#include <common>', '#include <common>\nuniform float uHighlight;')
+                .replace('// STYLIZED_SHADE', 'shade = (1.0 - dropShadow) * 0.6 * (1.0 - uHighlight);')
+                .replace('// STYLIZED_EXTRA', 'stylizedColor *= 1.0 + uHighlight * 0.4;')
             },
           }
         )
@@ -136,6 +144,7 @@ export class ProjectBoards {
       face.applyMatrix4(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 2.6, 0.02)))
       face.receiveShadow = true
       app.scene.add(face)
+      this.boards.push({ highlight, position: new THREE.Vector3(x, surface.y + 2.6, z) })
     })
 
     for (const [geometry, matrices] of [
@@ -150,5 +159,21 @@ export class ProjectBoards {
       mesh.computeBoundingSphere()
       app.scene.add(mesh)
     }
+  }
+
+  // Called by the panel: which project card is under the pointer (or null).
+  // That board brightens and the camera leans a little toward it.
+  highlight(index) {
+    this.active = index
+    const board = this.boards[index]
+    const rig = this.app.cameraRig
+    if (board && rig.override) rig.nudgeTarget.subVectors(board.position, rig.override).setY(0).multiplyScalar(0.22)
+    else rig.nudgeTarget.set(0, 0, 0)
+  }
+
+  update(delta) {
+    this.boards.forEach(({ highlight }, index) => {
+      highlight.value += ((index === this.active ? 1 : 0) - highlight.value) * (1 - Math.exp(-8 * delta))
+    })
   }
 }

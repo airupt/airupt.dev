@@ -65,6 +65,7 @@ export class Overlay {
     })
     this.panel.addEventListener('close', () => {
       this.app?.sounds.play('close', 0.5)
+      this.app?.world.projectBoards?.highlight(null)
       this.onSectionClose?.()
       this.setSailing(true)
     })
@@ -158,6 +159,14 @@ export class Overlay {
     // Enter on the prompt button fires both the interact key and a click
     if (!section || this.panel.open) return
     this.panelBody.replaceChildren(renderSection(section, profile, 'panel', sectionColors[id]))
+    // Pointing at a project card lights up its board on the island behind
+    this.panelBody.querySelectorAll('.project').forEach((card, index) => {
+      const highlight = value => this.app?.world.projectBoards?.highlight(value)
+      card.addEventListener('pointerenter', () => highlight(index))
+      card.addEventListener('pointerleave', () => highlight(null))
+      card.addEventListener('focusin', () => highlight(index))
+      card.addEventListener('focusout', () => highlight(null))
+    })
     this.panelBody.scrollTop = 0
     this.panel.style.setProperty('--section-color', sectionColors[id] ?? 'var(--accent)')
     this.panel.showModal()

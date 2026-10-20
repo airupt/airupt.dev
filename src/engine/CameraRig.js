@@ -34,6 +34,9 @@ export class CameraRig {
     this.fovBoost = 0
     // Shifts the picture (not the camera) so the focus sits off-centre, e.g.
     // beside an open panel: x and y as fractions of the screen size
+    // A small lean toward something while the camera is framing (a hovered project board)
+    this.nudge = new THREE.Vector3()
+    this.nudgeTarget = new THREE.Vector3()
     this.viewShift = new THREE.Vector2()
     this.viewShiftTarget = new THREE.Vector2()
     this.shakeAmount = 0
@@ -89,7 +92,7 @@ export class CameraRig {
       desired.addScaledVector(this.screenUp, -8)
       desired.addScaledVector(this.screenRight, Math.sin(this.attractTime * 0.08) * 6)
     } else if (this.override) {
-      desired.copy(this.override)
+      desired.copy(this.override).add(this.nudge)
     } else {
       this.lookAhead.copy(boat.velocity).multiplyScalar(0.45)
       this.lookAhead.y = 0
@@ -135,6 +138,8 @@ export class CameraRig {
     this.camera.position.copy(this.focus).addScaledVector(this.direction, this.distance)
     this.camera.lookAt(this.focus)
 
+    if (!this.override) this.nudgeTarget.set(0, 0, 0)
+    this.nudge.lerp(this.nudgeTarget, 1 - Math.exp(-3 * delta))
     this.viewShift.lerp(this.viewShiftTarget, 1 - Math.exp(-4 * delta))
     if (this.viewShift.lengthSq() > 1e-6) {
       const { width, height } = this.app.viewport

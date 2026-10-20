@@ -1,20 +1,25 @@
 import * as THREE from 'three'
 import { createStylizedMaterial } from './shading.js'
 
-const BOARD = { width: 4.4, height: 1.45, depth: 0.14 }
+const BOARD = { width: 4.4, height: 1.45, depth: 0.1, bevel: 0.06 }
+// The painted panel sits inside the wooden frame by this much on each side
+const FRAME = 0.13
 
-// Painted board in the site's ink blue: the name in the display font, with
-// a stripe in the section colour along the bottom
+// Painted panel in the site's ink blue: the name in the display font, with
+// a thin trim line in the section colour all round, like the map pins
 function createBoardTexture(text, accent) {
+  const width = BOARD.width - FRAME * 2
+  const height = BOARD.height - FRAME * 2
   const canvas = document.createElement('canvas')
   canvas.width = 1024
-  canvas.height = Math.round((1024 * BOARD.height) / BOARD.width)
+  canvas.height = Math.round((1024 * height) / width)
   const context = canvas.getContext('2d')
 
   context.fillStyle = '#123a5c'
   context.fillRect(0, 0, canvas.width, canvas.height)
-  context.fillStyle = accent
-  context.fillRect(0, canvas.height - 34, canvas.width, 34)
+  context.strokeStyle = accent
+  context.lineWidth = 9
+  context.strokeRect(22, 22, canvas.width - 44, canvas.height - 44)
 
   context.fillStyle = '#f4f1ea'
   context.textAlign = 'center'
@@ -23,13 +28,34 @@ function createBoardTexture(text, accent) {
   do {
     context.font = `800 ${size}px "Bricolage Grotesque", system-ui, sans-serif`
     size -= 6
-  } while (context.measureText(text).width > canvas.width * 0.84)
-  context.fillText(text, canvas.width / 2, canvas.height * 0.45)
+  } while (context.measureText(text).width > canvas.width * 0.8)
+  context.fillText(text, canvas.width / 2, canvas.height * 0.52)
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
   texture.anisotropy = 4
   return texture
+}
+
+// A plank of wood with bevelled edges and softly rounded corners
+function createBoardGeometry() {
+  const { width, height, depth, bevel } = BOARD
+  const w = width / 2 - bevel
+  const h = height / 2 - bevel
+  const r = 0.08
+  const shape = new THREE.Shape()
+  shape.moveTo(-w + r, -h)
+  shape.lineTo(w - r, -h)
+  shape.quadraticCurveTo(w, -h, w, -h + r)
+  shape.lineTo(w, h - r)
+  shape.quadraticCurveTo(w, h, w - r, h)
+  shape.lineTo(-w + r, h)
+  shape.quadraticCurveTo(-w, h, -w, h - r)
+  shape.lineTo(-w, -h + r)
+  shape.quadraticCurveTo(-w, -h, -w + r, -h)
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 1, curveSegments: 2 })
+  geometry.translate(0, 0, -depth / 2)
+  return geometry
 }
 
 // Wooden signs with the section name, planted near each dock and turned to
@@ -61,7 +87,7 @@ export class Signs {
       }
 
       const face = new THREE.Mesh(
-        new THREE.PlaneGeometry(BOARD.width, BOARD.height),
+        new THREE.PlaneGeometry(BOARD.width - FRAME * 2, BOARD.height - FRAME * 2),
         // The face points at the camera, i.e. mostly away from the sun: skip the
         // form shading so the lettering stays bright, keep cast shadows
         createStylizedMaterial(
@@ -75,13 +101,13 @@ export class Signs {
           }
         )
       )
-      face.applyMatrix4(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.8, BOARD.depth / 2 + 0.005)))
+      face.applyMatrix4(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.8, BOARD.depth / 2 + BOARD.bevel + 0.005)))
       face.receiveShadow = true
       app.scene.add(face)
     }
 
     for (const [geometry, matrices] of [
-      [new THREE.BoxGeometry(BOARD.width, BOARD.height, BOARD.depth), boards],
+      [createBoardGeometry(), boards],
       [new THREE.BoxGeometry(0.2, 2.5, 0.2), posts],
     ]) {
       const mesh = new THREE.InstancedMesh(geometry, woodMaterial, matrices.length)
