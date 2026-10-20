@@ -97,6 +97,8 @@ export class Bottles {
     this.app.sounds.play('glass', 0.8)
     this.app.sounds.play('chime', 0.4, 1.25)
     this.app.overlay.setBottleCount(this.collected.size, this.items.length)
-    this.app.overlay.toast(messages[item.index], `Bottle ${this.collected.size} of ${this.items.length}`)
+    // Messages follow the order you find bottles in, not where they float,
+    // so the first one welcomes you and only the final one says it's the last
+    this.app.overlay.toast(messages[this.collected.size - 1], `Bottle ${this.collected.size} of ${this.items.length}`)
   }
 }

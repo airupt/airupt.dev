@@ -70,6 +70,9 @@ export class Boat {
     this.speed = 0
     this.inWater = 0
     this.capsizedTime = 0
+    this.beachedTime = 0
+    // Where the boat was last properly afloat: x, z and its yaw
+    this.afloat = new THREE.Vector3(spawn.x, spawn.z, spawn.yaw)
 
     const { world } = app.physics
     this.body = world.createRigidBody(
@@ -195,6 +198,16 @@ export class Boat {
     up.set(0, 1, 0).applyQuaternion(quaternion)
     this.capsizedTime = up.y < 0.3 ? this.capsizedTime + dt : 0
     if (this.capsizedTime > 2 || translation.y < -5) this.respawn()
+
+    // Run up a beach and stuck there: slip back to where it left the water,
+    // a few metres out and facing the sea. Phones have no reset key.
+    if (this.inWater > 0.5) this.afloat.set(translation.x, translation.z, Math.atan2(-forward.x, -forward.z))
+    const still = Math.hypot(linvel.x, linvel.z) < 1
+    this.beachedTime = this.inWater === 0 && still ? this.beachedTime + dt : 0
+    if (this.beachedTime > 1.5) {
+      const [x, z, yaw] = this.afloat.toArray()
+      this.teleport(x + Math.sin(yaw) * 5, z + Math.cos(yaw) * 5, yaw + Math.PI)
+    }
   }
 
   // Glide alongside a dock (bow toward yaw) over a moment
@@ -240,6 +253,7 @@ export class Boat {
     this.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
     this.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
     this.sync.reset()
+    this.beachedTime = 0
   }
 
   respawn() {
@@ -251,6 +265,7 @@ export class Boat {
     this.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
     this.sync.reset()
     this.capsizedTime = 0
+    this.beachedTime = 0
   }
 
   update(delta) {

@@ -633,13 +633,60 @@ body:has(dialog[open]) .hud > * {
   animation: prompt-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 
-.prompt-button .key {
+.prompt-button .key,
+.prompt-tap {
   background: var(--prompt-color, var(--accent));
   color: var(--ink);
   box-shadow: 0 3px 0 rgb(0 0 0 / 0.35);
   font-size: 1rem;
   min-width: 2.2em;
   height: 2.2em;
+}
+
+.prompt-tap {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 7px;
+}
+
+.prompt-tap .icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.6;
+}
+
+/* On touch the stick holds the lower left, so the prompt sits opposite it,
+   level with the stick, under the other thumb */
+.hud[data-device='touch'] .hud-prompt {
+  left: auto;
+  right: max(1.25rem, env(safe-area-inset-right));
+  bottom: calc(max(6rem, calc(env(safe-area-inset-bottom) + 5rem)) + 64px - 1.65rem);
+  transform: none;
+}
+
+/* Small phones: a slightly smaller stick and prompt keep a clear gap between them */
+@media (max-width: 380px) {
+  .hud .joystick {
+    left: max(1rem, env(safe-area-inset-left));
+    width: 104px;
+    height: 104px;
+  }
+
+  .hud .joystick-knob {
+    width: 48px;
+    height: 48px;
+  }
+
+  .hud[data-device='touch'] .hud-prompt {
+    right: max(0.85rem, env(safe-area-inset-right));
+    bottom: calc(max(6rem, calc(env(safe-area-inset-bottom) + 5rem)) + 52px - 1.45rem);
+  }
+
+  .hud[data-device='touch'] .prompt-button {
+    gap: 0.5rem;
+    padding: 0.5rem 0.85rem 0.5rem 0.5rem;
+    font-size: 0.95rem;
+  }
 }
 
 @keyframes prompt-in {

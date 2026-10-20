@@ -18,7 +18,7 @@ const controls = {
     [['RB'], 'Boost'],
     [['A'], 'Explore'],
   ],
-  touch: [[[], 'Drag the stick to sail, tap a prompt to explore']],
+  touch: [[[], 'Point the stick where to sail, tap a prompt to explore']],
 }
 
 const interactKey = { keyboard: 'E', gamepad: 'A' }
@@ -43,6 +43,8 @@ export class Overlay {
     this.prompt = document.querySelector('#prompt')
     this.promptButton = document.querySelector('#prompt-button')
     this.promptKey = document.querySelector('#prompt-key')
+    // Touch has no key to name, so an arrow badge takes the key's place
+    this.promptTap = document.querySelector('#prompt-tap')
     this.promptText = document.querySelector('#prompt-text')
     this.joystick = document.querySelector('#joystick')
     this.panel = document.querySelector('#panel')
@@ -193,6 +195,7 @@ export class Overlay {
     const key = interactKey[this.device]
     this.promptKey.hidden = !key
     this.promptKey.textContent = key ?? ''
+    this.promptTap.hidden = Boolean(key)
     this.promptText.textContent = `Explore ${title}`
     this.prompt.style.setProperty('--prompt-color', sectionColors[id] ?? 'var(--accent)')
   }
@@ -246,6 +249,7 @@ export class Overlay {
     const device = this.app.inputs.lastDevice
     if (device !== this.device) {
       this.device = device
+      this.hud.dataset.device = device
       this.renderControls(device)
       this.setPrompt(this.activeSection)
     }

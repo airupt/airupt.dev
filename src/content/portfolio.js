@@ -15,7 +15,7 @@ export const profile = {
   ],
 }
 
-// Messages in the bottles hidden around the sea, one per bottle
+// Messages in the bottles hidden around the sea, shown in the order they're found
 export const bottles = [
   'You found a bottle! There are seven more drifting around these islands.',
   'Every island here is grown from noise in code, not modelled by hand.',

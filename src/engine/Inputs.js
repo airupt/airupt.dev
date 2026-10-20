@@ -16,6 +16,9 @@ const actions = {
 const gamepadActions = { interact: 0, reset: 3 }
 const DEADZONE = 0.15
 
+// How far off the stick's heading (radians) the rudder is hard over
+const FULL_RUDDER = 0.5
+
 const clamp = value => Math.min(Math.max(value, -1), 1)
 const deadzone = value => (Math.abs(value) < DEADZONE ? 0 : value)
 
@@ -96,8 +99,7 @@ export class Inputs {
     }
 
     if (this.touch.active) {
-      throttle = -this.touch.y
-      steer = this.touch.x
+      ;({ throttle, steer } = this.touchSteering())
     }
 
     if (!this.enabled) {
@@ -109,6 +111,32 @@ export class Inputs {
     this.state.throttle = clamp(throttle)
     this.state.steer = clamp(steer)
     this.state.boost = boost
+  }
+
+  // The camera never turns, so the stick points where to go on screen: the
+  // boat swings round to that heading and pushing further means faster
+  touchSteering() {
+    const amount = Math.min(Math.hypot(this.touch.x, this.touch.y), 1)
+    const boat = this.app.world?.boat
+    if (amount < DEADZONE || !boat) return { throttle: 0, steer: 0 }
+
+    const { screenUp, screenRight } = this.app.cameraRig
+    const targetX = screenRight.x * this.touch.x - screenUp.x * this.touch.y
+    const targetZ = screenRight.z * this.touch.x - screenUp.z * this.touch.y
+    const quaternion = boat.object.quaternion
+    // The bow's direction on the water, (0, 0, -1) turned by the boat's rotation
+    const headingX = -2 * (quaternion.x * quaternion.z + quaternion.w * quaternion.y)
+    const headingZ = -(1 - 2 * (quaternion.x * quaternion.x + quaternion.y * quaternion.y))
+    // Positive when the target lies to starboard
+    const error = Math.atan2(headingX * targetZ - headingZ * targetX, headingX * targetX + headingZ * targetZ)
+
+    // The rudder works the other way while the boat moves backwards
+    const steer = clamp(error / FULL_RUDDER) * (boat.speed < -0.5 ? -1 : 1)
+    // Slow with the stick pointing behind: back away (off a rock, say) while
+    // the bow swings round to it
+    if (Math.abs(error) > 2 && boat.speed < 1) return { throttle: -0.6 * amount, steer }
+    // Ease off while turning far round so the boat pivots instead of looping wide
+    return { throttle: amount * (0.45 + 0.55 * Math.max(Math.cos(error), 0)), steer }
   }
 
   bindJoystick(element) {
