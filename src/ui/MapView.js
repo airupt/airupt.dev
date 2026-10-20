@@ -39,9 +39,13 @@ export class MapView {
       if (!title) continue
       const group = svg('g', { transform: `translate(${island.x} ${island.z})` })
       if (island.color) group.append(svg('circle', { r: 3.4, class: 'map-pin', fill: island.color }))
-      // Above the island, unless that would run off the top of the round chart
+      // Above the island, unless the label would leave the round chart there.
+      // Chart position after the 45° turn; text is ~4.2 units per letter wide
+      const chartX = Math.SQRT1_2 * (island.x - island.z)
       const chartY = Math.SQRT1_2 * (island.x + island.z)
-      const above = chartY - island.radius * 0.75 - 12 > -EXTENT * 0.9
+      const halfWidth = title.length * 2.1
+      const top = chartY - island.radius * 0.75 - 11
+      const above = Math.hypot(Math.abs(chartX) + halfWidth, top) < EXTENT * 0.94
       const offset = above ? -island.radius * 0.75 - 4 : island.radius * 0.75 + 10
       const label = svg('text', { class: 'map-label', transform: `rotate(-45) translate(0 ${offset})` })
       label.textContent = title
@@ -50,9 +54,9 @@ export class MapView {
 
       // Travel buttons live in a list beside the chart, which keeps them keyboard friendly
       const button = document.createElement('button')
-      button.className = 'button map-button'
+      button.className = 'map-button'
       button.textContent = title
-      button.style.setProperty('--pin', island.color ?? (island.volcano ? '#4f4440' : 'var(--ink)'))
+      button.style.setProperty('--pin', island.color ?? (island.volcano ? '#4f4440' : 'var(--sign-text)'))
       button.addEventListener('click', () => this.sailTo(island))
       list.append(button)
     }

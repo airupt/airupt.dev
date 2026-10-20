@@ -158,6 +158,7 @@ export class Overlay {
     // Enter on the prompt button fires both the interact key and a click
     if (!section || this.panel.open) return
     this.panelBody.replaceChildren(renderSection(section, profile, 'panel', sectionColors[id]))
+    this.panelBody.scrollTop = 0
     this.panel.style.setProperty('--section-color', sectionColors[id] ?? 'var(--accent)')
     this.panel.showModal()
     this.app.sounds.play('open', 0.5)

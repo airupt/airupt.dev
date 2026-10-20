@@ -12,13 +12,20 @@
   font-display: swap;
 }
 
-/* Design language: chunky, tactile "toy" surfaces. Solid colour blocks with
-   a darker bottom edge and a soft drop shadow, no outlines, generous radii.
+/* Design language: the painted signs on the islands. Every surface over the
+   world is a navy board with a thin wood trim and light lettering, raised on
+   a darker bottom edge like a chunky toy; orange is the one accent.
    One display face (Bricolage Grotesque) and one text face (Figtree). */
 :root {
   --ink: #0d2b45;
   --ink-soft: #4a6278;
   --navy: #123a5c;
+  --navy-edge: #0a2238;
+  --navy-raised: #1a4a72;
+  --wood: #8b5a33;
+  --wood-light: #b67d4a;
+  --wood-dark: #5e3b20;
+  --sign-text: #f4f1ea;
   --paper: #ffffff;
   --paper-edge: #cdd9e4;
   --mist: #eef5fa;
@@ -27,7 +34,9 @@
   --accent-strong: #e8492a;
   --accent-edge: #b3361b;
   --radius: 12px;
-  --shadow-soft: 0 10px 24px rgb(13 43 69 / 0.18);
+  --shadow-soft: 0 10px 24px rgb(13 43 69 / 0.22);
+  /* A board: wood trim inside, navy edge underneath, soft shadow on the world */
+  --board-shadow: inset 0 0 0 2px var(--wood), 0 4px 0 var(--navy-edge), var(--shadow-soft);
   --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
   --font-text: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
@@ -62,8 +71,9 @@ body {
   display: none !important;
 }
 
+/* White reads against both the navy boards and the sea behind them */
 :focus-visible {
-  outline: 3px solid #2fd6cf;
+  outline: 3px solid #fff;
   outline-offset: 3px;
 }
 
@@ -84,13 +94,11 @@ body {
 .prompt-button {
   font: 800 1rem/1 var(--font-display);
   letter-spacing: -0.01em;
-  color: var(--ink);
-  background: var(--paper);
+  color: var(--sign-text);
+  background: var(--navy);
   border: 0;
   border-radius: var(--radius);
-  box-shadow:
-    0 4px 0 var(--paper-edge),
-    var(--shadow-soft);
+  box-shadow: var(--board-shadow);
   cursor: pointer;
   transition:
     transform 0.12s ease,
@@ -101,13 +109,15 @@ body {
   padding: 0.85rem 1.2rem;
 }
 
+/* Hover lifts the board and warms its trim; pressing pushes it onto its edge */
 .button:hover:not(:disabled),
 .icon-button:hover,
 .prompt-button:hover {
   transform: translateY(-1px);
   box-shadow:
-    0 5px 0 var(--paper-edge),
-    0 14px 28px rgb(13 43 69 / 0.22);
+    inset 0 0 0 2px var(--wood-light),
+    0 5px 0 var(--navy-edge),
+    0 14px 28px rgb(13 43 69 / 0.28);
 }
 
 .button:active:not(:disabled),
@@ -115,8 +125,13 @@ body {
 .prompt-button:active {
   transform: translateY(3px);
   box-shadow:
-    0 1px 0 var(--paper-edge),
-    0 4px 10px rgb(13 43 69 / 0.18);
+    inset 0 0 0 2px var(--wood),
+    0 1px 0 var(--navy-edge),
+    0 4px 10px rgb(13 43 69 / 0.22);
+}
+
+.icon-button .icon {
+  color: var(--accent);
 }
 
 .button-primary {
@@ -180,8 +195,9 @@ body {
   right: 0;
   padding: 0.45rem 0.6rem;
   border-radius: 8px;
-  background: var(--ink);
-  color: #fff;
+  background: var(--navy-edge);
+  box-shadow: inset 0 0 0 1px var(--wood);
+  color: var(--sign-text);
   font: 700 0.8rem/1 var(--font-text);
   white-space: nowrap;
   opacity: 0;
@@ -240,7 +256,7 @@ body {
   border-radius: 7px;
   background: var(--paper);
   color: var(--ink);
-  box-shadow: 0 3px 0 var(--paper-edge);
+  box-shadow: 0 3px 0 var(--wood);
   font: 800 0.85rem/1 var(--font-display);
 }
 
@@ -261,12 +277,11 @@ body {
 }
 
 .brand-small {
-  padding: 0.45rem 0.8rem 0.45rem 0.5rem;
+  padding: 0.5rem 0.85rem 0.5rem 0.55rem;
   border-radius: var(--radius);
-  background: var(--paper);
-  box-shadow:
-    0 4px 0 var(--paper-edge),
-    var(--shadow-soft);
+  background: var(--navy);
+  color: var(--sign-text);
+  box-shadow: var(--board-shadow);
   font-size: 1.1rem;
 }
 
@@ -275,14 +290,15 @@ body {
   height: 28px;
 }
 
-/* Loader: the name set big over the live world, one clear action */
+/* Loader: the name in the lower left over open water, the volcano free
+   above and to the right of it, one clear action */
 
 .loader {
   position: fixed;
   inset: 0;
   display: grid;
-  place-items: center;
-  padding: 1.5rem;
+  place-items: end start;
+  padding: clamp(1.25rem, 5vw, 4.5rem);
   color: #fff;
   background: linear-gradient(180deg, #8fd8f5 0%, #2389cf 100%);
   transition:
@@ -292,8 +308,9 @@ body {
   z-index: 30;
 }
 
+/* Darkens only the corner the text sits in, so the rest of the world stays clear */
 .loader.is-live {
-  background: linear-gradient(180deg, rgb(13 43 69 / 0) 40%, rgb(13 43 69 / 0.25) 100%);
+  background: radial-gradient(ellipse 70% 65% at 0% 100%, rgb(8 22 44 / 0.55), rgb(8 22 44 / 0) 100%);
 }
 
 .loader.is-hidden {
@@ -301,35 +318,73 @@ body {
   visibility: hidden;
 }
 
-/* A soft scrim only behind the text, so the world around stays clear */
 .loader-content {
   display: grid;
-  justify-items: center;
-  gap: 1rem;
-  text-align: center;
-  max-width: 760px;
-  padding: 3rem 4rem;
-  background: radial-gradient(ellipse closest-side, rgb(8 22 44 / 0.55), rgb(8 22 44 / 0));
-  margin-top: 22vh;
+  justify-items: start;
+  gap: 0.75rem;
+  text-align: left;
+  max-width: 480px;
 }
 
 .loader .brand {
   color: #fff;
+  font-size: 1.1rem;
   text-shadow: 0 2px 0 rgb(13 43 69 / 0.35);
 }
 
+.loader .brand-mark {
+  width: 28px;
+  height: 28px;
+}
+
 .loader-title {
-  margin: 0.2rem 0 0;
-  font: 800 clamp(2.6rem, 7.5vw, 4.6rem) / 0.95 var(--font-display);
+  margin: 0.1rem 0 0;
+  font: 800 clamp(2.1rem, 5.2vw, 3.2rem) / 0.95 var(--font-display);
   letter-spacing: -0.035em;
-  text-shadow: 0 6px 0 rgb(13 43 69 / 0.35);
+  text-shadow: 0 4px 0 rgb(13 43 69 / 0.4);
 }
 
 .loader-subtitle {
-  margin: 0 0 0.6rem;
-  font-size: clamp(1.05rem, 2.6vw, 1.35rem);
+  margin: 0 0 0.5rem;
+  font-size: clamp(1rem, 1.9vw, 1.15rem);
   font-weight: 600;
-  text-shadow: 0 2px 8px rgb(13 43 69 / 0.5);
+  text-shadow: 0 2px 8px rgb(13 43 69 / 0.6);
+}
+
+.loader .button-large {
+  font-size: 1.15rem;
+  padding: 1rem 1.9rem;
+}
+
+.loader .text-link {
+  margin-left: -0.4rem;
+  font-size: 0.95rem;
+  text-shadow: 0 1px 6px rgb(13 43 69 / 0.6);
+}
+
+/* Portrait and phones: the volcano fills the top, the text sits centred below it */
+@media (max-width: 720px), (orientation: portrait) {
+  .loader {
+    place-items: end center;
+    padding-bottom: max(2rem, calc(env(safe-area-inset-bottom) + 1.25rem));
+  }
+
+  .loader.is-live {
+    background: linear-gradient(180deg, rgb(8 22 44 / 0) 45%, rgb(8 22 44 / 0.55) 100%);
+  }
+
+  .loader-content {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .loader-title {
+    font-size: clamp(2.2rem, 10vw, 3rem);
+  }
+
+  .loader .text-link {
+    margin-left: 0;
+  }
 }
 
 /* The progress lives inside the button: it fills up, then becomes Set sail */
@@ -372,11 +427,12 @@ body {
   gap: 0.45rem;
   padding: 0.45rem 0.75rem;
   border-radius: 10px;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--navy);
+  color: var(--sign-text);
   box-shadow:
-    0 3px 0 var(--paper-edge),
-    0 8px 18px rgb(13 43 69 / 0.2);
+    inset 0 0 0 2px var(--wood),
+    0 3px 0 var(--navy-edge),
+    0 8px 18px rgb(13 43 69 / 0.25);
   font: 800 1rem/1 var(--font-display);
   white-space: nowrap;
   will-change: transform, opacity;
@@ -397,12 +453,12 @@ body {
   bottom: -7px;
   border: 7px solid transparent;
   border-bottom: 0;
-  border-top-color: var(--paper);
+  border-top-color: var(--wood);
   transform: translateX(-50%);
 }
 
 .label-landmark::before {
-  background: #4f4440;
+  background: #b8a79a;
 }
 
 .label.is-hidden {
@@ -455,19 +511,18 @@ body:has(dialog[open]) .hud > * {
   align-items: center;
   gap: 0.4rem;
   margin: 0;
-  padding: 0.55rem 0.8rem;
+  padding: 0.6rem 0.85rem;
   border-radius: var(--radius);
-  background: var(--paper);
-  box-shadow:
-    0 4px 0 var(--paper-edge),
-    var(--shadow-soft);
+  background: var(--navy);
+  color: var(--sign-text);
+  box-shadow: var(--board-shadow);
   font: 800 1rem/1 var(--font-display);
 }
 
 .chip .icon {
   width: 20px;
   height: 20px;
-  color: var(--sea);
+  color: #2fd6cf;
 }
 
 /* Controls legend: keycaps that fade once the visitor is sailing */
@@ -482,10 +537,11 @@ body:has(dialog[open]) .hud > * {
   gap: 0.5rem 1.1rem;
   width: max-content;
   max-width: calc(100% - 2rem);
-  padding: 0.6rem 0.9rem;
+  padding: 0.65rem 1rem;
   border-radius: 14px;
-  background: rgb(13 43 69 / 0.72);
-  color: #fff;
+  background: var(--navy);
+  box-shadow: var(--board-shadow);
+  color: var(--sign-text);
   font: 700 0.85rem/1 var(--font-text);
   transition:
     opacity 1s ease,
@@ -528,7 +584,7 @@ body:has(dialog[open]) .hud > * {
 .prompt-button .key {
   background: var(--prompt-color, var(--accent));
   color: var(--ink);
-  box-shadow: 0 3px 0 rgb(13 43 69 / 0.25);
+  box-shadow: 0 3px 0 rgb(0 0 0 / 0.35);
   font-size: 1rem;
   min-width: 2.2em;
   height: 2.2em;
@@ -548,10 +604,9 @@ body:has(dialog[open]) .hud > * {
   width: min(340px, calc(100% - 2rem));
   padding: 1rem 1.15rem;
   border-radius: 14px;
-  background: var(--paper);
-  box-shadow:
-    0 4px 0 var(--paper-edge),
-    var(--shadow-soft);
+  background: var(--navy);
+  color: var(--sign-text);
+  box-shadow: var(--board-shadow);
   transform: translateY(calc(100% + 7rem));
   transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1);
   pointer-events: none;
@@ -564,7 +619,7 @@ body:has(dialog[open]) .hud > * {
 .toast-title {
   margin: 0 0 0.35rem;
   font: 800 0.85rem/1 var(--font-display);
-  color: var(--sea);
+  color: var(--accent);
 }
 
 .toast-text {
@@ -590,8 +645,10 @@ body:has(dialog[open]) .hud > * {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--paper);
-  box-shadow: 0 4px 0 var(--paper-edge);
+  background: var(--navy);
+  box-shadow:
+    inset 0 0 0 3px var(--wood),
+    0 4px 0 var(--navy-edge);
   pointer-events: none;
 }
 
@@ -619,6 +676,26 @@ body:has(dialog[open]) .hud > * {
 /* Section panel: slides in from the right so the island stays in view;
    a sheet from the bottom on narrow screens */
 
+/* Panel and map are framed like the island signs: a wood frame lit from
+   above (lighter top rail, darker bottom rail), a dark inner rabbet line,
+   and the navy board inside. The frame stays put; only the board scrolls. */
+.panel,
+.map {
+  /* The browser caps modal dialogs a little short of the screen; the sheet should not be */
+  max-width: none;
+  border: 7px solid;
+  border-color: var(--wood-light) var(--wood) var(--wood-dark) var(--wood);
+  border-top-width: 9px;
+  border-radius: 22px;
+  padding: 2px;
+  background: var(--navy);
+  color: var(--sign-text);
+  box-shadow:
+    inset 0 0 0 2px var(--wood-dark),
+    0 6px 0 var(--navy-edge),
+    0 24px 60px rgb(13 43 69 / 0.45);
+}
+
 .panel {
   --section-color: var(--accent);
   position: fixed;
@@ -627,22 +704,12 @@ body:has(dialog[open]) .hud > * {
   width: min(540px, calc(100% - 2rem));
   height: auto;
   max-height: calc(100% - 2rem);
-  padding: 0;
-  border: 0;
-  border-top: 12px solid #a76c3e;
-  border-radius: 20px;
-  background: var(--navy);
-  color: #f4f1ea;
-  box-shadow:
-    inset 0 3px 0 #8a5a3c,
-    0 6px 0 #0a2238,
-    0 24px 60px rgb(13 43 69 / 0.45);
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-color: rgb(255 255 255 / 0.25) transparent;
+  overflow: hidden;
 }
 
 .panel[open] {
+  display: flex;
+  flex-direction: column;
   animation: panel-in 0.5s cubic-bezier(0.2, 1.25, 0.4, 1);
 }
 
@@ -657,13 +724,11 @@ body:has(dialog[open]) .hud > * {
 }
 
 .panel-close-form {
-  position: sticky;
-  top: 0;
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
   z-index: 2;
-  display: flex;
-  justify-content: flex-end;
-  height: 0;
-  padding: 1rem 1rem 0;
+  margin: 0;
 }
 
 .panel-close-form .icon-button[data-tooltip]::after {
@@ -671,15 +736,21 @@ body:has(dialog[open]) .hud > * {
 }
 
 .panel-body {
-  padding: 0 1.75rem 2rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(255 255 255 / 0.25) transparent;
+  padding: 0 1.6rem 2rem;
+  border-radius: 13px;
 }
 
 /* Like the painted signs on the islands: light lettering on the ink-blue
    board, with the section colour as the only accent */
 .panel .section > h2 {
   margin: 0 0 1.6rem;
-  padding: 1.6rem 0 0.9rem;
-  color: #f4f1ea;
+  padding: 1.5rem 3.5rem 0.9rem 0;
+  color: var(--sign-text);
   font-size: clamp(2.2rem, 5vw, 2.8rem);
   letter-spacing: -0.03em;
   border-bottom: 6px solid var(--section-color);
@@ -693,8 +764,10 @@ body:has(dialog[open]) .hud > * {
   color: color-mix(in srgb, var(--section-color) 55%, white);
 }
 
+/* Cards are smaller boards of the same family: the trim at half strength */
 .panel .project {
-  background: rgb(255 255 255 / 0.06);
+  background: rgb(255 255 255 / 0.05);
+  border: 2px solid rgb(139 90 51 / 0.55);
 }
 
 .panel .project-meta {
@@ -707,10 +780,15 @@ body:has(dialog[open]) .hud > * {
   color: #f4f1ea;
 }
 
-.panel .section .button-small {
+.panel .section .button-small,
+.panel .section .button-small:hover:not(:disabled) {
   color: var(--ink);
   background: var(--section-color);
   box-shadow: 0 3px 0 rgb(0 0 0 / 0.35);
+}
+
+.panel .section .button-small:active:not(:disabled) {
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.35);
 }
 
 @media (max-width: 720px) {
@@ -718,7 +796,12 @@ body:has(dialog[open]) .hud > * {
     inset: auto 0 0 0;
     width: 100%;
     max-height: 80vh;
+    border-bottom-width: 0;
     border-radius: 22px 22px 0 0;
+  }
+
+  .panel-body {
+    border-radius: 13px 13px 0 0;
   }
 
   .panel[open] {
@@ -769,10 +852,15 @@ body:has(dialog[open]) .hud > * {
   font-weight: 700;
 }
 
-.section .button-small {
+.section .button-small,
+.section .button-small:hover:not(:disabled) {
   color: #fff;
   background: var(--ink);
   box-shadow: 0 3px 0 #000c18;
+}
+
+.section .button-small:active:not(:disabled) {
+  box-shadow: 0 1px 0 #000c18;
 }
 
 .projects {
@@ -865,15 +953,9 @@ body:has(dialog[open]) .hud > * {
 .map {
   width: min(860px, calc(100% - 2rem));
   max-height: calc(100% - 2rem);
-  padding: 1.3rem 1.5rem 1.6rem;
-  border: 0;
-  border-radius: 22px;
-  background: var(--navy);
-  color: #fff;
-  box-shadow:
-    0 6px 0 #0a2238,
-    0 24px 60px rgb(13 43 69 / 0.45);
+  padding: 1.2rem 1.4rem 1.5rem;
   overflow: auto;
+  scrollbar-color: rgb(255 255 255 / 0.25) transparent;
 }
 
 .map[open] {
@@ -906,8 +988,8 @@ body:has(dialog[open]) .hud > * {
 
 .map-layout {
   display: grid;
-  grid-template-columns: 1fr 220px;
-  gap: 1.4rem;
+  grid-template-columns: 1fr 230px;
+  gap: 1.6rem;
   align-items: center;
 }
 
@@ -916,6 +998,9 @@ body:has(dialog[open]) .hud > * {
   width: 100%;
   height: auto;
   border-radius: 50%;
+  box-shadow:
+    0 0 0 3px var(--wood),
+    0 0 0 5px var(--wood-dark);
 }
 
 .map-edge {
@@ -927,7 +1012,7 @@ body:has(dialog[open]) .hud > * {
 
 .map-label {
   font: 800 7px var(--font-display);
-  fill: #fff;
+  fill: var(--sign-text);
   stroke: var(--ink);
   stroke-width: 2.2px;
   paint-order: stroke;
@@ -945,16 +1030,29 @@ body:has(dialog[open]) .hud > * {
   stroke-width: 1.2;
 }
 
+/* Destinations as plain rows painted on the board, split by faint rules */
 .map-list {
   display: grid;
-  gap: 0.65rem;
 }
 
 .map-button {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.85rem 0.8rem;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--sign-text);
+  font: 800 1.05rem/1 var(--font-display);
+  letter-spacing: -0.01em;
   text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .map-button::before {
@@ -962,8 +1060,33 @@ body:has(dialog[open]) .hud > * {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--pin, var(--ink));
+  background: var(--pin, var(--sign-text));
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.85);
   flex: none;
+}
+
+.map-button:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 0.8rem;
+  right: 0.8rem;
+  bottom: 0;
+  height: 1px;
+  background: rgb(244 241 234 / 0.14);
+}
+
+.map-button:hover,
+.map-button:focus-visible {
+  background: var(--navy-raised);
+  color: #fff;
+}
+
+.map-button:focus-visible {
+  outline-offset: -3px;
+}
+
+.map-button:active {
+  background: var(--navy-edge);
 }
 
 @media (max-width: 640px) {
@@ -973,6 +1096,10 @@ body:has(dialog[open]) .hud > * {
 }
 
 /* Classic view */
+
+.classic :focus-visible {
+  outline-color: var(--sea);
+}
 
 .classic {
   position: fixed;
