@@ -15,7 +15,7 @@ export class Zones {
     for (const island of islands.list) {
       if (!island.section) continue
       const { shore, out } = island
-      const reach = DOCK_TILES * DOCK_TILE + 1.5
+      const reach = DOCK_TILES * DOCK_TILE + 4
       const x = shore.x + out.x * reach
       const z = shore.z + out.z * reach
       // Buoy sits beside the dock end so the boat can pull right up to it
@@ -38,7 +38,7 @@ export class Zones {
     if (!zone) return
     const rig = this.app.cameraRig
     this.returnDistance = rig.targetDistance
-    const distance = rig.limits.min + 18
+    const distance = rig.limits.min + 26
     const target = new THREE.Vector3((zone.x + zone.island.x) / 2, 0, (zone.z + zone.island.z) / 2)
     // Shift the view so the island sits beside the panel rather than under it:
     // panel on the right on wide screens, a bottom sheet on narrow ones

@@ -103,8 +103,8 @@ export class Lights {
 
     // Navigation lights: red to port (left), green to starboard (right)
     this.boatLights = [
-      new Glow(boat.lean, new THREE.Vector3(-0.62, 0.55, -0.6), '#ff3b3b', 0.07),
-      new Glow(boat.lean, new THREE.Vector3(0.62, 0.55, -0.6), '#3bff7a', 0.07),
+      new Glow(boat.lean, new THREE.Vector3(-0.78, 0.7, -0.75), '#ff3b3b', 0.08),
+      new Glow(boat.lean, new THREE.Vector3(0.78, 0.7, -0.75), '#3bff7a', 0.08),
     ]
   }
 

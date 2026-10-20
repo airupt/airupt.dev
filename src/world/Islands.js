@@ -10,18 +10,28 @@ const down = new THREE.Vector3(0, -1, 0)
 
 const palette = {
   wetSand: new THREE.Color('#c9ad72'),
-  sand: new THREE.Color('#f0d9a0'),
+  sand: new THREE.Color('#edd29b'),
   drySand: new THREE.Color('#e6c98a'),
   grass: new THREE.Color('#7cc35b'),
   darkGrass: new THREE.Color('#5ea84a'),
-  rock: new THREE.Color('#9b968b'),
-  darkRock: new THREE.Color('#857f74'),
+  rock: new THREE.Color('#b8ad9a'),
+  darkRock: new THREE.Color('#7c776f'),
+  dirt: new THREE.Color('#b49a64'),
   ash: new THREE.Color('#6e6058'),
   scorched: new THREE.Color('#4f4440'),
 }
 
 const CELL = 1.8
 const TERRACE_STEP = 1.1
+
+// Which way an island's beach and dock face: its own `facing`, or the start point
+export function facingDirection(island) {
+  if (island.facing) return { x: island.facing[0], z: island.facing[1] }
+  const dx = spawn.x - island.x
+  const dz = spawn.z - island.z
+  const length = Math.hypot(dx, dz) || 1
+  return { x: dx / length, z: dz / length }
+}
 
 // Ground height at a point given relative to the island centre. Mesh vertices
 // and the baked sea map both come from here, so they always agree.
@@ -30,9 +40,8 @@ const TERRACE_STEP = 1.1
 //    into a cliff
 //  - terraced islands step their slopes; the volcano is a cone with a crater
 export function islandHeight(island, x, z) {
-  const towardX = spawn.x - island.x
-  const towardZ = spawn.z - island.z
-  const facing = (x * towardX + z * towardZ) / ((Math.hypot(towardX, towardZ) || 1) * (Math.hypot(x, z) || 1))
+  const toward = facingDirection(island)
+  const facing = (x * toward.x + z * toward.z) / (Math.hypot(x, z) || 1)
   const beach = smoothstep(0.1, 0.9, facing)
   const cliff = 1 - smoothstep(-0.8, -0.1, facing)
 
@@ -104,11 +113,15 @@ function paint(geometry, island, grass) {
     const variation = hash2(i, 3, seed)
 
     const volcanic = island.volcano && height > 5.5
+    // Only truly steep faces are bare rock; moderately steep ones are dry earth
     const isGrass = !volcanic && height >= 0.5 && normal.y >= 0.75
+    const isRock = normal.y < 0.62
     if (height < -0.2) color.copy(palette.wetSand)
     else if (height < 0.5) color.copy(palette.sand).lerp(palette.drySand, variation)
     else if (volcanic) color.copy(height > 11 ? palette.scorched : palette.ash).lerp(palette.darkRock, variation * 0.4)
-    else if (!isGrass) color.copy(palette.rock).lerp(palette.darkRock, variation)
+    // Rock is warm and light up high, cooler and darker toward the sea
+    else if (isRock) color.copy(palette.darkRock).lerp(palette.rock, smoothstep(0.5, 5, height) * 0.8 + variation * 0.2)
+    else if (!isGrass) color.copy(palette.dirt).lerp(palette.grass, variation * 0.35)
     else color.copy(palette.grass).lerp(palette.darkGrass, variation)
 
     color.multiplyScalar(0.96 + hash2(i, 4, seed) * 0.08)
@@ -167,10 +180,7 @@ export class Islands {
   // Walks from the centre toward the start point until the ground meets the
   // sea. Docks and section buoys are placed from this point.
   findShore(island) {
-    const dx = spawn.x - island.x
-    const dz = spawn.z - island.z
-    const length = Math.hypot(dx, dz) || 1
-    island.out = { x: dx / length, z: dz / length }
+    island.out = facingDirection(island)
     island.shore = { x: island.x, z: island.z }
 
     for (let distance = 0; distance < island.radius * 1.3; distance += 0.25) {

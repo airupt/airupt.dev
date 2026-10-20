@@ -29,7 +29,7 @@ export class BoatEffects {
         this.sprayBudget -= 1
         const direction = Math.random() < 0.5 ? -1 : 1
         side.set(-forward.z, 0, forward.x).multiplyScalar(direction)
-        bow.set(direction * 0.55, -0.15, -0.9).applyQuaternion(boat.object.quaternion).add(boat.object.position)
+        bow.set(direction * 0.68, -0.15, -1.1).applyQuaternion(boat.object.quaternion).add(boat.object.position)
         splashes.emit(bow, side.clone().multiplyScalar(1.5 + speed * 0.12).addScaledVector(forward, speed * 0.25), {
           count: 1,
           spread: 0.4,
@@ -51,7 +51,7 @@ export class BoatEffects {
     this.lastPosition.copy(boat.object.position)
     const change = this.lastVelocity.distanceTo(boat.velocity)
     if (change > 2.5 && change < 20 && !teleported) {
-      bow.set(0, 0, -1.4).applyQuaternion(boat.object.quaternion).add(boat.object.position)
+      bow.set(0, 0, -1.8).applyQuaternion(boat.object.quaternion).add(boat.object.position)
       splashes.emit(bow, new THREE.Vector3(), { count: Math.round(change * 3), spread: 1.8, up: 2.2, size: 0.09, life: 0.8 })
       this.onImpact?.(Math.min(change / 12, 1))
     }

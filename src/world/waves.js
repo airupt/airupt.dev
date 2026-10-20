@@ -28,3 +28,15 @@ export function waveHeightGLSL() {
   )
   return `float waveHeight(vec2 p, float time) {\n  return ${terms.join('\n    + ')};\n}`
 }
+
+// Exact surface normal of the same waves, from the derivative of each term
+export function waveNormalGLSL() {
+  const slope = axis =>
+    prepared
+      .map(
+        wave =>
+          `${glsl(wave.amplitude * wave.k * (axis === 'x' ? wave.dx : wave.dz))} * cos((${glsl(wave.dx)} * p.x + ${glsl(wave.dz)} * p.y) * ${glsl(wave.k)} + time * ${glsl(wave.speed)})`
+      )
+      .join('\n    + ')
+  return `vec3 waveNormal(vec2 p, float time) {\n  float dx = ${slope('x')};\n  float dz = ${slope('z')};\n  return normalize(vec3(-dx, 1.0, -dz));\n}`
+}

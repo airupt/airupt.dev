@@ -11,7 +11,7 @@ export class Grass {
   constructor(app, islands) {
     this.uniforms = {
       uBladeWidth: { value: 0.12 },
-      uBladeHeight: { value: 0.65 },
+      uBladeHeight: { value: 0.5 },
       // Perpendicular to the fixed camera direction, so blades show their full width
       uBladeRight: { value: new THREE.Vector3(1, 0, -1).normalize() },
     }

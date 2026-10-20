@@ -4,20 +4,22 @@ import { shared } from './shading.js'
 const DURATION = 6 * 60 // seconds for a full day
 
 const presets = {
+  // Shadow colours multiply the surface colour: tinted, but not so saturated
+  // that every shadow turns the same electric blue
   day: {
-    light: '#fff1de', intensity: 1.15, shadow: '#4d57ff', bounce: '#38d6e6',
+    light: '#fff1de', intensity: 1.15, shadow: '#8890e6', bounce: '#38d6e6',
     fogA: '#bff6ff', fogB: '#8f9dff', sun: [-0.5, 0.75, 0.42], night: 0,
   },
   sunset: {
-    light: '#ffb08a', intensity: 1.2, shadow: '#7a3cff', bounce: '#ff9a7a',
-    fogA: '#ffd2a6', fogB: '#ff79a8', sun: [-0.8, 0.52, -0.2], night: 0.45,
+    light: '#ffb36b', intensity: 1.2, shadow: '#9a74d4', bounce: '#ff9a7a',
+    fogA: '#ffd2a6', fogB: '#ff79a8', sun: [-0.85, 0.36, -0.3], night: 0.45,
   },
   night: {
-    light: '#8fa2ff', intensity: 1.05, shadow: '#2c2f86', bounce: '#3a5cc4',
+    light: '#8fa2ff', intensity: 1.05, shadow: '#4a52a8', bounce: '#3a5cc4',
     fogA: '#2b4686', fogB: '#121842', sun: [0.35, 0.8, -0.45], night: 1,
   },
   dawn: {
-    light: '#ffc4ad', intensity: 1.1, shadow: '#b8409a', bounce: '#ff9fc4',
+    light: '#ffc4ad', intensity: 1.1, shadow: '#b886b8', bounce: '#ff9fc4',
     fogA: '#ffd9ec', fogB: '#a6b6ff', sun: [0.8, 0.4, 0.35], night: 0.3,
   },
 }

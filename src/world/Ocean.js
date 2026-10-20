@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { waveHeightGLSL } from './waves.js'
+import { waveHeightGLSL, waveNormalGLSL } from './waves.js'
 import { islands } from './layout.js'
 import { createStylizedMaterial } from './shading.js'
 import { bakeWaterMap, waterMapGLSL } from './WaterMap.js'
@@ -8,10 +8,12 @@ const SIZE = 400
 const SEGMENTS = 160
 const CELL = SIZE / SEGMENTS
 
-// A large faceted plane displaced by the shared wave function. It follows the
-// camera in whole-cell steps, so vertices always land on the same world grid
-// and the surface never appears to slide. Colour and foam come from the
-// baked sea map, so shallows and surf follow the real coastlines.
+// A large plane displaced by the shared wave function, lit with the exact
+// wave normal so the swell reads as smooth rolling water rather than a grid
+// of facets. It follows the camera in whole-cell steps, so vertices always
+// land on the same world grid and the surface never appears to slide.
+// Colour and foam come from the baked sea map, so shallows and surf follow
+// the real coastlines.
 export class Ocean {
   constructor(app) {
     this.app = app
@@ -21,14 +23,14 @@ export class Ocean {
 
     this.uniforms = {
       uWaterMap: { value: bakeWaterMap(islands) },
-      uShallow: { value: new THREE.Color('#5fd9c9') },
-      uMid: { value: new THREE.Color('#21b6c8') },
-      uDeep: { value: new THREE.Color('#1270bb') },
-      uCrest: { value: new THREE.Color('#8adcff') },
+      uShallow: { value: new THREE.Color('#62d8c8') },
+      uMid: { value: new THREE.Color('#2a9fcf') },
+      uDeep: { value: new THREE.Color('#1d61a3') },
+      uCrest: { value: new THREE.Color('#7ccdee') },
     }
 
     const material = createStylizedMaterial(
-      { color: '#ffffff', flatShading: true },
+      { color: '#ffffff' },
       { waterLine: false, seeThrough: false, key: 'ocean', extend: shader => this.extend(shader) }
     )
 
@@ -47,7 +49,12 @@ export class Ocean {
         uniform float uTime;
         varying float vWave;
         varying vec2 vOceanPosition;
-        ${waveHeightGLSL()}`
+        ${waveHeightGLSL()}
+        ${waveNormalGLSL()}`
+      )
+      .replace(
+        '#include <beginnormal_vertex>',
+        'vec3 objectNormal = waveNormal((modelMatrix * vec4(position, 1.0)).xz, uTime);'
       )
       .replace(
         '#include <begin_vertex>',
@@ -93,17 +100,16 @@ export class Ocean {
         float roll = fract(coast / 3.2 + uTime * 0.2);
         float lines = smoothstep(0.84, 0.9, roll) * (1.0 - smoothstep(0.94, 1.0, roll));
         lines *= (1.0 - smoothstep(1.5, 6.5, coast)) * smoothstep(0.3, 0.6, coast) * smoothstep(0.45, 0.6, breakup);
-        // Whitecaps: small flecks of foam riding the highest crests out at sea
-        float caps = smoothstep(0.36, 0.52, vWave) * smoothstep(0.66, 0.72, texture2D(uNoise, vOceanPosition * 0.16 + uTime * vec2(0.03, 0.018)).r);
-        caps *= smoothstep(0.4, 0.8, depth);
-
-        diffuseColor.rgb = mix(water, vec3(1.0), max(max(surf, lines * 0.55), caps * 0.8));`
+        diffuseColor.rgb = mix(water, vec3(1.0), max(surf, lines * 0.55));`
       )
-      // Water facets barely tilt, so read the light on a much narrower range
-      // than land does; this is what makes the faceted swell visible
+      // The swell barely tilts the surface, so read the light on a much
+      // narrower range than land does: wave backs fall into soft shade.
+      // Cast shadows are lighter on water than on land.
       .replace(
         '// STYLIZED_SHADE',
-        'shade = max(shade, (1.0 - smoothstep(0.6, 0.86, dot(stylizedNormal, uSunDirection))) * 0.4);'
+        `shade = (1.0 - dropShadow) * 0.55;
+        shade = max(shade, (1.0 - smoothstep(0.6, 0.88, dot(stylizedNormal, uSunDirection))) * 0.45);
+        shade = max(shade, cloudShadow * 0.7);`
       )
       .replace(
         '// STYLIZED_EXTRA',

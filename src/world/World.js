@@ -40,7 +40,10 @@ export class World {
     this.splashes = new Splashes(app)
     this.boatEffects = new BoatEffects(this.boat, this.splashes)
     this.boatEffects.onImpact = strength => app.cameraRig.shake(strength)
-    this.boat.onRespawn = () => app.overlay.wipe()
+    this.boat.onRespawn = () => {
+      app.overlay.wipe()
+      this.wake.reset()
+    }
     this.birds = new Birds(app, this.islands)
     this.zones = new Zones(app, this.islands)
     this.zoneRings = new ZoneRings(app, this.zones)

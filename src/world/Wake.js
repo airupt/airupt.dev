@@ -5,7 +5,7 @@ import { shared } from './shading.js'
 const MAX_POINTS = 40
 const SPACING = 0.7 // metres between trail samples
 const LIFETIME = 2.6 // seconds a sample stays visible
-const STERN = new THREE.Vector3(0, 0, 1.4)
+const STERN = new THREE.Vector3(0, 0, 1.75)
 
 const stern = new THREE.Vector3()
 
@@ -72,6 +72,11 @@ export class Wake {
     this.mesh = new THREE.Mesh(geometry, material)
     this.mesh.frustumCulled = false
     app.scene.add(this.mesh)
+  }
+
+  // Forget the trail, so a respawn or map jump doesn't draw a ribbon across the sea
+  reset() {
+    this.points.length = 0
   }
 
   // White foam by day; at night the churned water glows like plankton

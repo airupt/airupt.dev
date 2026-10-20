@@ -205,7 +205,7 @@ export class Overlay {
       label.element.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`
       // Up close the painted sign on the island takes over; labels guide from afar
       const distance = camera.position.distanceTo(label.position)
-      label.element.style.opacity = Math.min(Math.max((distance - 48) / 14, 0), 1)
+      label.element.style.opacity = Math.min(Math.max((distance - 70) / 18, 0), 1)
     }
   }
 }

@@ -3,7 +3,7 @@ import { createStylizedMaterial, stylizeObject, windGLSL } from './shading.js'
 
 // The Kenney kits use different unit sizes; these bring every model to metres
 const scales = {
-  boat: 0.8,
+  boat: 1,
   tent: 5,
   campfire: 5,
   signpost: 4,

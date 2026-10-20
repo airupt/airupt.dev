@@ -4,20 +4,20 @@ import { applyBuoyancy } from './buoyancy.js'
 import { spawn, worldRadius } from './layout.js'
 
 // Hull box half extents; the boat faces -Z
-const HULL = { x: 0.7, y: 0.3, z: 1.5 }
+const HULL = { x: 0.85, y: 0.32, z: 1.85 }
 
 const FLOAT_POINTS = [
-  new THREE.Vector3(-0.6, -0.3, -1.2),
-  new THREE.Vector3(0.6, -0.3, -1.2),
-  new THREE.Vector3(-0.6, -0.3, 1.2),
-  new THREE.Vector3(0.6, -0.3, 1.2),
+  new THREE.Vector3(-0.72, -0.32, -1.5),
+  new THREE.Vector3(0.72, -0.32, -1.5),
+  new THREE.Vector3(-0.72, -0.32, 1.5),
+  new THREE.Vector3(0.72, -0.32, 1.5),
 ]
 
 // Turns the loaded model so its bow points along -Z
 const MODEL_ROTATION = Math.PI
 
 // Thrust pushes from the stern, a little under the centre, so the bow lifts
-const THRUST_POINT = new THREE.Vector3(0, -0.15, 1.3)
+const THRUST_POINT = new THREE.Vector3(0, -0.15, 1.6)
 
 const tuning = {
   acceleration: 10,

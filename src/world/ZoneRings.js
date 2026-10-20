@@ -2,8 +2,11 @@ import * as THREE from 'three'
 import { shared } from './shading.js'
 import { waveHeightGLSL } from './waves.js'
 
-// A dashed ring floating on the waves around each section zone, in the
-// section colour. It turns slowly and brightens while the boat is inside.
+const RADIUS = 4.5
+
+// A soft ring of light riding the waves around each section zone, in the
+// section colour. It breathes gently, brightens while the boat is inside and
+// sends a ripple outward the moment it enters.
 export class ZoneRings {
   constructor(app, zones) {
     this.zones = zones
@@ -15,15 +18,16 @@ export class ZoneRings {
           uTime: shared.uTime,
           uColor: { value: new THREE.Color(zone.buoy.color) },
           uActive: { value: 0 },
+          uRipple: { value: 1 },
         },
         vertexShader: /* glsl */ `
           uniform float uTime;
-          varying vec2 vUv;
+          varying vec2 vLocal;
           ${waveHeightGLSL()}
           void main() {
-            vUv = uv;
+            vLocal = position.xz;
             vec4 world = modelMatrix * vec4(position, 1.0);
-            world.y = waveHeight(world.xz, uTime) + 0.08;
+            world.y = waveHeight(world.xz, uTime) + 0.06;
             gl_Position = projectionMatrix * viewMatrix * world;
           }
         `,
@@ -31,19 +35,26 @@ export class ZoneRings {
           uniform float uTime;
           uniform vec3 uColor;
           uniform float uActive;
-          varying vec2 vUv;
+          uniform float uRipple;
+          varying vec2 vLocal;
           void main() {
-            // RingGeometry UVs are planar and centred on 0.5, so the angle around comes from atan
-            float angle = atan(vUv.y - 0.5, vUv.x - 0.5);
-            float dash = step(0.45, fract(angle / 6.2832 * 24.0 + uTime * 0.15));
-            vec3 color = mix(uColor, vec3(1.0), 0.35) * (1.0 + uActive * 1.5);
-            gl_FragColor = vec4(color, dash * (0.55 + uActive * 0.45));
+            float radius = length(vLocal) / ${RADIUS.toFixed(1)};
+            float breathe = sin(uTime * 2.0) * 0.03;
+            // Soft band at the edge of the zone
+            float band = smoothstep(0.78 + breathe, 0.95, radius) * (1.0 - smoothstep(0.97, 1.08 + breathe, radius));
+            // Faint fill inside, so the zone reads as a place, not a line
+            float fill = (1.0 - smoothstep(0.0, 0.95, radius)) * 0.12 * uActive;
+            // Entry ripple travelling outward
+            float ripple = smoothstep(0.08, 0.0, abs(radius - (0.9 + uRipple * 0.9))) * (1.0 - uRipple);
+            float alpha = band * (0.4 + uActive * 0.45) + fill + ripple * 0.8;
+            vec3 color = mix(uColor, vec3(1.0), 0.45) * (1.0 + uActive * 0.6 + ripple);
+            gl_FragColor = vec4(color, alpha);
             #include <colorspace_fragment>
           }
         `,
       })
 
-      const geometry = new THREE.RingGeometry(5.2, 5.6, 96, 1)
+      const geometry = new THREE.CircleGeometry(RADIUS * 2, 64)
       geometry.rotateX(-Math.PI / 2)
       const mesh = new THREE.Mesh(geometry, material)
       mesh.position.set(zone.x, 0, zone.z)
@@ -55,8 +66,11 @@ export class ZoneRings {
 
   update(delta) {
     for (const { zone, material } of this.rings) {
-      const target = this.zones.active === zone ? 1 : 0
-      material.uniforms.uActive.value += (target - material.uniforms.uActive.value) * (1 - Math.exp(-6 * delta))
+      const uniforms = material.uniforms
+      const active = this.zones.active === zone
+      if (active && uniforms.uActive.value < 0.05) uniforms.uRipple.value = 0
+      uniforms.uActive.value += ((active ? 1 : 0) - uniforms.uActive.value) * (1 - Math.exp(-6 * delta))
+      uniforms.uRipple.value = Math.min(1, uniforms.uRipple.value + delta * 1.2)
     }
   }
 }

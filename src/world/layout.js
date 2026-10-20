@@ -13,7 +13,9 @@ export const islands = [
     z: 0,
     radius: 15,
     seed: 3,
-    // Two arms reach toward the start point and hold a small bay with the dock
+    // The beach and dock face into the bay (other islands face the start point)
+    facing: [0.707, 0.707],
+    // Two arms hold a small bay with the dock
     blobs: [
       [-3, -3, 8.5, 4.2],
       [9, -3, 5, 2.4],

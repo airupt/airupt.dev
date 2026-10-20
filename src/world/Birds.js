@@ -90,7 +90,7 @@ export class Birds {
       return {
         center: new THREE.Vector2(island.x, island.z),
         radius: island.radius + 3 + random() * 8,
-        height: 8 + random() * 5,
+        height: 12 + random() * 5,
         speed: (0.18 + random() * 0.15) * (random() < 0.5 ? -1 : 1),
         angle: random() * Math.PI * 2,
         phase: random() * 10,
@@ -115,7 +115,7 @@ export class Birds {
       const direction = Math.sign(bird.speed)
       dummy.rotation.set(0, -bird.angle + (direction > 0 ? Math.PI : 0), 0)
       dummy.rotateZ(direction * 0.35)
-      dummy.scale.setScalar(1.3)
+      dummy.scale.setScalar(0.85)
       dummy.updateMatrix()
       this.mesh.setMatrixAt(index, dummy.matrix)
 

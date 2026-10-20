@@ -13,7 +13,7 @@ export class CameraRig {
     // The ground direction that points up the screen
     this.screenUp = new THREE.Vector3(-this.direction.x, 0, -this.direction.z).normalize()
     this.screenRight = new THREE.Vector3(-this.screenUp.z, 0, this.screenUp.x)
-    this.limits = { min: 24, max: 80, start: 50 }
+    this.limits = { min: 24, max: 80, start: 42 }
     this.distance = 105
     this.targetDistance = 105
     this.focus = new THREE.Vector3()

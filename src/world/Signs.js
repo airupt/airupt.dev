@@ -1,33 +1,30 @@
 import * as THREE from 'three'
 import { createStylizedMaterial } from './shading.js'
 
-const BOARD = { width: 3.2, height: 1.1, depth: 0.12 }
+const BOARD = { width: 4.4, height: 1.45, depth: 0.14 }
 
-// Painted plank: section name in the display font on a wood-coloured board
+// Painted board in the site's ink blue: the name in the display font, with
+// a stripe in the section colour along the bottom
 function createBoardTexture(text, accent) {
   const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = Math.round((512 * BOARD.height) / BOARD.width)
+  canvas.width = 1024
+  canvas.height = Math.round((1024 * BOARD.height) / BOARD.width)
   const context = canvas.getContext('2d')
 
-  context.fillStyle = '#c98b55'
+  context.fillStyle = '#123a5c'
   context.fillRect(0, 0, canvas.width, canvas.height)
-  // Plank seams
-  context.fillStyle = '#b07846'
-  for (const y of [0.33, 0.66]) context.fillRect(0, canvas.height * y - 2, canvas.width, 4)
-  // Accent stripe in the section colour
   context.fillStyle = accent
-  context.fillRect(0, canvas.height - 16, canvas.width, 16)
+  context.fillRect(0, canvas.height - 34, canvas.width, 34)
 
-  context.fillStyle = '#2b1a10'
+  context.fillStyle = '#f4f1ea'
   context.textAlign = 'center'
   context.textBaseline = 'middle'
-  let size = 96
+  let size = 200
   do {
     context.font = `800 ${size}px "Bricolage Grotesque", system-ui, sans-serif`
-    size -= 4
-  } while (context.measureText(text).width > canvas.width * 0.86)
-  context.fillText(text, canvas.width / 2, canvas.height * 0.47)
+    size -= 6
+  } while (context.measureText(text).width > canvas.width * 0.84)
+  context.fillText(text, canvas.width / 2, canvas.height * 0.45)
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
@@ -58,23 +55,34 @@ export class Signs {
       placement.rotation.y = facing
       placement.updateMatrix()
 
-      boards.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.55, 0)))
+      boards.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.8, 0)))
       for (const side of [-1, 1]) {
-        posts.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(side * BOARD.width * 0.36, 1.05, -0.1)))
+        posts.push(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(side * BOARD.width * 0.36, 1.25, -0.12)))
       }
 
       const face = new THREE.Mesh(
         new THREE.PlaneGeometry(BOARD.width, BOARD.height),
-        createStylizedMaterial({ map: createBoardTexture(text, color) }, { waterLine: false, key: 'sign' })
+        // The face points at the camera, i.e. mostly away from the sun: skip the
+        // form shading so the lettering stays bright, keep cast shadows
+        createStylizedMaterial(
+          { map: createBoardTexture(text, color) },
+          {
+            waterLine: false,
+            key: 'sign',
+            extend: shader => {
+              shader.fragmentShader = shader.fragmentShader.replace('// STYLIZED_SHADE', 'shade = (1.0 - dropShadow) * 0.6;')
+            },
+          }
+        )
       )
-      face.applyMatrix4(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.55, BOARD.depth / 2 + 0.005)))
+      face.applyMatrix4(placement.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0, 1.8, BOARD.depth / 2 + 0.005)))
       face.receiveShadow = true
       app.scene.add(face)
     }
 
     for (const [geometry, matrices] of [
       [new THREE.BoxGeometry(BOARD.width, BOARD.height, BOARD.depth), boards],
-      [new THREE.BoxGeometry(0.16, 2.1, 0.16), posts],
+      [new THREE.BoxGeometry(0.2, 2.5, 0.2), posts],
     ]) {
       const mesh = new THREE.InstancedMesh(geometry, woodMaterial, matrices.length)
       matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix))
