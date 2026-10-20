@@ -18,12 +18,22 @@ const palette = {
 
 const CELL = 1.8
 
-// Heightfield island: a noisy dome that sinks under the sea at its edges
-function createTerrain({ radius, height, seed }) {
+const TERRACE_STEP = 1.1
+
+// Heightfield island: a noisy dome that sinks under the sea at its edges.
+// The side facing the start point slopes gently into a beach (where the dock
+// goes); the far side rises higher and drops off as a cliff. Some islands
+// are terraced, which turns their slopes into grassy steps with rock faces.
+function createTerrain({ x: centerX, z: centerZ, radius, height, seed }) {
   const extent = radius * 1.4
   const segments = Math.max(12, Math.round((extent * 2) / CELL))
   const geometry = new THREE.PlaneGeometry(extent * 2, extent * 2, segments, segments)
   geometry.rotateX(-Math.PI / 2)
+
+  const towardX = spawn.x - centerX
+  const towardZ = spawn.z - centerZ
+  const towardLength = Math.hypot(towardX, towardZ) || 1
+  const terraces = hash2(seed, 5, 9) > 0.45 ? 0.85 : 0
 
   const position = geometry.attributes.position
   for (let i = 0; i < position.count; i++) {
@@ -31,11 +41,22 @@ function createTerrain({ radius, height, seed }) {
     const x = position.getX(i) + (hash2(i, 1, seed) - 0.5) * CELL * 0.45
     const z = position.getZ(i) + (hash2(i, 2, seed) - 0.5) * CELL * 0.45
 
+    const facing = (x * towardX + z * towardZ) / (towardLength * (Math.hypot(x, z) || 1))
+    const beach = smoothstep(0.1, 0.9, facing)
+    const cliff = 1 - smoothstep(-0.8, -0.1, facing)
+
     const noise = fbm(x * 0.11 + seed, z * 0.11, seed)
     const distance = Math.hypot(x, z) / radius + (noise - 0.5) * 0.3
-    const dome = Math.pow(Math.max(0, 1 - distance * distance), 1.2)
-    const y = height * dome * (0.6 + noise * 0.8) - 0.6 - 2.5 * smoothstep(0.75, 1.3, distance)
+    const dome = Math.pow(Math.max(0, 1 - distance * distance), 1.2 + beach * 0.9 - cliff * 0.5)
+    let y = height * (1 + cliff * 0.3) * dome * (0.6 + noise * 0.8)
 
+    if (terraces) {
+      const level = Math.floor(y / TERRACE_STEP) * TERRACE_STEP
+      const stepped = level + smoothstep(0.7, 1, (y - level) / TERRACE_STEP) * TERRACE_STEP
+      y += (stepped - y) * terraces * smoothstep(0.4, 1.2, y)
+    }
+
+    y -= 0.6 + 2.5 * smoothstep(0.75 + cliff * 0.12, 1.3 - cliff * 0.18, distance)
     position.setXYZ(i, x, y, z)
   }
 
