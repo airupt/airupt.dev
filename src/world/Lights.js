@@ -222,7 +222,8 @@ export class Lights {
       if (id === 'lantern') {
         // Inside the little lantern on top of the post (see Decor.js)
         this.glows.push(new Glow(model, new THREE.Vector3(0, 1.38, 0), '#ffb35c', 0.1))
-        this.pools.push(new LightPool(app.scene, model.position, 3.2))
+        // A pool of light on the ground; over water the sea shader lights itself
+        if (!model.userData.overWater) this.pools.push(new LightPool(app.scene, model.position, 3.2))
       }
       if (id === 'campfire') {
         this.flames.push(new Glow(model, new THREE.Vector3(0, model.userData.flame, 0), '#ff7a2e', 0.22))
@@ -237,9 +238,8 @@ export class Lights {
 
     // Only lamps close to the sea light it up
     const waterside = decor.placed
-      .filter(({ id }) => id === 'lantern' || id === 'campfire')
+      .filter(({ id, model }) => (id === 'lantern' || id === 'campfire') && (model.userData.overWater || model.position.y < 1.6))
       .map(({ model }) => model.position)
-      .filter(position => position.y < 1.6)
     app.world.ocean.setLamps(waterside)
 
     zones.list.forEach((zone, index) => {

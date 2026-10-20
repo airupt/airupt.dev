@@ -140,7 +140,8 @@ export class Decor {
     // A lantern at the far end, for boats coming in after dark
     const reach = DOCK_LENGTH - DOCK_INLAND - 0.55
     const across = -(DOCK_WIDTH / 2 - 0.3)
-    this.add('lantern', shore.x + out.x * reach + out.z * across, DOCK_DECK, shore.z + out.z * reach - out.x * across, rotation, 0.85)
+    const lantern = this.add('lantern', shore.x + out.x * reach + out.z * across, DOCK_DECK, shore.z + out.z * reach - out.x * across, rotation, 0.85)
+    lantern.userData.overWater = true
 
     for (let i = 0; i < DOCK_TILES; i++) {
       const distance = (i + 0.5) * DOCK_TILE - DOCK_INLAND

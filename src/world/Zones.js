@@ -13,12 +13,13 @@ export class Zones {
     this.active = null
     this.list = []
 
-    const right = app.cameraRig.screenRight
+    const toCamera = app.cameraRig.direction
     for (const island of islands.list) {
       if (!island.section) continue
       const { shore, out } = island
-      // The berth is on the dock's right as seen on screen
-      const side = Math.sign(out.z * right.x - out.x * right.z) || 1
+      // The berth is on the camera's side of the dock, so the dock never
+      // stands in front of the moored boat
+      const side = Math.sign(out.z * toCamera.x - out.x * toCamera.z) || 1
       const across = { x: out.z * side, z: -out.x * side }
       const offset = DOCK_WIDTH / 2 + 1.45
       const reach = (DOCK_LENGTH - DOCK_INLAND) * 0.55
