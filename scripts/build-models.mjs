@@ -38,11 +38,14 @@ const models = {
   planks: ['pirate-kit', 'platform-planks'],
   tower: ['pirate-kit', 'tower-complete-small'],
   wreck: ['pirate-kit', 'ship-wreck'],
+  'hut-roof': ['pirate-kit', 'structure-roof'],
+  lookout: ['pirate-kit', 'tower-watch'],
 
   signpost: ['survival-kit', 'signpost'],
   'signpost-single': ['survival-kit', 'signpost-single'],
   tent: ['survival-kit', 'tent'],
   campfire: ['survival-kit', 'campfire-pit'],
+  anvil: ['survival-kit', 'workbench-anvil'],
   fish: ['survival-kit', 'fish'],
   'fish-large': ['survival-kit', 'fish-large'],
 

@@ -31,6 +31,7 @@ export class Ocean {
       uGlint: { value: 3 },
       // Churned water glows like plankton at night
       uFoamGlow: { value: 0 },
+      uNight: { value: 0 },
       uTrail: { value: null },
       uTrailCenter: { value: new THREE.Vector2() },
       uTrailSize: { value: 1 },
@@ -81,6 +82,7 @@ export class Ocean {
         uniform vec3 uCrest;
         uniform float uGlint;
         uniform float uFoamGlow;
+        uniform float uNight;
         uniform sampler2D uTrail;
         uniform vec2 uTrailCenter;
         uniform float uTrailSize;
@@ -99,6 +101,8 @@ export class Ocean {
         vec3 water = mix(uShallow, uMid, smoothstep(0.02, 0.4, depth));
         water = mix(water, uDeep, smoothstep(0.35, 1.0, depth));
         water *= 0.95 + texture2D(uNoise, vOceanPosition * 0.005 + uTime * 0.002).r * 0.1;
+        // At night open water sinks to a deep navy, the shallows keep a little glow
+        water *= mix(1.0, mix(0.4, 0.75, 1.0 - smoothstep(0.1, 0.6, depth)), uNight);
 
         // Troughs a touch darker, crests lighter out in open water; facets come from flat shading
         water = mix(water * 0.86, water, smoothstep(-0.55, 0.0, vWave));
@@ -153,6 +157,7 @@ export class Ocean {
 
   setNight(night) {
     this.uniforms.uFoamGlow.value = THREE.MathUtils.smoothstep(night, 0.4, 0.9)
+    this.uniforms.uNight.value = night
   }
 
   update(focus) {

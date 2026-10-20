@@ -12,6 +12,9 @@ const scales = {
   stall: 2.4,
   cart: 2,
   banner: 2.4,
+  'hut-roof': 1.4,
+  lookout: 1.3,
+  anvil: 5,
   fish: 4.5,
   'fish-large': 4,
 }

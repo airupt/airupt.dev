@@ -17,9 +17,11 @@ const setPieces = {
     ['flag', 4.5, 3],
     ['lantern', 1.8, 2],
   ],
+  // A little camp: a roofed hut, a tent and a campfire
   about: [
-    ['tent', 5, 2],
-    ['campfire', 3.5, -0.8],
+    ['hut-roof', 7, -1.5],
+    ['tent', 5, 3],
+    ['campfire', 3.5, 0.5],
     ['barrel', 2.5, 3.8],
     ['lantern', 1.8, -2.6],
   ],
@@ -35,11 +37,14 @@ const setPieces = {
     ['reserve', 8, -1.5, 2.6],
     ['reserve', 8.8, 2.7, 2.6],
   ],
+  // A workshop: lookout tower, anvil bench and stores
   skills: [
-    ['stall', 4.5, 2],
-    ['crate', 2.5, -2],
-    ['barrel', 2.4, -3.4],
-    ['flag-pennant', 5.5, -1],
+    ['lookout', 7, 0],
+    ['anvil', 3.2, -1.6],
+    ['stall', 4.5, 2.6],
+    ['crate', 2.5, -2.8],
+    ['barrel', 2.4, -3.9],
+    ['flag-pennant', 5.5, -3.5],
   ],
   contact: [
     ['tower', 7, 0],
@@ -124,7 +129,7 @@ export class Decor {
     const surface = this.islands.surfaceAt(island, x, z)
     if (!surface) return
     this.add(id, x, surface.y, z, Math.atan2(out.x, out.z))
-    occupied.push({ x, z, radius: id === 'tower' ? 3 : 1.6 })
+    occupied.push({ x, z, radius: ['tower', 'hut-roof', 'lookout'].includes(id) ? 3 : 1.6 })
   }
 
   scatter(island, random, occupied) {

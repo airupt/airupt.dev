@@ -18,6 +18,48 @@ class Glow {
   }
 }
 
+// A soft warm disc on the ground under a lamp, faded in at night
+let poolTexture = null
+function createPoolTexture() {
+  const canvas = document.createElement('canvas')
+  canvas.width = 64
+  canvas.height = 64
+  const context = canvas.getContext('2d')
+  const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32)
+  gradient.addColorStop(0, 'rgba(255, 190, 110, 1)')
+  gradient.addColorStop(0.45, 'rgba(255, 150, 70, 0.45)')
+  gradient.addColorStop(1, 'rgba(255, 120, 40, 0)')
+  context.fillStyle = gradient
+  context.fillRect(0, 0, 64, 64)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  return texture
+}
+
+class LightPool {
+  constructor(scene, position, radius) {
+    poolTexture ??= createPoolTexture()
+    this.material = new THREE.MeshBasicMaterial({
+      map: poolTexture,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+      opacity: 0,
+    })
+    this.mesh = new THREE.Mesh(new THREE.CircleGeometry(radius, 24), this.material)
+    this.mesh.rotation.x = -Math.PI / 2
+    this.mesh.position.copy(position).add(new THREE.Vector3(0, 0.12, 0))
+    scene.add(this.mesh)
+  }
+
+  set(strength) {
+    this.material.opacity = strength
+    this.mesh.visible = strength > 0.01
+  }
+}
+
 // A slowly turning pair of light cones from the top of the lighthouse
 class Beam {
   constructor(parent, position) {
@@ -72,6 +114,7 @@ export class Lights {
     this.glows = []
     this.blinkers = []
     this.flames = []
+    this.pools = []
     this.time = 0
 
     // Lava in the volcano's crater: glows a little by day, brightly at night
@@ -86,9 +129,11 @@ export class Lights {
       if (id === 'lantern') {
         // Kenney's lantern head sits near the top of the 1.56 unit model
         this.glows.push(new Glow(model, new THREE.Vector3(0, 1.38, 0), '#ffb35c', 0.12))
+        this.pools.push(new LightPool(app.scene, model.position, 3.2))
       }
       if (id === 'campfire') {
         this.flames.push(new Glow(model, new THREE.Vector3(0, 0.06, 0), '#ff7a2e', 0.06))
+        this.pools.push(new LightPool(app.scene, model.position, 4))
       }
       if (id === 'tower') {
         this.lamp = new Glow(model, new THREE.Vector3(0, 6.1, 0), '#fff0c0', 0.3)
@@ -103,8 +148,8 @@ export class Lights {
 
     // Navigation lights: red to port (left), green to starboard (right)
     this.boatLights = [
-      new Glow(boat.lean, new THREE.Vector3(-0.78, 0.7, -0.75), '#ff3b3b', 0.08),
-      new Glow(boat.lean, new THREE.Vector3(0.78, 0.7, -0.75), '#3bff7a', 0.08),
+      new Glow(boat.lean, new THREE.Vector3(-0.78, 0.7, -0.75), '#ff3b3b', 0.12),
+      new Glow(boat.lean, new THREE.Vector3(0.78, 0.7, -0.75), '#3bff7a', 0.12),
     ]
   }
 
@@ -113,7 +158,8 @@ export class Lights {
     const strength = THREE.MathUtils.smoothstep(night, 0.25, 0.85) * GLOW_STRENGTH
 
     for (const glow of this.glows) glow.set(strength)
-    for (const glow of this.boatLights) glow.set(strength * 0.8)
+    for (const glow of this.boatLights) glow.set(strength * 1.3)
+    for (const pool of this.pools) pool.set((strength / GLOW_STRENGTH) * 0.55)
     for (const flame of this.flames) {
       // The campfire burns all day but only really shows in the dark
       const flicker = 0.75 + Math.sin(this.time * 13) * 0.12 + Math.sin(this.time * 31) * 0.1
