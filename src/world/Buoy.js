@@ -53,6 +53,8 @@ export class Buoy {
     world.createCollider(RAPIER.ColliderDesc.cylinder(0.45, 0.45).setDensity(40).setRestitution(0.4), this.body)
 
     this.object = model ?? createModel(color)
+    this.app = app
+    this.lastVelocity = new THREE.Vector3()
     app.scene.add(this.object)
     app.physics.sync(this.body, this.object)
     app.physics.beforeStep.push((dt, time) => this.step(dt, time))
@@ -60,6 +62,12 @@ export class Buoy {
 
   step(dt, time) {
     applyBuoyancy(this.body, FLOAT_POINTS, dt, time, { restDepth: 0.25, damping: 4 })
+
+    // A sudden shove means the boat bumped it: a hollow knock
+    const velocity = this.body.linvel()
+    const change = Math.hypot(velocity.x - this.lastVelocity.x, velocity.z - this.lastVelocity.z)
+    if (change > 1.2) this.app.sounds.play('bump', Math.min(change / 6, 1) * 0.45, 1.5 + Math.random() * 0.2, this.object.position)
+    this.lastVelocity.set(velocity.x, 0, velocity.z)
 
     const mass = this.body.mass()
     const translation = this.body.translation()

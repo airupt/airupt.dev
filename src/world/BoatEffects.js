@@ -23,28 +23,37 @@ export class BoatEffects {
     const speed = Math.abs(boat.speed)
     forward.set(0, 0, -1).applyQuaternion(boat.object.quaternion).setY(0).normalize()
 
-    if (boat.inWater > 0 && speed > 4) {
-      this.sprayBudget += (speed - 4) * 7 * delta
+    // Spray thrown off both sides of the bow, more and bigger with speed
+    if (boat.inWater > 0 && speed > 3.5) {
+      this.sprayBudget += (speed - 3.5) * 9 * delta
       while (this.sprayBudget >= 1) {
         this.sprayBudget -= 1
         const direction = Math.random() < 0.5 ? -1 : 1
         side.set(-forward.z, 0, forward.x).multiplyScalar(direction)
-        bow.set(direction * 0.68, -0.15, -1.1).applyQuaternion(boat.object.quaternion).add(boat.object.position)
-        splashes.emit(bow, side.clone().multiplyScalar(1.5 + speed * 0.12).addScaledVector(forward, speed * 0.25), {
+        bow.set(direction * 0.66, -0.15, -1.05).applyQuaternion(boat.object.quaternion).add(boat.object.position)
+        splashes.emit(bow, side.clone().multiplyScalar(1.6 + speed * 0.14).addScaledVector(forward, speed * 0.2), {
           count: 1,
-          spread: 0.4,
-          up: 1.6 + speed * 0.08,
-          size: 0.07,
-          life: 0.7,
+          spread: 0.45,
+          up: 1.7 + speed * 0.1,
+          size: 0.08 + Math.min(speed / 16, 1) * 0.05,
+          life: 0.75,
         })
       }
     }
 
-    // Hitting boost kicks up a rooster tail behind the motor
+    // Boost kicks up a rooster tail behind the motor, and keeps it going
     const boosting = boat.app.inputs.state.boost && boat.app.inputs.state.throttle > 0
-    if (boosting && !this.wasBoosting && boat.inWater > 0) {
+    if (boosting && boat.inWater > 0) {
       bow.set(0, 0, 1.9).applyQuaternion(boat.object.quaternion).add(boat.object.position)
-      splashes.emit(bow, forward.clone().multiplyScalar(-2.5), { count: 22, spread: 1.1, up: 3.2, size: 0.09, life: 0.9 })
+      if (!this.wasBoosting) {
+        splashes.emit(bow, forward.clone().multiplyScalar(-2.5), { count: 22, spread: 1.1, up: 3.2, size: 0.09, life: 0.9 })
+      } else if (speed > 6) {
+        this.tailBudget = (this.tailBudget ?? 0) + speed * 2.2 * delta
+        while (this.tailBudget >= 1) {
+          this.tailBudget -= 1
+          splashes.emit(bow, forward.clone().multiplyScalar(-1.5 - Math.random()), { count: 1, spread: 0.5, up: 2.6 + Math.random(), size: 0.09, life: 0.7 })
+        }
+      }
     }
     this.wasBoosting = boosting
 
@@ -60,7 +69,7 @@ export class BoatEffects {
     const change = this.lastVelocity.distanceTo(boat.velocity)
     if (change > 2.5 && change < 20 && !teleported) {
       bow.set(0, 0, -1.8).applyQuaternion(boat.object.quaternion).add(boat.object.position)
-      splashes.emit(bow, new THREE.Vector3(), { count: Math.round(change * 3), spread: 1.8, up: 2.2, size: 0.09, life: 0.8 })
+      splashes.emit(bow, new THREE.Vector3(), { count: Math.round(change * 4.5), spread: 2.2, up: 2.8, size: 0.11, life: 0.9 })
       this.onImpact?.(Math.min(change / 12, 1))
     }
     this.lastVelocity.copy(boat.velocity)

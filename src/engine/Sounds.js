@@ -117,6 +117,27 @@ export class Sounds {
     }
   }
 
+  // One crackle of a wood fire: a few milliseconds of bright noise
+  crackle(volume) {
+    if (this.context.state !== 'running' || volume < 0.01) return
+    if (!this.crackleBuffer) {
+      const rate = this.context.sampleRate
+      this.crackleBuffer = this.context.createBuffer(1, Math.round(rate * 0.04), rate)
+      const data = this.crackleBuffer.getChannelData(0)
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 3)
+    }
+    const source = this.context.createBufferSource()
+    source.buffer = this.crackleBuffer
+    source.playbackRate.value = 0.6 + Math.random() * 0.9
+    const filter = this.context.createBiquadFilter()
+    filter.type = 'highpass'
+    filter.frequency.value = 1200
+    const gain = this.context.createGain()
+    gain.gain.value = volume * (0.4 + Math.random() * 0.6)
+    source.connect(filter).connect(gain).connect(this.master)
+    source.start()
+  }
+
   setSuspended(suspended) {
     if (!this.started) return
     if (suspended) this.context.suspend()
@@ -182,6 +203,28 @@ export class Sounds {
       this.engine.source.playbackRate.setTargetAtTime(0.75 + speed * 0.7 + throttle * 0.1, now, 0.15)
       const volume = (0.05 + speed * 0.2 + throttle * 0.08) * (boat.inWater > 0 ? 1 : 0.6)
       this.engine.gain.gain.setTargetAtTime(volume, now, 0.1)
+    }
+
+    // Surf on the beaches swells as you come close to land: the distance to
+    // the nearest shore is read from the baked sea map
+    if (this.ocean) {
+      const map = this.app.world.ocean.uniforms.uWaterMap.value.image
+      const tx = Math.min(map.width - 1, Math.max(0, Math.floor(((boat.object.position.x + 128) / 256) * map.width)))
+      const tz = Math.min(map.height - 1, Math.max(0, Math.floor(((boat.object.position.z + 128) / 256) * map.height)))
+      const coast = (map.data[(tz * map.width + tx) * 4 + 1] / 255) * 24
+      const shore = 1 - Math.min(Math.max((coast - 2) / 12, 0), 1)
+      this.ocean.gain.gain.setTargetAtTime(0.26 + shore * 0.3, now, 0.6)
+    }
+
+    // A campfire crackles when you're near it
+    const fire = this.app.world.decor?.placed.find(placed => placed.id === 'campfire')?.model.position
+    if (fire) {
+      const near = 1 - Math.min(Math.hypot(fire.x - boat.object.position.x, fire.z - boat.object.position.z) / 24, 1)
+      this.crackleTimer = (this.crackleTimer ?? 0) - delta
+      if (near > 0 && this.crackleTimer <= 0) {
+        this.crackleTimer = 0.04 + Math.random() * 0.22
+        this.crackle(near * near * 0.22)
+      }
     }
 
     // Water slapping the hull is what you hear when idling, drowned out at speed

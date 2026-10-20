@@ -171,7 +171,7 @@ export class TrailMap {
     for (const point of this.points) point.age = WAKE_LIFE
   }
 
-  // Leaves pairs of foam points at the stern corners as the boat moves; each
+  // Leaves pairs of foam points at the bow shoulders as the boat moves; each
   // drifts outward, spreads and fades
   updateWake(delta, speed, inWater, nextX, nextZ) {
     const { quaternion, position } = this.boat.object
@@ -183,7 +183,9 @@ export class TrailMap {
       for (const side of [-1, 1]) {
         const point = this.points[this.nextPoint]
         this.nextPoint = (this.nextPoint + 1) % WAKE_POINTS
-        stern.set(side * 0.7, 0, 1.5).applyQuaternion(quaternion).add(position)
+        // Bow waves start at the shoulders of the hull, so the boat sits
+        // inside its own V like a real one
+        stern.set(side * 0.62, 0, -0.9).applyQuaternion(quaternion).add(position)
         // Sideways relative to the hull, scaled by speed
         const outward = new THREE.Vector3(side, 0, 0).applyQuaternion(quaternion).setY(0).normalize()
         Object.assign(point, {
