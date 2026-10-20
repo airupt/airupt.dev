@@ -113,9 +113,10 @@ export class Ocean {
         float breakup = texture2D(uNoise, vOceanPosition * 0.045 + uTime * vec2(0.01, 0.006)).g;
         float surf = 1.0 - smoothstep(0.15, 0.75 + sin(uTime * 1.4 + vOceanPosition.x * 0.25) * 0.25, coast);
         surf *= smoothstep(0.2, 0.45, breakup + 0.25);
-        float roll = fract(coast / 3.2 + uTime * 0.2);
-        float lines = smoothstep(0.84, 0.9, roll) * (1.0 - smoothstep(0.94, 1.0, roll));
-        lines *= (1.0 - smoothstep(1.5, 6.5, coast)) * smoothstep(0.3, 0.6, coast) * smoothstep(0.45, 0.6, breakup);
+        // Only the line nearest the beach: further out, broken contours read as scribbles
+        float roll = fract(coast / 2.4 + uTime * 0.22);
+        float lines = smoothstep(0.86, 0.91, roll) * (1.0 - smoothstep(0.94, 0.99, roll));
+        lines *= (1.0 - smoothstep(0.8, 3.2, coast)) * smoothstep(0.3, 0.6, coast) * smoothstep(0.35, 0.5, breakup);
         // Water churned up by the boat: lighter where it was stirred, foam
         // where it is still fresh, broken up by fine noise
         vec2 trailUv = vec2((vOceanPosition.x - uTrailCenter.x) / uTrailSize + 0.5, -(vOceanPosition.y - uTrailCenter.y) / uTrailSize + 0.5);
@@ -126,7 +127,7 @@ export class Ocean {
         float trailFoam = smoothstep(0.4, 0.62, trail * (0.3 + churn * 1.15));
 
         vec3 trailColor = mix(vec3(1.0), vec3(0.3, 2.2, 2.6), uFoamGlow);
-        diffuseColor.rgb = mix(water, vec3(1.0), max(surf, lines * 0.55));
+        diffuseColor.rgb = mix(water, vec3(1.0), max(surf, lines * 0.45));
         diffuseColor.rgb = mix(diffuseColor.rgb, trailColor, trailFoam);`
       )
       // The swell barely tilts the surface, so read the light on a much

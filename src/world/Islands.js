@@ -21,7 +21,7 @@ const palette = {
   scorched: new THREE.Color('#4f4440'),
 }
 
-const CELL = 1.8
+const CELL = 1.3
 const TERRACE_STEP = 1.1
 
 // Which way an island's beach and dock face: its own `facing`, or the start point

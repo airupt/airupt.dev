@@ -4,7 +4,7 @@ import { profile, sections } from '../content/portfolio.js'
 import { shared } from '../world/shading.js'
 
 const SVG = 'http://www.w3.org/2000/svg'
-const EXTENT = 112 // metres from the centre to each edge of the chart
+const EXTENT = 96 // metres from the centre to each edge of the chart
 
 function svg(tag, attributes = {}) {
   const node = document.createElementNS(SVG, tag)
