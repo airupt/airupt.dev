@@ -623,11 +623,11 @@ body:has(dialog[open]) .hud > * {
 .panel {
   --section-color: var(--accent);
   position: fixed;
-  inset: 1rem 1rem 1rem auto;
+  inset: 1rem 1rem auto auto;
   margin: 0;
   width: min(540px, calc(100% - 2rem));
   height: auto;
-  max-height: none;
+  max-height: calc(100% - 2rem);
   padding: 0;
   border: 0;
   border-radius: 20px;

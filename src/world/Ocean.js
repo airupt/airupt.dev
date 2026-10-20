@@ -112,7 +112,9 @@ export class Ocean {
         '// STYLIZED_SHADE',
         `shade = (1.0 - dropShadow) * 0.55;
         shade = max(shade, (1.0 - smoothstep(0.6, 0.88, dot(stylizedNormal, uSunDirection))) * 0.45);
-        shade = max(shade, cloudShadow * 0.7);`
+        // Cloud shadows only dim the water a little, with soft edges
+        float softCloud = smoothstep(0.5, 0.78, cloud) * uCloudShadow;
+        shade = max(shade, softCloud * 0.45);`
       )
       .replace(
         '// STYLIZED_EXTRA',

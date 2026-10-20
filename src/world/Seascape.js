@@ -81,7 +81,7 @@ export class Seascape {
       const length = Math.hypot(dx, dz) || 1
       for (const side of [-1, 1]) {
         const marker = models.get('buoy-flag')
-        marker.scale.multiplyScalar(1.3)
+        marker.scale.multiplyScalar(0.85)
         marker.userData.x = midX + (-dz / length) * GATE_WIDTH * side
         marker.userData.z = midZ + (dx / length) * GATE_WIDTH * side
         marker.userData.phase = random() * 6

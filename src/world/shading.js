@@ -139,7 +139,7 @@ const lightingBlock = /* glsl */ `
 
   float coreShadow = 1.0 - smoothstep(uCoreShadowEdges.x, uCoreShadowEdges.y, dot(stylizedNormal, uSunDirection));
   float cloud = texture2D(uNoise, vStylizedWorld.xz * uCloudScale + uTime * uCloudSpeed).g;
-  float cloudShadow = smoothstep(0.56, 0.68, cloud) * uCloudShadow;
+  float cloudShadow = smoothstep(0.52, 0.74, cloud) * uCloudShadow;
   float shade = clamp(max(max(coreShadow, 1.0 - dropShadow), cloudShadow), 0.0, 1.0);
 
   vec3 baseColor = diffuseColor.rgb;
