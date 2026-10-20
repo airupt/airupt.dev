@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import RAPIER from '@dimforge/rapier3d-compat'
+import * as RAPIER from '@dimforge/rapier3d'
 
 export const STEP = 1 / 60
 const MAX_STEPS = 4

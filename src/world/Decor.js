@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import RAPIER from '@dimforge/rapier3d-compat'
+import * as RAPIER from '@dimforge/rapier3d'
 import { createRandom } from '../utils/noise.js'
 
 export const DOCK_TILES = 2

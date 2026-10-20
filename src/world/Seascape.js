@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import RAPIER from '@dimforge/rapier3d-compat'
+import * as RAPIER from '@dimforge/rapier3d'
 import { createRandom } from '../utils/noise.js'
 import { waveHeight } from './waves.js'
 import { spawn } from './layout.js'
@@ -9,7 +9,7 @@ const rocks = ['rocks-a', 'rocks-b', 'rocks-c', 'rocks-sand-a', 'rocks-sand-b', 
 // Sea stacks between the islands so open water always has something in it
 const rockClusters = [
   [21, 31],
-  [18, -10],
+  [37, -2],
   [-14, -22],
   [-30, -30],
   [34, -26],

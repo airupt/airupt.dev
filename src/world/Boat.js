@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import RAPIER from '@dimforge/rapier3d-compat'
+import * as RAPIER from '@dimforge/rapier3d'
 import { applyBuoyancy } from './buoyancy.js'
 import { spawn, worldRadius } from './layout.js'
 

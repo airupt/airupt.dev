@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import RAPIER from '@dimforge/rapier3d-compat'
 import { Ticker } from './Ticker.js'
 import { Viewport } from './Viewport.js'
 import { Inputs } from './Inputs.js'
@@ -30,7 +29,7 @@ export class Experience {
       return
     }
 
-    await RAPIER.init()
+    // Rapier's WASM is compiled while this chunk downloads (see vite-plugin-wasm)
     this.overlay.setProgress(0.2)
 
     this.viewport = new Viewport()

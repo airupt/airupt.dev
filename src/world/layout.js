@@ -118,8 +118,9 @@ export const islands = [
   { id: 'islet-6', x: 23, z: 57, radius: 5, seed: 101, blobs: [[0, 0, 4, 1.8]] },
 ]
 
-// The boat starts just off the home island's bay, bow pointing into it
-export const spawn = { x: 11, z: 11, yaw: Math.PI / 4 }
+// The boat starts beside the home island, bow pointing along a clear run to
+// the Projects island so the first press of W goes somewhere
+export const spawn = { x: 20, z: 6, yaw: 0.27 }
 
 // Past this distance from the centre the sea pushes the boat back
 export const worldRadius = 100
