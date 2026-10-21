@@ -53,7 +53,7 @@ function roughen(geometry, seed, amount, frequency) {
 
 // A rock standing in the sea, base well below the waterline.
 // width: across at the waterline, height: above the water
-export function createRockGeometry(seed, { width = 2, height = 2, mossy = false } = {}) {
+function createRockGeometry(seed, { width = 2, height = 2, mossy = false } = {}) {
   const random = createRandom(seed)
   // Detail 1 merges into few large facets: low-poly, but not a crystal
   const geometry = new THREE.IcosahedronGeometry(1, 1)
@@ -76,7 +76,7 @@ export function createRockGeometry(seed, { width = 2, height = 2, mossy = false 
 // crooked bridge of big weathered blocks, heavy where it meets the sea and
 // thinner over the top, no two blocks the same. span: metres between the
 // centres of its feet.
-export function createArchGeometry(seed, { span = 8, thickness = 1.3 } = {}) {
+function createArchGeometry(seed, { span = 8, thickness = 1.3 } = {}) {
   const random = createRandom(seed)
   const radius = span / 2
   const blocks = []

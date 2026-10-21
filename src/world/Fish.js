@@ -1,15 +1,15 @@
 import * as THREE from 'three'
 import { waveHeight } from './waves.js'
+import { isOpenWater } from './layout.js'
 
 const kinds = ['fish', 'fish', 'fish-large']
 
 // Every few seconds a fish leaps out of the water somewhere near the boat,
 // in open sea and inside the camera view
 export class Fish {
-  constructor(app, models, splashes, islands) {
+  constructor(app, models, splashes) {
     this.app = app
     this.splashes = splashes
-    this.islands = islands
     this.timer = 4
     this.jumps = []
     this.pool = kinds.map(id => {
@@ -23,10 +23,6 @@ export class Fish {
     })
   }
 
-  isOpenWater(x, z) {
-    return this.islands.list.every(island => Math.hypot(island.x - x, island.z - z) > island.radius * 1.15)
-  }
-
   spawn() {
     const model = this.pool.find(candidate => !candidate.visible)
     if (!model) return
@@ -37,7 +33,7 @@ export class Fish {
       const distance = 6 + Math.random() * 10
       const x = focus.x + Math.cos(angle) * distance
       const z = focus.z + Math.sin(angle) * distance
-      if (!this.isOpenWater(x, z)) continue
+      if (!isOpenWater(x, z)) continue
 
       const heading = Math.random() * Math.PI * 2
       this.jumps.push({
@@ -56,7 +52,7 @@ export class Fish {
   }
 
   splash(position, loud) {
-    this.splashes.emit(position, new THREE.Vector3(), { count: 14, spread: 1.2, up: 2.2, size: 0.07, life: 0.7 })
+    this.splashes.emit(position, null, { count: 14, spread: 1.2, up: 2.2, size: 0.07, life: 0.7 })
     if (loud) this.app.sounds.play('splash', 0.3, 1.3 + Math.random() * 0.3, position)
   }
 

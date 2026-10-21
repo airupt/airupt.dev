@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { dryGround, islandHeight, facingDirection } from '../src/world/terrain.js'
 import { archGate } from '../src/world/gates.js'
 import { harbourPoints } from './harbours.js'
+import { channelMarks } from '../src/world/harbour.js'
 import { arch, bottleSpots, islands, moorings, ringCourse, rockClusters, spawn, wreck } from '../src/world/layout.js'
 
 // Highest ground of any island at a world position (-10 out at sea)
@@ -143,4 +144,14 @@ test('every section buoy floats in open water, clear of the sea stacks', () => {
     assert.ok(highestNear(x, z, 4) < OPEN_WATER, `the ${what} has land within 4 m`)
     for (const [rx, rz] of rockClusters) assert.ok(Math.hypot(rx - x, rz - z) > 9, `the ${what} is too close to the sea stacks at (${rx}, ${rz})`)
   }
+})
+
+test('channel marks: red to port, green to starboard, facing along the run', () => {
+  // Heading up the screen (-z), port is to the left (-x)
+  const [port, starboard] = channelMarks({ x: 0, z: 0 }, { x: 0, z: -20 }, 0.5, 8)
+  assert.deepEqual([port.side, port.x, port.z], ['port', -4, -10])
+  assert.deepEqual([starboard.side, starboard.x, starboard.z], ['starboard', 4, -10])
+  // Heading east (+x), port is to the north (-z)
+  const [eastPort] = channelMarks({ x: 0, z: 0 }, { x: 10, z: 0 }, 0.5, 8)
+  assert.ok(eastPort.z < 0, `port mark at z ${eastPort.z}`)
 })

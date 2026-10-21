@@ -28,10 +28,12 @@ export class Bottles {
   constructor(app, models, splashes) {
     this.app = app
     this.splashes = splashes
-    this.collected = readCollected()
     this.time = 0
+    const count = Math.min(spots.length, messages.length)
+    // Only bottles that still exist (the content may have lost one since)
+    this.collected = new Set([...readCollected()].filter(index => Number.isInteger(index) && index >= 0 && index < count))
 
-    this.items = spots.slice(0, messages.length).map(([x, z], index) => {
+    this.items = spots.slice(0, count).map(([x, z], index) => {
       const object = new THREE.Group()
       const model = models.get('bottle')
       model.scale.multiplyScalar(1.6)
@@ -79,7 +81,7 @@ export class Bottles {
     item.pickup = 0.001
     this.collected.add(item.index)
     saveCollected(this.collected)
-    this.splashes.emit(item.object.position.clone(), new THREE.Vector3(), { count: 18, spread: 1.4, up: 2.6, size: 0.08, life: 0.9 })
+    this.splashes.emit(item.object.position, null, { count: 18, spread: 1.4, up: 2.6, size: 0.08, life: 0.9 })
     this.app.sounds.play('glass', 0.8)
     this.app.sounds.play('chime', 0.4, 1.25)
     // Messages follow the order you find bottles in, not where they float,

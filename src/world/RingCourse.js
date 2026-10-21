@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { arch, ringCourse } from './layout.js'
 import { courseGates, throughGate } from './gates.js'
 import { createLightColumn } from './lightColumn.js'
+import { keyFor } from '../engine/bindings.js'
 import { mesh } from './Structures.js'
 import { waveHeight } from './waves.js'
 
@@ -109,6 +110,9 @@ export class RingCourse {
     this.share = this.hud.querySelector('.course-share')
     this.arrow = document.querySelector('#course-arrow')
     this.share.addEventListener('click', () => this.shareTime())
+    app.inputs.on('lapShare', () => {
+      if (!this.hud.hidden && !this.share.hidden) this.shareTime()
+    })
 
     this.next = 0
     this.pulse = 0
@@ -175,8 +179,12 @@ export class RingCourse {
     }
     const boat = this.app.world.boat.object.position
     this.place(this.app.physics.renderTime, delta)
-    // Photo mode stops the clock with everything else
-    if (this.app.photo?.active) return
+    // Photo mode stops the clock with everything else; the boat may still
+    // coast on a little meanwhile, which is no jump
+    if (this.app.photo?.active) {
+      this.last?.copy(boat)
+      return
+    }
 
     // A jump (map travel, a respawn) calls the run off
     const jumped = this.last && this.last.distanceTo(boat) > 8
@@ -220,7 +228,7 @@ export class RingCourse {
     const splashes = this.app.world.splashes
     for (let i = -3; i <= 3; i++) {
       point.set(gate.x + gate.normal.z * i * 0.9, 0.2, gate.z - gate.normal.x * i * 0.9)
-      splashes.emit(point, new THREE.Vector3(), { count: 3, spread: 0.4, up: 2.6, size: 0.09, life: 0.8 })
+      splashes.emit(point, null, { count: 3, spread: 0.4, up: 2.6, size: 0.09, life: 0.8 })
     }
   }
 
@@ -258,8 +266,11 @@ export class RingCourse {
     }
     this.result = this.time
     this.show(record ? `${format(this.time)} · best time!` : `${format(this.time)} · best ${format(this.best)}`)
+    // With its key, as there is no pointing at it with a gamepad
     this.share.hidden = false
     this.share.textContent = 'Share'
+    const key = keyFor('lapShare', this.app.inputs.lastDevice)
+    if (key) this.share.append(Object.assign(document.createElement('kbd'), { className: 'key', textContent: key }))
     this.burst(this.gates[0])
     this.app.sounds.fanfare(0.2)
     this.logbook.record('course')

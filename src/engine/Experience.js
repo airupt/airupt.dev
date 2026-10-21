@@ -11,6 +11,7 @@ import { shared } from '../world/shading.js'
 import { MapView } from '../ui/MapView.js'
 import { LogbookView } from '../ui/LogbookView.js'
 import { PhotoMode } from '../ui/PhotoMode.js'
+import { GamepadUi } from '../ui/GamepadUi.js'
 import { Quality } from './Quality.js'
 
 // Owns the renderer and wires every system together. Systems receive this
@@ -47,6 +48,7 @@ export class Experience {
     this.map = new MapView(this)
     this.logbookView = new LogbookView(this)
     this.photo = new PhotoMode(this)
+    this.gamepadUi = new GamepadUi(this)
 
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFShadowMap
@@ -59,12 +61,15 @@ export class Experience {
 
     // The sea and islands render behind the loader while models and sounds
     // stream in, with the camera drifting over the archipelago
-    this.ticker.add(() => this.inputs.update(), 0)
-    this.ticker.add(delta => this.physics.update(delta), 10)
-    this.ticker.add(delta => this.world.update(delta), 20)
-    this.ticker.add(delta => this.cameraRig.update(delta), 30)
-    this.ticker.add(() => this.world.updateSeeThrough(this.cameraRig.camera), 31)
-    this.ticker.add(delta => this.sounds.update(delta), 35)
+    this.ticker.add(delta => this.inputs.update(delta), 0)
+    this.ticker.add(delta => this.gamepadUi.update(delta), 1)
+    this.ticker.add(delta => this.photo.update(delta), 2)
+    // Behind the page view the world holds still and nothing is drawn
+    this.ticker.add(delta => this.paused || this.physics.update(delta), 10)
+    this.ticker.add(delta => this.paused || this.world.update(delta), 20)
+    this.ticker.add(delta => this.paused || this.cameraRig.update(delta), 30)
+    this.ticker.add(() => this.paused || this.world.updateSeeThrough(this.cameraRig.camera), 31)
+    this.ticker.add(delta => this.paused || this.sounds.update(delta), 35)
     this.ticker.add(() => this.overlay.update(), 40)
     this.ticker.add(() => this.map.update(), 41)
     this.ticker.add(delta => this.render(delta), 100)

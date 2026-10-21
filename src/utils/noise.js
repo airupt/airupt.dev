@@ -7,7 +7,7 @@ export function hash2(x, z, seed = 0) {
 const fade = t => t * t * (3 - 2 * t)
 
 // Smooth value noise in [0, 1]
-export function valueNoise(x, z, seed = 0) {
+function valueNoise(x, z, seed = 0) {
   const xi = Math.floor(x)
   const zi = Math.floor(z)
   const u = fade(x - xi)

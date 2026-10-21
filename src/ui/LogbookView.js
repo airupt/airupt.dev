@@ -19,7 +19,7 @@ export class LogbookView {
       if (event.target === this.dialog) this.dialog.close()
     })
     this.dialog.addEventListener('keydown', event => {
-      if (event.code === 'KeyL') this.dialog.close()
+      if (event.code === 'KeyL' && !event.repeat) this.dialog.close()
     })
   }
 
@@ -41,7 +41,8 @@ export class LogbookView {
   }
 
   open() {
-    if (!this.logbook || document.querySelector('dialog[open]')) return
+    // Only from sailing: not over a panel, the map, photo mode or the page view
+    if (!this.logbook || !this.app.inputs.enabled) return
     this.render()
     this.dialog.showModal()
     this.app.overlay.setSailing(false)

@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import * as RAPIER from '@dimforge/rapier3d'
 import { applyBuoyancy } from './buoyancy.js'
 import { createRandom } from '../utils/noise.js'
-import { worldRadius } from './layout.js'
+import { isOpenWater, worldRadius } from './layout.js'
 import { DynamicInstances } from './instancing.js'
 
 const box = new THREE.Box3()
@@ -17,19 +17,18 @@ const flotsam = [
 
 // Floating crates and barrels the boat can shove around
 export class Props {
-  constructor(app, models, islands) {
+  constructor(app, models) {
     this.app = app
     this.floaters = []
     // Every floater of the same model is drawn in one call (built once all are added)
     this.instances = new DynamicInstances(app.scene)
 
     const random = createRandom(404)
-    const isOpenWater = (px, pz) => islands.list.every(island => Math.hypot(island.x - px, island.z - pz) > island.radius * 1.2)
     for (const cluster of flotsam) {
       for (let i = 0; i < cluster.count; i++) {
         const px = cluster.x + (random() - 0.5) * 5
         const pz = cluster.z + (random() - 0.5) * 5
-        if (!isOpenWater(px, pz)) continue
+        if (!isOpenWater(px, pz, { scale: 1.2 })) continue
         this.addFloater(models, random() < 0.6 ? 'barrel' : 'crate-bottles', px, pz, random() * Math.PI * 2)
       }
     }

@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { islandHeight } from './terrain.js'
 import { MAP_EXTENT } from './layout.js'
 
-export const MAP_SIZE = 512
+const MAP_SIZE = 512
 const DEPTH_RANGE = 3 // metres of depth mapped to 0..1
 const COAST_RANGE = 24 // metres of distance to land mapped to 0..1
 

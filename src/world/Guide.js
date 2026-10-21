@@ -1,4 +1,5 @@
 import { createLightColumn } from './lightColumn.js'
+import { keyFor } from '../engine/bindings.js'
 
 const STORAGE_KEY = 'airupt-guided'
 
@@ -51,8 +52,8 @@ export class Guide {
     }
     if (this.tipsShown === 1 && this.reactions.visited.size > 0 && !document.querySelector('dialog[open]')) {
       this.tipsShown = 2
-      const touch = this.app.inputs.lastDevice === 'touch'
-      this.app.overlay.toast(touch ? 'Tap the map button to sail straight to any island.' : 'Press M for the map: it can sail you straight to any island.', 'Nice!')
+      const key = keyFor('map', this.app.inputs.lastDevice)
+      this.app.overlay.toast(key ? `Press ${key} for the map: it can sail you straight to any island.` : 'Tap the map button to sail straight to any island.', 'Nice!')
       try {
         localStorage.setItem(STORAGE_KEY, '1')
       } catch {

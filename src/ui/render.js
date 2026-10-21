@@ -117,7 +117,8 @@ export function renderClassic(profile, sections, colors, onBack) {
     class: 'button button-primary classic-back',
     text: 'Back to the sea',
     'aria-keyshortcuts': 'Escape',
-    'data-tooltip': 'Back to the sea · Esc',
+    'data-label': 'Back to the sea',
+    'data-action': 'back',
   })
   back.addEventListener('click', onBack)
 

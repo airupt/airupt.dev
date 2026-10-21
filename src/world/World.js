@@ -84,7 +84,7 @@ export class World {
     this.eruptionTimer = (this.eruptionTimer ?? 12) - delta
 
     // Coming in to Mount Airupt's landing wakes it up
-    const landing = this.islands.list.find(island => island.landing)
+    const landing = (this.landing ??= this.islands.list.find(island => island.landing))
     if (landing) {
       const boat = this.boat.object.position
       const near = Math.hypot(boat.x - landing.shore.x, boat.z - landing.shore.z) < 10
@@ -109,6 +109,11 @@ export class World {
   // Tells the shaders where the boat is on screen so whatever stands in
   // front of it can thin out (runs after the camera has moved)
   updateSeeThrough(camera) {
+    // Nothing to look through to while the boat is hidden (photo mode)
+    if (!this.boat.object.visible) {
+      shared.uSeeThroughCenter.value.set(-1e5, -1e5)
+      return
+    }
     const position = seeThroughPoint.copy(this.boat.object.position)
     const depth = -position.applyMatrix4(camera.matrixWorldInverse).z
     position.copy(this.boat.object.position).project(camera)
@@ -146,8 +151,8 @@ export class World {
       this.smoke.addEmitter(model.position.clone().add(new THREE.Vector3(0, 0.4, 0)), { rate: 2, size: 0.22, rise: 4, life: 3, color: '#d9d4cf' })
     }
     this.smoke.build()
-    this.fish = new Fish(this.app, this.models, this.splashes, this.islands)
-    this.props = new Props(this.app, this.models, this.islands)
+    this.fish = new Fish(this.app, this.models, this.splashes)
+    this.props = new Props(this.app, this.models)
     this.seascape = new Seascape(this.app, this.models, this.props, this.rocks, this.islands, this.zones)
     this.rocks.build()
     this.props.instances.build()

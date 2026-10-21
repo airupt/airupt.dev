@@ -1,29 +1,22 @@
 import { profile, sections } from '../content/portfolio.js'
 import { islands } from '../world/layout.js'
 import { renderSection, renderClassic, isBrandName } from './render.js'
+import { keyFor } from '../engine/bindings.js'
 
 // Each section takes the colour of its island's buoy
 const sectionColors = Object.fromEntries(islands.filter(island => island.section).map(island => [island.section, island.color]))
 
-// Controls legend per input device: [keys, label] groups shown as keycaps
-const controls = {
-  keyboard: [
-    [['W', 'A', 'S', 'D'], 'Sail'],
-    [['Shift'], 'Boost'],
-    [['E'], 'Explore'],
-    [['M'], 'Map'],
-    [['L'], 'Log'],
-    [['P'], 'Photo'],
-  ],
-  gamepad: [
-    [['Stick'], 'Sail'],
-    [['RB'], 'Boost'],
-    [['A'], 'Explore'],
-  ],
-  touch: [[[], 'Point the stick where to sail, tap a prompt to explore']],
-}
-
-const interactKey = { keyboard: 'E', gamepad: 'A' }
+// Controls legend per input device: the actions (see bindings.js) with
+// their keys shown as keycaps
+const legend = [
+  ['sail', 'Sail'],
+  ['boost', 'Boost'],
+  ['interact', 'Explore'],
+  ['map', 'Map'],
+  ['log', 'Log'],
+  ['photo', 'Photo'],
+  ['reset', 'Reset'],
+]
 
 // All HTML on top of the canvas: loader, HUD, island labels, section panel
 // and the classic (no-3D) view. It runs before the 3D code has downloaded;
@@ -36,6 +29,7 @@ export class Overlay {
     this.activeSection = null
     this.device = null
     this.labels = []
+    this.toasts = []
 
     this.loader = document.querySelector('#loader')
     this.progress = this.loader.querySelector('.loader-progress')
@@ -53,6 +47,7 @@ export class Overlay {
     this.promptTap = document.querySelector('#prompt-tap')
     this.promptText = document.querySelector('#prompt-text')
     this.joystick = document.querySelector('#joystick')
+    this.boost = document.querySelector('#boost')
     this.panel = document.querySelector('#panel')
     this.panelBody = this.panel.querySelector('.panel-body')
     this.panelTitle = this.panel.querySelector('#panel-title')
@@ -94,6 +89,8 @@ export class Overlay {
       if (event.code === 'Escape' && this.isClassicOpen && !this.classic.classList.contains('is-fallback')) this.hideClassic()
     })
 
+    this.labelControls()
+
     this.soundToggle = document.querySelector('#sound-toggle')
     this.soundToggle.addEventListener('click', () => this.toggleSound())
     this.panel.addEventListener('click', event => {
@@ -116,16 +113,17 @@ export class Overlay {
   // Message card that slides in at the bottom left and leaves on its own.
   // Messages that arrive while one is showing wait their turn.
   toast(text, title, { duration = 7000 } = {}) {
-    this.toasts ??= []
     this.toasts.push({ text, title, duration })
     if (!this.toastShowing) this.nextToast()
   }
 
+  // Messages also wait while the HUD is out of sight (the loader, a dialog,
+  // photo mode, the page view) and come once the visitor is sailing again
   nextToast() {
-    const next = this.toasts.shift()
     const toast = document.querySelector('#toast')
-    this.toastShowing = Boolean(next)
-    if (!next) return
+    this.toastShowing = this.toasts.length > 0 && Boolean(this.app?.inputs?.enabled)
+    if (!this.toastShowing) return
+    const next = this.toasts.shift()
     toast.querySelector('.toast-title').textContent = next.title
     toast.querySelector('.toast-text').textContent = next.text
     toast.classList.add('is-visible')
@@ -161,11 +159,12 @@ export class Overlay {
         this.loader.classList.add('is-hidden')
         document.body.classList.add('is-sailing')
         this.hud.hidden = false
-        this.joystick.hidden = !this.app.viewport.isTouch
         onStart()
+        this.joystick.hidden = this.device !== 'touch'
+        this.boost.hidden = this.joystick.hidden
         this.updateSoundToggle()
-        // The legend leaves once the visitor has had time to read it and get moving
-        setTimeout(() => this.controls.classList.add('is-faded'), 9000)
+        this.showControls()
+        this.nextToast()
       },
       { once: true }
     )
@@ -174,7 +173,27 @@ export class Overlay {
   updateSoundToggle() {
     const on = !this.app.sounds.muted
     this.soundToggle.setAttribute('aria-pressed', String(on))
-    this.soundToggle.dataset.tooltip = on ? 'Sound on · N' : 'Sound off · N'
+    this.soundToggle.dataset.label = on ? 'Sound on' : 'Sound off'
+    this.labelControl(this.soundToggle)
+  }
+
+  // Tooltips say what a control does and its key on the device in use:
+  // "Map · M" with a keyboard, "Map · View" with a gamepad
+  labelControl(element) {
+    const key = keyFor(element.dataset.action, this.device)
+    element.dataset.tooltip = key ? `${element.dataset.label} · ${key}` : element.dataset.label
+  }
+
+  labelControls() {
+    for (const element of document.querySelectorAll('[data-action]')) this.labelControl(element)
+  }
+
+  // The legend shows for a while at the start, and again when the visitor
+  // picks up another device, then leaves once they have had time to read it
+  showControls() {
+    this.controls.classList.remove('is-faded')
+    clearTimeout(this.controlsTimer)
+    this.controlsTimer = setTimeout(() => this.controls.classList.add('is-faded'), 9000)
   }
 
   get isClassicOpen() {
@@ -184,6 +203,7 @@ export class Overlay {
   setSailing(enabled) {
     if (!this.app?.inputs) return
     this.app.inputs.enabled = enabled && this.started && this.classic.hidden && !document.querySelector('dialog[open]') && !this.app.photo?.active
+    if (this.app.inputs.enabled && !this.toastShowing) this.nextToast()
   }
 
   openSection(id) {
@@ -217,9 +237,9 @@ export class Overlay {
     this.prompt.hidden = !id
     if (!id) return
     const title = sections.find(section => section.id === id)?.title ?? id
-    const key = interactKey[this.device]
+    const key = keyFor('interact', this.device)
     this.promptKey.hidden = !key
-    this.promptKey.textContent = key ?? ''
+    this.promptKey.textContent = key
     this.promptTap.hidden = Boolean(key)
     this.promptText.textContent = `Explore ${title}`
     this.prompt.style.setProperty('--prompt-color', sectionColors[id] ?? 'var(--accent)')
@@ -229,6 +249,10 @@ export class Overlay {
     this.classic.hidden = false
     this.classic.classList.toggle('is-fallback', fallback)
     document.body.classList.add('is-classic')
+    // The page takes the keys (arrows and space scroll it); what is behind it can't be reached
+    this.hud.inert = true
+    this.loader.inert = true
+    this.classic.focus({ preventScroll: true })
     if (this.app) this.app.paused = true
     this.app?.sounds?.setSuspended(true)
     this.setSailing(false)
@@ -237,6 +261,8 @@ export class Overlay {
   hideClassic() {
     this.classic.hidden = true
     document.body.classList.remove('is-classic')
+    this.hud.inert = false
+    this.loader.inert = false
     document.activeElement?.blur()
     if (this.app) this.app.paused = false
     this.app?.sounds?.setSuspended(false)
@@ -244,13 +270,16 @@ export class Overlay {
   }
 
   renderControls(device) {
-    const groups = (controls[device] ?? controls.keyboard).map(([keys, label]) => {
+    const items = device === 'touch' ? [[null, 'Point the stick where to sail, hold the bolt to boost']] : legend
+    const groups = items.map(([action, label]) => {
       const group = document.createElement('span')
       group.className = 'controls-group'
-      for (const key of keys) {
+      // W A S D is four keys; a gamepad's "Left stick" is one control
+      const key = keyFor(action, device)
+      for (const name of !key ? [] : device === 'gamepad' ? [key] : key.split(' ')) {
         const cap = document.createElement('kbd')
         cap.className = 'key'
-        cap.textContent = key
+        cap.textContent = name
         group.append(cap)
       }
       const text = document.createElement('span')
@@ -273,10 +302,18 @@ export class Overlay {
   update() {
     const device = this.app.inputs.lastDevice
     if (device !== this.device) {
+      const switched = this.device !== null
       this.device = device
       this.hud.dataset.device = device
+      document.documentElement.dataset.device = device
       this.renderControls(device)
       this.setPrompt(this.activeSection)
+      this.labelControls()
+      // The touch stick shows for fingers only (a laptop can have a touch screen too)
+      this.joystick.hidden = !this.started || device !== 'touch'
+      this.boost.hidden = this.joystick.hidden
+      if (switched && this.started) this.showControls()
+      if (this.app.photo?.active) this.app.photo.showHint()
     }
 
     const camera = this.app.cameraRig.camera
@@ -290,11 +327,14 @@ export class Overlay {
       if (!visible) continue
       const x = (projected.x * 0.5 + 0.5) * width
       const y = (-projected.y * 0.5 + 0.5) * height
-      label.element.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`
       // Up close the painted sign on the island takes over; labels guide from afar
       const distance = camera.position.distanceTo(label.position)
       const clear = (y - 32 - this.hudEdge) / 24
-      label.element.style.opacity = Math.min(Math.max((distance - 70) / 18, 0), 1, Math.max(clear, 0))
+      // Only touch the page when something actually changed (the camera often holds still)
+      const transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`
+      const opacity = Math.min(Math.max((distance - 70) / 18, 0), 1, Math.max(clear, 0)).toFixed(2)
+      if (transform !== label.transform) label.element.style.transform = label.transform = transform
+      if (opacity !== label.opacity) label.element.style.opacity = label.opacity = opacity
     }
   }
 }

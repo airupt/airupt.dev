@@ -1,20 +1,17 @@
 import * as THREE from 'three'
-import { islands, wreck } from './layout.js'
+import { isOpenWater, wreck } from './layout.js'
 import { waveHeight } from './waves.js'
 import { mesh, part } from './Structures.js'
 
 const forward = new THREE.Vector3()
 const right = new THREE.Vector3()
 const point = new THREE.Vector3()
+const kick = new THREE.Vector3()
 
 const ease = t => t * t * (3 - 2 * t)
 const clamp01 = t => Math.min(Math.max(t, 0), 1)
 
 // Clear of every island by `margin` metres
-function isOpenWater(x, z, margin) {
-  return islands.every(island => Math.hypot(island.x - x, island.z - z) > island.radius * 1.15 + margin)
-}
-
 // A few rare animals, each with its own moment: dolphins race a boat at
 // full speed, a whale comes up at night far from land, and something under
 // the wreck doesn't like being disturbed
@@ -89,7 +86,7 @@ class Dolphins {
     const position = boat.object.position
     this.cooldown -= delta
     // Full throttle and fast, boost or not: phones have no boost key
-    const flatOut = input.throttle > 0.9 && boat.speed > 10.5 && isOpenWater(position.x, position.z, 10)
+    const flatOut = input.throttle > 0.9 && boat.speed > 10.5 && isOpenWater(position.x, position.z, { margin: 10 })
 
     if (!this.active) {
       this.boosting = flatOut ? this.boosting + delta : 0
@@ -124,7 +121,7 @@ class Dolphins {
       const above = y > surface - 0.1
       if (above !== dolphin.above) {
         point.y = surface
-        this.splashes.emit(point, forward.clone().multiplyScalar(boat.speed * 0.4), { count: 10, spread: 0.5, up: 1.6, size: 0.07, life: 0.6 })
+        this.splashes.emit(point, kick.copy(forward).multiplyScalar(boat.speed * 0.4), { count: 10, spread: 0.5, up: 1.6, size: 0.07, life: 0.6 })
         if (!above) this.app.sounds.play('splash', 0.18, 1.6 + Math.random() * 0.3, point)
       }
       dolphin.above = above
@@ -229,7 +226,7 @@ class Whale {
     if (t > 1.1 && t < 1.8) {
       point.set(0, 1, -2.4).applyEuler(this.model.rotation).add(this.model.position)
       point.y = Math.max(point.y, surface)
-      this.splashes.emit(point, new THREE.Vector3(), { count: 3, spread: 0.25, up: 7, size: 0.12, life: 1.3 })
+      this.splashes.emit(point, null, { count: 3, spread: 0.25, up: 7, size: 0.12, life: 1.3 })
       if (!this.blown) {
         this.blown = true
         this.app.sounds.play('splash', 0.35, 0.45, point)
@@ -243,7 +240,7 @@ class Whale {
       this.slapped = true
       this.tail.getWorldPosition(point)
       point.y = surface
-      this.splashes.emit(point, new THREE.Vector3(), { count: 40, spread: 2.2, up: 3.4, size: 0.12, life: 1.1 })
+      this.splashes.emit(point, null, { count: 40, spread: 2.2, up: 3.4, size: 0.12, life: 1.1 })
       this.app.sounds.play('splash', 0.5, 0.6, point)
     }
 
@@ -261,7 +258,7 @@ class Whale {
     this.heading.copy(rig.screenRight).multiplyScalar(-side)
     for (const distance of [0, 6, 12]) {
       point.copy(this.start).addScaledVector(this.heading, distance)
-      if (!isOpenWater(point.x, point.z, 12)) return
+      if (!isOpenWater(point.x, point.z, { margin: 12 })) return
     }
     this.active = true
     this.time = 0
@@ -338,7 +335,7 @@ class Tentacle {
     // Bubbles first, then up, a sway, the slap, and back down
     if (t < 1.1 && Math.random() < delta * 12) {
       point.set(this.root.position.x + (Math.random() - 0.5) * 1.5, surface, this.root.position.z + (Math.random() - 0.5) * 1.5)
-      this.splashes.emit(point, new THREE.Vector3(), { count: 3, spread: 0.3, up: 1, size: 0.06, life: 0.5 })
+      this.splashes.emit(point, null, { count: 3, spread: 0.3, up: 1, size: 0.06, life: 0.5 })
     }
     const rise = ease(clamp01((t - 1.1) / 1.1))
     const sink = ease(clamp01((t - 5.2) / 1.2))
@@ -357,7 +354,7 @@ class Tentacle {
       this.slapped = true
       this.segments.at(-1).getWorldPosition(this.tip)
       this.tip.y = waveHeight(this.tip.x, this.tip.z, time)
-      this.splashes.emit(this.tip, new THREE.Vector3(), { count: 46, spread: 2.4, up: 3.8, size: 0.12, life: 1.1 })
+      this.splashes.emit(this.tip, null, { count: 46, spread: 2.4, up: 3.8, size: 0.12, life: 1.1 })
       this.app.sounds.play('bump', 0.7, 0.6, this.tip)
       this.app.sounds.play('splash', 0.5, 0.75, this.tip)
       this.app.cameraRig.shake(0.35)

@@ -3,6 +3,7 @@ import * as THREE from 'three'
 const bow = new THREE.Vector3()
 const side = new THREE.Vector3()
 const forward = new THREE.Vector3()
+const kick = new THREE.Vector3()
 
 // Spray from the bow at speed, a burst when landing after a jump, and one
 // when the boat slams into something
@@ -31,7 +32,7 @@ export class BoatEffects {
         const direction = Math.random() < 0.5 ? -1 : 1
         side.set(-forward.z, 0, forward.x).multiplyScalar(direction)
         bow.set(direction * 0.66, -0.15, -1.05).applyQuaternion(boat.object.quaternion).add(boat.object.position)
-        splashes.emit(bow, side.clone().multiplyScalar(1.6 + speed * 0.14).addScaledVector(forward, speed * 0.2), {
+        splashes.emit(bow, side.multiplyScalar(1.6 + speed * 0.14).addScaledVector(forward, speed * 0.2), {
           count: 1,
           spread: 0.45,
           up: 1.7 + speed * 0.1,
@@ -46,19 +47,19 @@ export class BoatEffects {
     if (boosting && boat.inWater > 0) {
       bow.set(0, 0, 1.9).applyQuaternion(boat.object.quaternion).add(boat.object.position)
       if (!this.wasBoosting) {
-        splashes.emit(bow, forward.clone().multiplyScalar(-2.5), { count: 22, spread: 1.1, up: 3.2, size: 0.09, life: 0.9 })
+        splashes.emit(bow, kick.copy(forward).multiplyScalar(-2.5), { count: 22, spread: 1.1, up: 3.2, size: 0.09, life: 0.9 })
       } else if (speed > 6) {
         this.tailBudget = (this.tailBudget ?? 0) + speed * 2.2 * delta
         while (this.tailBudget >= 1) {
           this.tailBudget -= 1
-          splashes.emit(bow, forward.clone().multiplyScalar(-1.5 - Math.random()), { count: 1, spread: 0.5, up: 2.6 + Math.random(), size: 0.09, life: 0.7 })
+          splashes.emit(bow, kick.copy(forward).multiplyScalar(-1.5 - Math.random()), { count: 1, spread: 0.5, up: 2.6 + Math.random(), size: 0.09, life: 0.7 })
         }
       }
     }
     this.wasBoosting = boosting
 
     if (boat.inWater > 0 && this.lastInWater === 0 && boat.velocity.y < -2) {
-      splashes.emit(boat.object.position, new THREE.Vector3(), { count: 26, spread: 2.2, up: 2.4, size: 0.1, life: 1 })
+      splashes.emit(boat.object.position, null, { count: 26, spread: 2.2, up: 2.4, size: 0.1, life: 1 })
       this.onImpact?.(Math.min(-boat.velocity.y / 10, 1) * 0.6)
     }
     this.lastInWater = boat.inWater
@@ -69,7 +70,7 @@ export class BoatEffects {
     const change = this.lastVelocity.distanceTo(boat.velocity)
     if (change > 2.5 && change < 20 && !teleported) {
       bow.set(0, 0, -1.8).applyQuaternion(boat.object.quaternion).add(boat.object.position)
-      splashes.emit(bow, new THREE.Vector3(), { count: Math.round(change * 4.5), spread: 2.2, up: 2.8, size: 0.11, life: 0.9 })
+      splashes.emit(bow, null, { count: Math.round(change * 4.5), spread: 2.2, up: 2.8, size: 0.11, life: 0.9 })
       this.onImpact?.(Math.min(change / 12, 1))
     }
     this.lastVelocity.copy(boat.velocity)

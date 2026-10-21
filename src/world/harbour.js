@@ -57,3 +57,23 @@ export function harbourLayout(shore, out, toCamera) {
   const { x, z } = candidates.find(candidate => candidate.room >= 4.5) ?? candidates.reduce((best, candidate) => (candidate.room > best.room ? candidate : best))
   return { berth, buoy: { x, z } }
 }
+
+// Metres between the two marks of a channel
+export const CHANNEL_WIDTH = 9
+
+// A pair of channel marks part-way (t, 0 to 1) along the run from one point
+// to another, `width` metres apart: facing along the run, red to port (the
+// left) and green to starboard
+export function channelMarks(from, to, t, width) {
+  const dx = to.x - from.x
+  const dz = to.z - from.z
+  const length = Math.hypot(dx, dz)
+  // Left of the way the run faces, seen from above (+y up, -z ahead turns left to -x)
+  const left = { x: dz / length, z: -dx / length }
+  const x = from.x + dx * t
+  const z = from.z + dz * t
+  return [
+    { side: 'port', x: x + (left.x * width) / 2, z: z + (left.z * width) / 2 },
+    { side: 'starboard', x: x - (left.x * width) / 2, z: z - (left.z * width) / 2 },
+  ]
+}

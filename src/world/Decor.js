@@ -9,9 +9,9 @@ import { footprints } from './IslandScenes.js'
 import { sections } from '../content/portfolio.js'
 import { createBench, createCampfire, createLighthouse, createLogSeat, createLookout, createLumber, createMailbox, createSignpostHub, createTent, createWorkbench } from './Structures.js'
 
-export const DOCK_TILES = 2
-export const DOCK_TILE = 2.5 // metres per collision box along the dock
-export const DOCK_HEIGHT = -0.55 // bottom of the collision boxes
+const DOCK_TILES = 2
+const DOCK_TILE = 2.5 // metres per collision box along the dock
+const DOCK_HEIGHT = -0.55 // bottom of the collision boxes
 
 const palms = ['palm-straight', 'palm-bend', 'palm-detailed-straight', 'palm-detailed-bend']
 

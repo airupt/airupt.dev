@@ -3,13 +3,12 @@ import * as RAPIER from '@dimforge/rapier3d'
 import { createRandom } from '../utils/noise.js'
 import { createSparBuoy } from './Structures.js'
 import { Buoy } from './Buoy.js'
-import { arch, moorings, rockClusters, spawn, wreck } from './layout.js'
+import { arch, isOpenWater, moorings, rockClusters, spawn, wreck } from './layout.js'
+import { CHANNEL_WIDTH, channelMarks } from './harbour.js'
 import { instanceStatic } from './instancing.js'
 
-// A pair of channel marks halfway along the run from the start to each
-// section's dock: sail between them and you are on your way there
-const CHANNEL_WIDTH = 9
-
+// Everything out on the open sea: sea stacks, the rock arch, the reef round
+// the lagoon, anchored boats, the wreck and the channel marks
 export class Seascape {
   constructor(app, models, props, rockField, islands, zones) {
     this.app = app
@@ -65,23 +64,15 @@ export class Seascape {
 
     instanceStatic(group, statics)
 
-    const isOpenWater = (x, z) => islands.list.every(island => Math.hypot(island.x - x, island.z - z) > island.radius * 1.15)
+    // A pair of channel marks part-way along the run from the start to each
+    // section's dock: sail between them and you are on your way there
     for (const zone of zones.list) {
-      const dx = zone.x - spawn.x
-      const dz = zone.z - spawn.z
-      const length = Math.hypot(dx, dz)
-      // Facing along the run, red is to port (left), green to starboard
-      const across = { x: -dz / length, z: dx / length }
+      // The first spot along the run with open water on both sides
       for (const t of [0.5, 0.42, 0.58]) {
-        const midX = spawn.x + dx * t
-        const midZ = spawn.z + dz * t
-        const spots = [
-          ['port', midX + across.x * (CHANNEL_WIDTH / 2), midZ + across.z * (CHANNEL_WIDTH / 2)],
-          ['starboard', midX - across.x * (CHANNEL_WIDTH / 2), midZ - across.z * (CHANNEL_WIDTH / 2)],
-        ]
-        if (!spots.every(([, x, z]) => isOpenWater(x, z))) continue
+        const spots = channelMarks(spawn, zone, t, CHANNEL_WIDTH)
+        if (!spots.every(({ x, z }) => isOpenWater(x, z))) continue
         // Real floating buoys on a tether: the boat can bump them aside
-        for (const [side, x, z] of spots) {
+        for (const { side, x, z } of spots) {
           const model = new THREE.Group()
           const mark = createSparBuoy(side)
           mark.position.y = -0.3

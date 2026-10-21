@@ -7,7 +7,7 @@ const STORAGE_KEY = 'airupt-log'
 // [id, what the log says once found, a hint until then]
 export const discoveries = [
   ['bottle', 'Found a message in a bottle', 'Something glints on the water.'],
-  ['bottles', 'Found all eight bottles', 'Eight bottles drift around these islands.'],
+  ['bottles', 'Found every bottle', 'Bottles drift all round these islands. Find every one.'],
   ['treasure', 'Dug up the treasure', 'Every bottle holds a piece of a treasure map.'],
   ['islands', 'Docked at every island', 'Come alongside the dock of all four section islands.'],
   ['landing', 'Landed on Mount Airupt', 'The volcano has a little landing of its own.'],

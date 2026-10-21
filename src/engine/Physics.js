@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import * as RAPIER from '@dimforge/rapier3d'
 
-export const STEP = 1 / 60
+const STEP = 1 / 60
 const MAX_STEPS = 4
 
 // Copies a rigid body's transform onto a mesh, interpolating between the last

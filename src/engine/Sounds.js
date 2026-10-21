@@ -232,7 +232,9 @@ export class Sounds {
     }
 
     // A campfire crackles when you're near it
-    const fire = this.app.world.decor?.placed.find(placed => placed.id === 'campfire')?.model.position
+    const decor = this.app.world.decor
+    if (this.fire === undefined && decor) this.fire = decor.placed.find(placed => placed.id === 'campfire')?.model.position ?? null
+    const fire = this.fire
     if (fire) {
       const near = 1 - Math.min(Math.hypot(fire.x - boat.object.position.x, fire.z - boat.object.position.z) / 24, 1)
       this.crackleTimer = (this.crackleTimer ?? 0) - delta
@@ -261,8 +263,11 @@ export class Sounds {
     const teleported = this.lastPosition && Math.hypot(position.x - this.lastPosition.x, position.z - this.lastPosition.z) > 5
     const change = Math.hypot(boat.velocity.x - this.lastVelocity.x, boat.velocity.z - this.lastVelocity.z)
     if (change > 2.5 && !teleported) this.play('bump', Math.min(change / 10, 1) * 0.8, 0.9 + Math.random() * 0.2, position)
-    this.lastVelocity = { x: boat.velocity.x, z: boat.velocity.z }
-    this.lastPosition = { x: position.x, z: position.z }
+    this.lastVelocity.x = boat.velocity.x
+    this.lastVelocity.z = boat.velocity.z
+    this.lastPosition ??= { x: 0, z: 0 }
+    this.lastPosition.x = position.x
+    this.lastPosition.z = position.z
 
     this.gullTimer -= delta
     if (this.gullTimer <= 0) {

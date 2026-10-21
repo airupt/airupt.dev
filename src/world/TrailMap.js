@@ -122,6 +122,8 @@ const WAKE_LIFE = 2.8
 const WAKE_SPREAD = 0.34
 
 const stern = new THREE.Vector3()
+const outward = new THREE.Vector3()
+const SIDES = [-1, 1]
 const matrix = new THREE.Matrix4()
 
 // A world-space map of churned water around the boat, rendered every frame:
@@ -180,22 +182,20 @@ export class TrailMap {
     while (this.travelled > WAKE_SPACING) {
       this.travelled -= WAKE_SPACING
       if (strength <= 0) continue
-      for (const side of [-1, 1]) {
+      for (const side of SIDES) {
         const point = this.points[this.nextPoint]
         this.nextPoint = (this.nextPoint + 1) % WAKE_POINTS
         // Bow waves start at the shoulders of the hull, so the boat sits
         // inside its own V like a real one
         stern.set(side * 0.62, 0, -0.9).applyQuaternion(quaternion).add(position)
         // Sideways relative to the hull, scaled by speed
-        const outward = new THREE.Vector3(side, 0, 0).applyQuaternion(quaternion).setY(0).normalize()
-        Object.assign(point, {
-          x: stern.x,
-          z: stern.z,
-          vx: outward.x * speed * WAKE_SPREAD,
-          vz: outward.z * speed * WAKE_SPREAD,
-          age: 0,
-          strength,
-        })
+        outward.set(side, 0, 0).applyQuaternion(quaternion).setY(0).normalize()
+        point.x = stern.x
+        point.z = stern.z
+        point.vx = outward.x * speed * WAKE_SPREAD
+        point.vz = outward.z * speed * WAKE_SPREAD
+        point.age = 0
+        point.strength = strength
       }
     }
 
@@ -253,7 +253,8 @@ export class TrailMap {
     // Stamps: map x → right, z → down in texture space (v = -z)
     const yaw = Math.atan2(2 * (this.boat.object.quaternion.w * this.boat.object.quaternion.y), 1 - 2 * this.boat.object.quaternion.y ** 2)
     const speed = Math.abs(this.boat.speed)
-    const inWater = this.boat.inWater > 0 ? 1 : 0
+    // A boat hidden for a photo leaves no foam either
+    const inWater = this.boat.inWater > 0 && this.boat.object.visible ? 1 : 0
 
     this.hull.position.set(position.x - nextX, -(position.z - nextZ), 0)
     this.hull.rotation.z = yaw

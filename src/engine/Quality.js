@@ -32,7 +32,7 @@ export class Quality {
     app.resize()
   }
 
-  // Called every frame once the visit has started
+  // Called every frame while sailing (menus and photo mode would skew the measure)
   update(delta) {
     if (this.forced || this.level === 'low') return
     this.sampleTime += delta

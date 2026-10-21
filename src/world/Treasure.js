@@ -111,7 +111,7 @@ export class Treasure {
     for (const glint of this.glints) glint.visible = false
     this.chest.visible = true
     this.app.map?.showTreasure(false)
-    this.app.world.splashes.emit(this.spot.clone().setY(this.spot.y + 0.2), new THREE.Vector3(), { count: 30, spread: 1.6, up: 3, size: 0.1, life: 1 })
+    this.app.world.splashes.emit(this.spot.clone().setY(this.spot.y + 0.2), null, { count: 30, spread: 1.6, up: 3, size: 0.1, life: 1 })
     this.app.sounds.rumble(0.25)
     this.app.cameraRig.shake(0.15)
   }
@@ -178,7 +178,9 @@ export class Treasure {
   card() {
     const chart = this.app.map?.chartCanvas
     if (!chart) return null
-    const pieces = this.app.world.bottles.collected.size
+    const { collected, items } = this.app.world.bottles
+    const pieces = collected.size
+    const total = items.length
     const size = 360
     const canvas = element('canvas', { class: 'treasure-map', width: String(size), height: String(size), role: 'img' })
     const context = canvas.getContext('2d')
@@ -193,12 +195,11 @@ export class Treasure {
     context.fillStyle = '#d8c39a'
     context.fill()
     context.clip()
-    for (let piece = 0; piece < 8; piece++) {
-      if (piece >= pieces) continue
+    for (let piece = 0; piece < pieces; piece++) {
       context.save()
       context.beginPath()
       context.moveTo(size / 2, size / 2)
-      context.arc(size / 2, size / 2, radius, (piece / 8) * Math.PI * 2 - Math.PI / 2, ((piece + 1) / 8) * Math.PI * 2 - Math.PI / 2)
+      context.arc(size / 2, size / 2, radius, (piece / total) * Math.PI * 2 - Math.PI / 2, ((piece + 1) / total) * Math.PI * 2 - Math.PI / 2)
       context.closePath()
       context.clip()
       context.drawImage(this.aged, 0, 0)
@@ -210,8 +211,8 @@ export class Treasure {
     context.strokeStyle = 'rgb(90 60 30 / 0.45)'
     context.lineWidth = 2
     context.setLineDash([5, 5])
-    for (let piece = 0; piece < 8; piece++) {
-      const angle = (piece / 8) * Math.PI * 2 - Math.PI / 2
+    for (let piece = 0; piece < total; piece++) {
+      const angle = (piece / total) * Math.PI * 2 - Math.PI / 2
       context.beginPath()
       context.moveTo(size / 2, size / 2)
       context.lineTo(size / 2 + Math.cos(angle) * radius, size / 2 + Math.sin(angle) * radius)
@@ -229,7 +230,7 @@ export class Treasure {
       const scale = size / 2 / extent
       return [size / 2 + Math.SQRT1_2 * (x - z) * scale, size / 2 + Math.SQRT1_2 * (x + z) * scale]
     }
-    if (pieces >= 8) {
+    if (pieces >= total) {
       const [sx, sy] = toChart(spawn.x, spawn.z)
       const [tx, ty] = toChart(this.spot.x, this.spot.z)
       context.strokeStyle = '#7a2e1f'
@@ -250,14 +251,14 @@ export class Treasure {
         context.stroke()
       }
     }
-    canvas.setAttribute('aria-label', `Treasure map, ${pieces} of 8 pieces found`)
+    canvas.setAttribute('aria-label', `Treasure map, ${pieces} of ${total} pieces found`)
 
     const found = this.logbook.has('treasure')
     const text = found
       ? 'You found the treasure in the lagoon.'
-      : pieces >= 8
+      : pieces >= total
         ? 'The map is complete. X marks a sandy cay in the lagoon.'
-        : `${pieces} of 8 pieces. Every bottle you find adds one.`
+        : `${pieces} of ${total} pieces. Every bottle you find adds one.`
     const details = [element('h3', { text: 'Treasure map' }), element('p', { text })]
     if (found) details.push(this.paintSwitch())
     return element('div', { class: 'treasure-card' }, [canvas, element('div', {}, details)])

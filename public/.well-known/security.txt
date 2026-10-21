@@ -1,0 +1,6 @@
+# Security contact for airupt.dev (RFC 9116)
+Contact: https://github.com/airupt/airupt.dev/security/advisories/new
+Contact: https://x.com/airuptwastaken
+Expires: 2027-09-30T00:00:00.000Z
+Preferred-Languages: en, nl
+Canonical: https://airupt.dev/.well-known/security.txt

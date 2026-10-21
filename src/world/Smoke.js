@@ -82,11 +82,12 @@ export class Smoke {
       emitter.burst = Math.max(0, emitter.burst - delta / 1.6)
     }
 
+    // Spent puffs are dropped in place, keeping the order the rest rose in
     let count = 0
-    this.puffs = this.puffs.filter(puff => {
+    for (const puff of this.puffs) {
       puff.age += delta
       const t = puff.age / puff.life
-      if (t >= 1 || count >= this.capacity) return false
+      if (t >= 1 || count >= this.capacity) continue
       const { emitter } = puff
 
       // Fast at first, slowing as it rises; the wind bends the column over
@@ -100,9 +101,9 @@ export class Smoke {
       matrix.compose(position.copy(puff.position), rotation.setFromEuler(euler), scale.setScalar(size))
       this.mesh.setMatrixAt(count, matrix)
       this.mesh.setColorAt(count, color.copy(emitter.color).lerp(emitter.fade, Math.min(t * 1.4, 1)))
-      count++
-      return true
-    })
+      this.puffs[count++] = puff
+    }
+    this.puffs.length = count
 
     this.mesh.count = count
     this.mesh.instanceMatrix.needsUpdate = true

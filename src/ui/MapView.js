@@ -123,6 +123,8 @@ export class MapView {
       if (event.target === this.dialog) this.dialog.close()
     })
     this.dialog.addEventListener('keydown', event => {
+      // Holding M would otherwise close it again straight away
+      if (event.repeat) return
       if (event.code === 'KeyM') this.dialog.close()
       const island = this.destinations[Number(event.key) - 1]
       if (island) this.sailTo(island)
@@ -251,7 +253,8 @@ export class MapView {
   }
 
   open() {
-    if (this.dialog.open || document.querySelector('#panel').open) return
+    // Only from sailing: not over a panel, the log, photo mode or the page view
+    if (!this.app.inputs.enabled) return
     for (const highlight of this.highlights) if (!highlight.drawn) this.drawHighlight(highlight)
     this.dialog.showModal()
     this.app.overlay.setSailing(false)
@@ -281,6 +284,7 @@ export class MapView {
     const { position, quaternion } = this.app.world.boat.object
     // Heading on the ground plane, as an SVG rotation (0 = toward -z)
     const yaw = Math.atan2(2 * (quaternion.w * quaternion.y + quaternion.x * quaternion.z), 1 - 2 * (quaternion.y ** 2 + quaternion.x ** 2))
-    this.boat.setAttribute('transform', `translate(${position.x} ${position.z}) rotate(${(-yaw * 180) / Math.PI})`)
+    const transform = `translate(${position.x.toFixed(2)} ${position.z.toFixed(2)}) rotate(${((-yaw * 180) / Math.PI).toFixed(1)})`
+    if (transform !== this.boatTransform) this.boat.setAttribute('transform', (this.boatTransform = transform))
   }
 }

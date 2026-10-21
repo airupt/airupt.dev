@@ -4,10 +4,11 @@ const desired = new THREE.Vector3()
 const viewDirection = new THREE.Vector3()
 const POLAR = Math.PI * 0.3
 const AZIMUTH = Math.PI * 0.25
+const DEFAULT_ANGLES = Object.freeze({ polar: POLAR, azimuth: AZIMUTH })
 
 // Fixed-angle follow camera looking down diagonally across the world, with a
-// narrow field of view so the scene reads like a miniature. It never rotates,
-// it only tracks the boat and zooms.
+// narrow field of view so the scene reads like a miniature. While sailing it
+// never rotates, it only tracks the boat and zooms.
 export class CameraRig {
   constructor(app) {
     this.app = app
@@ -17,6 +18,8 @@ export class CameraRig {
     // angles wanted); without it the view eases back to the fixed angle
     this.orbit = null
     this.angles = { polar: POLAR, azimuth: AZIMUTH }
+    // Photo mode can also move the camera away from the boat, by this much
+    this.pan = new THREE.Vector3()
     // The ground direction that points up the screen
     this.screenUp = new THREE.Vector3(-this.direction.x, 0, -this.direction.z).normalize()
     this.screenRight = new THREE.Vector3(-this.screenUp.z, 0, this.screenUp.x)
@@ -39,8 +42,6 @@ export class CameraRig {
 
     this.baseFov = 25
     this.fovBoost = 0
-    // Shifts the picture (not the camera) so the focus sits off-centre, e.g.
-    // beside an open panel: x and y as fractions of the screen size
     // Inside a zone the camera leans toward that island's scene, so arriving
     // frames the dock, plaza and hero instead of open water
     this.attention = null
@@ -49,6 +50,8 @@ export class CameraRig {
     // A small lean toward something while the camera is framing (a hovered project board)
     this.nudge = new THREE.Vector3()
     this.nudgeTarget = new THREE.Vector3()
+    // Shifts the picture (not the camera) so the focus sits off-centre, e.g.
+    // beside an open panel: x and y as fractions of the screen size
     this.viewShift = new THREE.Vector2()
     this.viewShiftTarget = new THREE.Vector2()
     this.shakeAmount = 0
@@ -58,15 +61,38 @@ export class CameraRig {
       'wheel',
       event => {
         if (!app.inputs?.enabled && !app.photo?.active) return
-        this.zoomTo(this.targetDistance * Math.exp(event.deltaY * 0.001))
+        this.zoomBy(Math.exp(event.deltaY * 0.001))
       },
       { passive: true }
     )
+
+    // Two fingers on the scene pinch to zoom while sailing (photo mode
+    // handles its own fingers)
+    const fingers = new Map()
+    const canvas = app.renderer.domElement
+    canvas.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'touch') fingers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    })
+    canvas.addEventListener('pointermove', event => {
+      const last = fingers.get(event.pointerId)
+      if (!last) return
+      if (fingers.size === 2 && app.inputs.enabled) {
+        const [other] = [...fingers].filter(([id]) => id !== event.pointerId).map(([, finger]) => finger)
+        const before = Math.hypot(last.x - other.x, last.y - other.y)
+        const after = Math.hypot(event.clientX - other.x, event.clientY - other.y)
+        if (before > 0 && after > 0) this.zoomBy(before / after)
+      }
+      last.x = event.clientX
+      last.y = event.clientY
+    })
+    const lift = event => fingers.delete(event.pointerId)
+    canvas.addEventListener('pointerup', lift)
+    canvas.addEventListener('pointercancel', lift)
   }
 
-  // The fixed viewing angle everything is designed around
+  // The fixed viewing angle everything is designed around (a copy, free to change)
   get defaultAngles() {
-    return { polar: POLAR, azimuth: AZIMUTH }
+    return { ...DEFAULT_ANGLES }
   }
 
   // A short jolt, e.g. when the boat hits a dock
@@ -88,6 +114,12 @@ export class CameraRig {
 
   zoomTo(distance) {
     this.targetDistance = THREE.MathUtils.clamp(distance, this.limits.min, this.limits.max)
+  }
+
+  // Zooming by hand lets go of the opening shot, which holds its own zoom
+  zoomBy(factor) {
+    this.establishing = null
+    this.zoomTo(this.targetDistance * factor)
   }
 
   resize(width, height) {
@@ -119,6 +151,7 @@ export class CameraRig {
       this.attentionWeight += ((this.attention ? 1 : 0) - this.attentionWeight) * (1 - Math.exp(-1.5 * delta))
       if (this.attention) this.attentionPoint.copy(this.attention)
       if (this.attentionWeight > 0.001) desired.lerp(this.attentionPoint, this.attentionWeight * 0.55)
+      desired.add(this.pan)
 
       if (this.establishing) {
         // Hold the opening framing until the boat has sailed a little way,
@@ -156,7 +189,11 @@ export class CameraRig {
       this.distance += (this.targetDistance - this.distance) * (1 - Math.exp(-1.6 * delta))
     }
 
-    const goal = this.orbit ?? this.defaultAngles
+    // Zooming by keys or the right stick, while held
+    const zoom = this.app.inputs.state.zoom
+    if (zoom) this.zoomBy(Math.exp(zoom * 1.2 * delta))
+
+    const goal = this.orbit ?? DEFAULT_ANGLES
     // The short way round when easing back after a full turn
     this.angles.azimuth = goal.azimuth + THREE.MathUtils.euclideanModulo(this.angles.azimuth - goal.azimuth + Math.PI, Math.PI * 2) - Math.PI
     const ease = 1 - Math.exp(-6 * delta)

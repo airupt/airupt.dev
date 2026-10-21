@@ -178,7 +178,7 @@ const fogBlock = /* glsl */ `
 // Turns a MeshLambertMaterial into the stylised look. `extend` can patch the
 // shader further (the ocean adds waves); `key` must then be unique to it.
 // `seeThrough` lets the boat show through it (off for the sea and the boat).
-export function stylize(material, { waterLine = true, seeThrough = true, extend = null, key = 'default' } = {}) {
+function stylize(material, { waterLine = true, seeThrough = true, extend = null, key = 'default' } = {}) {
   material.onBeforeCompile = shader => {
     Object.assign(shader.uniforms, shared)
 

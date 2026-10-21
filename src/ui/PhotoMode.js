@@ -1,57 +1,68 @@
-// Photo mode: the interface steps aside and the camera is yours. Drag (or
-// the arrow keys) to swing it round the boat and tilt it, from looking
-// straight down to skimming the water; scroll, pinch or - and = to zoom;
-// the light of day on a slider or [ and ]. The shutter (Space) shows the
-// picture with Save (S) and Share, and a small airupt.dev mark in its corner.
-const TILT = { min: Math.PI * 0.1, max: Math.PI * 0.44 }
-const HINTS = {
-  touch: 'Drag to turn the camera, pinch to zoom, and pick the light.',
-  other: 'Drag or use the arrow keys to turn the camera, scroll to zoom, and pick the light. Space takes the photo.',
-}
+import { keyFor } from '../engine/bindings.js'
 
+// Photo mode: the interface steps aside and the camera is yours. Turn it
+// round and tilt it down to the waves, move it across the water, zoom, pick
+// the light, soften or sharpen the miniature blur, hide the boat, lay a
+// framing grid over the view. The shutter shows the picture with Save and
+// Share, and a small airupt.dev mark in its corner. Every control works
+// with the mouse, touch, the keyboard and a gamepad (see bindings.js).
+const TILT = { min: Math.PI * 0.1, max: Math.PI * 0.44 }
+const BLUR_STEP = 1.5
+// The light buttons in order, at these times of day (see DayCycle)
+const LIGHTS = [0.93, 0.25, 0.45, 0.5, 0.72]
+// How far from the middle of the world the camera may wander, in metres
+const ROAM = 110
 export class PhotoMode {
   constructor(app) {
     this.app = app
     this.active = false
+    this.held = new Set()
+    this.pointers = new Map()
     this.bar = document.querySelector('#photo-bar')
-    this.time = this.bar.querySelector('#photo-time')
-    this.zoom = this.bar.querySelector('#photo-zoom')
     this.hint = this.bar.querySelector('.photo-hint')
+    this.lights = [...this.bar.querySelectorAll('[data-light]')]
+    this.zoom = this.bar.querySelector('#photo-zoom')
+    this.blur = this.bar.querySelector('#photo-blur')
+    this.boatButton = this.bar.querySelector('#photo-boat')
+    this.gridButton = this.bar.querySelector('#photo-grid')
+    this.grid = document.querySelector('#photo-grid-lines')
     this.flash = document.querySelector('#photo-flash')
     this.preview = document.querySelector('#photo-preview')
-    this.pointers = new Map()
+    this.shareButton = this.preview.querySelector('[data-share]')
 
     document.querySelector('#open-photo').addEventListener('click', () => this.enter())
+    app.inputs.on('photo', () => this.enter())
     this.bar.querySelector('#photo-shutter').addEventListener('click', () => this.capture())
     this.bar.querySelector('#photo-reset').addEventListener('click', () => this.resetView())
     this.bar.querySelector('#photo-exit').addEventListener('click', () => this.exit())
+    this.lights.forEach((button, index) => button.addEventListener('click', () => this.setLight(index)))
+    this.boatButton.addEventListener('click', () => this.toggleBoat())
+    this.gridButton.addEventListener('click', () => this.toggleGrid())
     this.preview.querySelector('[data-save]').addEventListener('click', () => this.save())
-    this.preview.querySelector('[data-share]').addEventListener('click', () => this.share())
+    this.shareButton.addEventListener('click', () => this.share())
     this.preview.querySelector('[data-close]').addEventListener('click', () => this.closePreview())
+
+    // The zoom slider runs from far on the left to near on the right
+    this.zoom.addEventListener('input', () => {
+      const { min, max } = app.cameraRig.limits
+      app.cameraRig.zoomTo(max - Number(this.zoom.value) * (max - min))
+    })
+    this.blur.addEventListener('input', () => this.setBlur(Number(this.blur.value)))
 
     // P both opens and closes it, so it is handled here rather than as an
     // input action (one key press would otherwise do both)
-    window.addEventListener('keydown', event => {
-      if (!this.active) {
-        if (event.code === 'KeyP' && app.inputs.enabled && !event.target.closest?.('input, textarea')) this.enter()
-        return
-      }
-      if (!this.preview.hidden) {
-        if (event.code === 'Escape') this.closePreview()
-        else if (event.code === 'KeyS') this.save()
-        return
-      }
-      this.key(event)
-    })
+    window.addEventListener('keydown', event => this.keydown(event))
+    window.addEventListener('keyup', event => this.held.delete(event.code))
+    window.addEventListener('blur', () => this.held.clear())
+    app.inputs.onUi(name => this.button(name))
 
-    this.time.addEventListener('input', () => (app.world.dayCycle.progress = Number(this.time.value)))
-    this.zoom.addEventListener('input', () => app.cameraRig.zoomTo(Number(this.zoom.value)))
-
-    // Dragging on the scene turns the camera; two fingers pinch to zoom
+    // On the scene: drag to turn, right-drag (or shift-drag) to move, and
+    // two fingers to move and pinch to zoom
     const canvas = app.renderer.domElement
+    canvas.addEventListener('contextmenu', event => this.active && event.preventDefault())
     canvas.addEventListener('pointerdown', event => {
       if (!this.active) return
-      this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, moves: event.button === 2 || event.shiftKey })
       canvas.setPointerCapture(event.pointerId)
     })
     canvas.addEventListener('pointermove', event => this.drag(event))
@@ -60,107 +71,231 @@ export class PhotoMode {
     canvas.addEventListener('pointercancel', release)
   }
 
-  // Keys while shooting: the arrows turn the camera (unless a slider has
-  // them), [ ] the light, - = zoom, R the usual view, Space the shutter
-  key(event) {
-    const rig = this.app.cameraRig
-    const onSlider = event.target.closest?.('input')
-    const turn = { ArrowLeft: [0.12, 0], ArrowRight: [-0.12, 0], ArrowUp: [0, -0.06], ArrowDown: [0, 0.06] }[event.code]
-    // By the key's place or its character, whichever the keyboard gives
-    const is = (code, ...keys) => event.code === code || keys.includes(event.key)
-    const later = is('BracketRight', ']')
-    const earlier = is('BracketLeft', '[')
-    const closer = is('Equal', '=', '+')
-    const further = is('Minus', '-', '_')
-    if (event.code === 'Escape' || event.code === 'KeyP') this.exit()
-    else if (turn && !onSlider) {
-      event.preventDefault()
-      rig.orbit.azimuth += turn[0]
-      rig.orbit.polar = Math.min(Math.max(rig.orbit.polar + turn[1], TILT.min), TILT.max)
-      this.hideHint()
-    } else if (later || earlier) {
-      const progress = (this.app.world.dayCycle.progress + (later ? 0.01 : -0.01) + 1) % 1
-      this.app.world.dayCycle.progress = progress
-      this.time.value = String(progress)
-    } else if (closer || further) {
-      rig.zoomTo(rig.targetDistance * (further ? 1.1 : 1 / 1.1))
-    } else if (event.code === 'KeyR') {
-      this.resetView()
-    } else if ((event.code === 'Space' || event.code === 'Enter') && !event.target.closest?.('button')) {
-      event.preventDefault()
-      this.capture()
-    }
-  }
-
-  // The zoom slider follows the wheel, pinch and keys
-  follow() {
-    if (!this.active) return
-    const distance = String(Math.round(this.app.cameraRig.targetDistance * 2) / 2)
-    if (this.zoom.value !== distance && document.activeElement !== this.zoom) this.zoom.value = distance
-    requestAnimationFrame(() => this.follow())
-  }
-
-  drag(event) {
-    const last = this.pointers.get(event.pointerId)
-    if (!this.active || !last) return
-    const rig = this.app.cameraRig
-    if (this.pointers.size === 1) {
-      const orbit = rig.orbit
-      orbit.azimuth -= (event.clientX - last.x) * 0.006
-      orbit.polar = Math.min(Math.max(orbit.polar - (event.clientY - last.y) * 0.004, TILT.min), TILT.max)
-      this.hideHint()
-    } else if (this.pointers.size === 2) {
-      const [other] = [...this.pointers].filter(([id]) => id !== event.pointerId).map(([, position]) => position)
-      const before = Math.hypot(last.x - other.x, last.y - other.y)
-      const after = Math.hypot(event.clientX - other.x, event.clientY - other.y)
-      if (before > 0 && after > 0) rig.zoomTo(rig.targetDistance * (before / after))
-    }
-    this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
-  }
-
   enter() {
-    if (this.active || !this.app.overlay.started || document.querySelector('dialog[open]')) return
+    // Only from sailing: not over the loader, a dialog or the page view
+    if (this.active || !this.app.inputs.enabled) return
     this.active = true
-    const { dayCycle } = this.app.world
-    const rig = this.app.cameraRig
-    this.speed = dayCycle.speed
-    dayCycle.speed = 0
-    this.time.value = String(dayCycle.progress)
-    this.zoom.min = String(rig.limits.min)
-    this.zoom.max = String(rig.limits.max)
-    this.zoom.value = String(rig.targetDistance)
+    const { world, cameraRig: rig, inputs, postProcessing } = this.app
+    // Time stands still, and goes back to where it was afterwards
+    this.speed = world.dayCycle.speed
+    this.progress = world.dayCycle.progress
+    this.usualBlur = postProcessing.finish.uniforms.uBlur.value
+    world.dayCycle.speed = 0
+    // The opening shot holds the zoom while it lasts; it lets go here and
+    // picks up again afterwards, as does the zoom the visitor sails with
+    this.establishing = rig.establishing
+    this.distance = rig.targetDistance
+    rig.establishing = null
     rig.orbit = { ...rig.angles }
+    // The left stick moves the camera here rather than stepping through buttons
+    inputs.stickMenus = false
+    this.showLight()
+    this.setBlur(this.usualBlur)
     document.body.classList.add('is-photo')
     this.bar.hidden = false
     this.app.overlay.setSailing(false)
-    // How it works
-    this.hint.textContent = this.app.viewport.isTouch ? HINTS.touch : HINTS.other
-    this.hint.hidden = false
-    clearTimeout(this.hintTimer)
-    this.hintTimer = setTimeout(() => this.hideHint(), 9000)
+    this.showHint()
     // Keys work from anywhere; the bar takes focus without lighting up a tooltip
     this.bar.focus({ preventScroll: true })
-    this.follow()
   }
 
   exit() {
     if (!this.active) return
     this.active = false
     this.closePreview()
-    this.app.world.dayCycle.speed = this.speed
-    this.app.cameraRig.orbit = null
+    const { world, cameraRig: rig, inputs } = this.app
+    world.dayCycle.speed = this.speed
+    world.dayCycle.progress = this.progress
+    rig.orbit = null
+    rig.pan.set(0, 0, 0)
+    rig.establishing = this.establishing
+    rig.zoomTo(this.distance)
+    inputs.stickMenus = true
+    this.setBlur(this.usualBlur)
+    if (!world.boat.object.visible) this.toggleBoat()
+    if (!this.grid.hidden) this.toggleGrid()
     this.pointers.clear()
+    this.held.clear()
     document.body.classList.remove('is-photo')
     this.bar.hidden = true
     this.app.overlay.setSailing(true)
   }
 
-  resetView() {
-    this.app.cameraRig.orbit = this.app.cameraRig.defaultAngles
+  // How it works, for whatever the visitor is holding
+  showHint() {
+    const device = this.app.inputs.lastDevice
+    const key = action => keyFor(action, device)
+    this.hint.textContent =
+      device === 'touch'
+        ? 'Drag to turn the camera, two fingers to move and zoom.'
+        : device === 'gamepad'
+          ? `${key('turn')} turns, ${key('move')} moves, ${key('zoom')} zoom. ${key('shutter')} takes the photo.`
+          : `Drag or the ${key('turn').toLowerCase()} turn, right-drag or ${key('move')} moves, scroll zooms. ${key('shutter')} takes the photo.`
+    this.hint.hidden = false
+    clearTimeout(this.hintTimer)
+    this.hintTimer = setTimeout(() => (this.hint.hidden = true), 9000)
   }
 
-  hideHint() {
+  // Every frame while shooting: held keys and the gamepad's sticks and
+  // triggers move, turn and zoom, and the zoom slider follows the camera
+  update(delta) {
+    if (!this.active || !this.preview.hidden) return
+    const { pad } = this.app.inputs
+    const rig = this.app.cameraRig
+    const key = code => (this.held.has(code) ? 1 : 0)
+    const right = pad.lx + key('KeyD') - key('KeyA')
+    const down = pad.ly + key('KeyS') - key('KeyW')
+    // Faster the further out the camera is, so it always crosses the view in about the same time
+    const speed = rig.distance * 0.45 * delta
+    if (right || down) this.move(right * speed, down * speed)
+    if (pad.rx || pad.ry) this.turn(-pad.rx * 2.2 * delta, pad.ry * 1.2 * delta)
+    if (pad.lt > 0.1 || pad.rt > 0.1) this.app.cameraRig.zoomBy(Math.exp((pad.lt - pad.rt) * 1.4 * delta))
+
+    const { min, max } = rig.limits
+    const zoom = String(Math.round(((max - rig.targetDistance) / (max - min)) * 100) / 100)
+    if (this.zoom.value !== zoom && document.activeElement !== this.zoom) this.zoom.value = zoom
+  }
+
+  // Moves the camera over the water by metres to the right and down the
+  // screen, never further from the middle of the world than ROAM
+  move(right, down) {
+    const rig = this.app.cameraRig
+    const { azimuth } = rig.angles
+    const pan = rig.pan
+    pan.x += Math.cos(azimuth) * right + Math.sin(azimuth) * down
+    pan.z += Math.cos(azimuth) * down - Math.sin(azimuth) * right
+    const boat = this.app.world.boat.object.position
+    const x = boat.x + pan.x
+    const z = boat.z + pan.z
+    const reach = Math.hypot(x, z)
+    if (reach > ROAM) {
+      pan.x -= (x / reach) * (reach - ROAM)
+      pan.z -= (z / reach) * (reach - ROAM)
+    }
     this.hint.hidden = true
+  }
+
+  turn(azimuth, polar) {
+    const orbit = this.app.cameraRig.orbit
+    orbit.azimuth += azimuth
+    orbit.polar = Math.min(Math.max(orbit.polar + polar, TILT.min), TILT.max)
+    this.hint.hidden = true
+  }
+
+  setLight(index) {
+    this.light = (index + LIGHTS.length) % LIGHTS.length
+    this.app.world.dayCycle.progress = LIGHTS[this.light]
+    this.showLight()
+  }
+
+  // The button nearest the time of day is the one lit up
+  showLight() {
+    const progress = this.app.world.dayCycle.progress
+    const gap = time => Math.min(Math.abs(time - progress), 1 - Math.abs(time - progress))
+    this.light = LIGHTS.reduce((best, time, index) => (gap(time) < gap(LIGHTS[best]) ? index : best), 0)
+    this.lights.forEach((button, index) => button.setAttribute('aria-pressed', String(index === this.light)))
+  }
+
+  setBlur(value) {
+    const blur = Math.min(Math.max(value, Number(this.blur.min)), Number(this.blur.max))
+    this.app.postProcessing.finish.uniforms.uBlur.value = blur
+    this.blur.value = String(blur)
+  }
+
+  toggleBoat() {
+    const boat = this.app.world.boat.object
+    boat.visible = !boat.visible
+    this.boatButton.setAttribute('aria-pressed', String(boat.visible))
+  }
+
+  toggleGrid() {
+    this.grid.hidden = !this.grid.hidden
+    this.gridButton.setAttribute('aria-pressed', String(!this.grid.hidden))
+  }
+
+  resetView() {
+    const rig = this.app.cameraRig
+    rig.orbit = rig.defaultAngles
+    rig.pan.set(0, 0, 0)
+  }
+
+  keydown(event) {
+    // A held key repeats only what can go on and on: turning, light, zoom, blur
+    const repeats = /^(Arrow|Bracket|Equal|Minus|Key[QE]$)/.test(event.code) || /^[[\]=+\-_]$/.test(event.key)
+    if (event.repeat && !repeats) return
+    if (!this.active) {
+      if (event.code === 'KeyP' && !event.target.closest?.('input, textarea')) this.enter()
+      return
+    }
+    if (!this.preview.hidden) {
+      if (event.code === 'Escape') this.closePreview()
+      else if (event.code === 'KeyS') this.save()
+      else if (event.code === 'KeyD' && !this.shareButton.hidden) this.share()
+      return
+    }
+    // By the key's place or its character, whichever the keyboard gives
+    const is = (code, ...keys) => event.code === code || keys.includes(event.key)
+    const onSlider = event.target.closest?.('input')
+    const turn = { ArrowLeft: [0.12, 0], ArrowRight: [-0.12, 0], ArrowUp: [0, -0.06], ArrowDown: [0, 0.06] }[event.code]
+    if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(event.code)) this.held.add(event.code)
+    else if (event.code === 'Escape' || event.code === 'KeyP') this.exit()
+    else if (turn && !onSlider) {
+      event.preventDefault()
+      this.turn(...turn)
+    } else if (is('BracketRight', ']')) this.setLight(this.light + 1)
+    else if (is('BracketLeft', '[')) this.setLight(this.light - 1)
+    else if (is('Equal', '=', '+')) this.app.cameraRig.zoomBy(1 / 1.12)
+    else if (is('Minus', '-', '_')) this.app.cameraRig.zoomBy(1.12)
+    else if (event.code === 'KeyE') this.setBlur(Number(this.blur.value) + BLUR_STEP)
+    else if (event.code === 'KeyQ') this.setBlur(Number(this.blur.value) - BLUR_STEP)
+    else if (event.code === 'KeyH') this.toggleBoat()
+    else if (event.code === 'KeyG') this.toggleGrid()
+    else if (event.code === 'KeyR') this.resetView()
+    else if ((event.code === 'Space' || event.code === 'Enter') && !event.target.closest?.('button')) {
+      event.preventDefault()
+      this.capture()
+    }
+  }
+
+  // Gamepad buttons (sticks and triggers are read every frame in update)
+  button(name) {
+    if (!this.active) return
+    if (!this.preview.hidden) {
+      if (name === 'A') this.save()
+      else if (name === 'X' && !this.shareButton.hidden) this.share()
+      else if (name === 'B') this.closePreview()
+      return
+    }
+    if (name === 'A') this.capture()
+    else if (name === 'B') this.exit()
+    else if (name === 'X') this.toggleBoat()
+    else if (name === 'Y') this.resetView()
+    else if (name === 'RB') this.toggleGrid()
+    else if (name === 'LEFT' || name === 'RIGHT') this.setLight(this.light + (name === 'RIGHT' ? 1 : -1))
+    else if (name === 'UP' || name === 'DOWN') this.setBlur(Number(this.blur.value) + (name === 'UP' ? BLUR_STEP : -BLUR_STEP))
+  }
+
+  drag(event) {
+    const last = this.pointers.get(event.pointerId)
+    if (!this.active || !last) return
+    const rig = this.app.cameraRig
+    const dx = event.clientX - last.x
+    const dy = event.clientY - last.y
+    // Metres of water per pixel where the camera looks, so the ground stays under the pointer
+    const metres = (2 * rig.distance * Math.tan((rig.camera.fov * Math.PI) / 360)) / this.app.viewport.height
+    const grab = (x, y) => this.move(-x * metres, (-y * metres) / Math.cos(rig.angles.polar))
+    if (this.pointers.size === 1) {
+      if (last.moves) grab(dx, dy)
+      else this.turn(-dx * 0.006, -dy * 0.004)
+    } else if (this.pointers.size === 2) {
+      const [other] = [...this.pointers].filter(([id]) => id !== event.pointerId).map(([, pointer]) => pointer)
+      const before = Math.hypot(last.x - other.x, last.y - other.y)
+      const after = Math.hypot(event.clientX - other.x, event.clientY - other.y)
+      if (before > 0 && after > 0) this.app.cameraRig.zoomBy(before / after)
+      // The middle of the two fingers moves half as far as this one did
+      grab(dx / 2, dy / 2)
+    }
+    this.pointers.set(event.pointerId, { ...last, x: event.clientX, y: event.clientY })
   }
 
   async capture() {
@@ -183,12 +318,12 @@ export class PhotoMode {
     app.world.logbook?.record('photo')
 
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
-    if (!blob) return
+    if (!blob || !this.active) return
     if (this.url) URL.revokeObjectURL(this.url)
     this.url = URL.createObjectURL(blob)
     this.file = new File([blob], 'airupt-dev.png', { type: 'image/png' })
     this.preview.querySelector('img').src = this.url
-    this.preview.querySelector('[data-share]').hidden = !navigator.canShare?.({ files: [this.file] })
+    this.shareButton.hidden = !navigator.canShare?.({ files: [this.file] })
     this.preview.hidden = false
     document.body.classList.add('is-previewing')
     this.preview.querySelector('[data-save]').focus({ preventScroll: true })
@@ -212,6 +347,7 @@ export class PhotoMode {
   closePreview() {
     this.preview.hidden = true
     document.body.classList.remove('is-previewing')
+    if (this.active) this.bar.focus({ preventScroll: true })
   }
 
   // The round avatar and the address in the lower right corner

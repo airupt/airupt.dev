@@ -260,3 +260,9 @@ export const worldRadius = 100
 // Metres from the centre to each edge of the textures baked over the whole
 // archipelago (sea map, path map)
 export const MAP_EXTENT = 128
+
+// Out at sea: further from every island than its radius times `scale`,
+// plus `margin` metres
+export function isOpenWater(x, z, { margin = 0, scale = 1.15 } = {}) {
+  return islands.every(island => Math.hypot(island.x - x, island.z - z) > island.radius * scale + margin)
+}
