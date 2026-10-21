@@ -29,6 +29,7 @@ import { Guide } from './Guide.js'
 import worldModels from '../assets/models/world.glb?url'
 import { ProjectBoards } from './ProjectBoards.js'
 import { Logbook } from './Logbook.js'
+import { Treasure } from './Treasure.js'
 import { profile, sections } from '../content/portfolio.js'
 
 const seeThroughPoint = new THREE.Vector3()
@@ -154,6 +155,7 @@ export class World {
       this.logbook.record('bottle')
       if (count === total) this.logbook.record('bottles')
     }
+    this.treasure = new Treasure(this.app, this.models, this.logbook)
 
     // Signs and boards are painted with the site fonts, so wait until they have loaded
     await Promise.all([document.fonts.load('800 96px "Bricolage Grotesque"'), document.fonts.load('600 30px "Figtree"')])
@@ -204,6 +206,7 @@ export class World {
     this.signs?.update(delta)
     this.reactions?.update(delta)
     this.logbook?.update()
+    this.treasure?.update(delta)
     this.guide?.update(delta)
     this.props?.instances.update()
     this.ocean.update(focus)

@@ -77,6 +77,12 @@ export class MapView {
       }
     }
 
+    // The treasure's X, shown once the treasure map is complete
+    const cay = islands.find(island => island.id === 'reef-cay')
+    this.treasureMark = svg('path', { d: 'M -4 -4 L 4 4 M -4 4 L 4 -4', class: 'map-treasure', transform: `translate(${cay.x} ${cay.z})` })
+    this.treasureMark.style.display = 'none'
+    this.content.append(this.treasureMark)
+
     this.boat = svg('path', { d: 'M 0 -5 L 3.6 4 L -3.6 4 Z', class: 'map-boat' })
     this.content.append(this.boat)
     this.chart.append(this.root)
@@ -156,6 +162,16 @@ export class MapView {
     }
     context.putImageData(image, 0, 0)
     this.picture.setAttribute('href', canvas.toDataURL('image/jpeg', 0.85))
+    // Kept for the treasure map in the captain's log
+    this.chartCanvas = canvas
+  }
+
+  get extent() {
+    return EXTENT
+  }
+
+  showTreasure(visible) {
+    this.treasureMark.style.display = visible ? '' : 'none'
   }
 
   open() {

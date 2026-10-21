@@ -72,6 +72,7 @@ export class Experience {
     this.sounds.load()
     await this.world.load(progress => this.overlay.setProgress(0.2 + progress * 0.7))
     this.logbookView.attach(this.world.logbook)
+    this.logbookView.addCard(() => this.world.treasure.card())
 
     // Compile every shader now rather than the first time each thing comes into view
     await this.renderer.compileAsync(this.scene, this.cameraRig.camera)

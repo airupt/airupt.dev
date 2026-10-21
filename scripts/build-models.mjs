@@ -23,6 +23,7 @@ const models = {
   'crate-bottles': ['pirate-kit', 'crate-bottles'],
   bottle: ['pirate-kit', 'bottle'],
   wreck: ['pirate-kit', 'ship-wreck'],
+  chest: ['pirate-kit', 'chest'],
 
   fish: ['survival-kit', 'fish'],
   'fish-large': ['survival-kit', 'fish-large'],

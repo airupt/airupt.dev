@@ -2,6 +2,62 @@ import * as THREE from 'three'
 import * as RAPIER from '@dimforge/rapier3d'
 import { applyBuoyancy } from './buoyancy.js'
 import { spawn, worldRadius } from './layout.js'
+import { createStylizedMaterial } from './shading.js'
+
+const PAINT_KEY = 'airupt-paint'
+const goldMaterials = new Map()
+
+// Gold leaf by brightness: shadows go bronze, highlights pale gold
+const GOLD = [
+  [0, [74, 44, 10]],
+  [0.45, [201, 138, 28]],
+  [0.75, [242, 198, 74]],
+  [1, [255, 244, 194]],
+].map(([at, rgb]) => [at, new THREE.Color().setRGB(...rgb.map(value => value / 255), THREE.SRGBColorSpace)])
+
+// The model's colour texture redrawn in gold, keeping every detail by its brightness
+function gilded(texture) {
+  const image = texture.image
+  const canvas = document.createElement('canvas')
+  canvas.width = image.width
+  canvas.height = image.height
+  const context = canvas.getContext('2d')
+  context.drawImage(image, 0, 0)
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height)
+  const data = pixels.data
+  const color = new THREE.Color()
+  for (let i = 0; i < data.length; i += 4) {
+    const light = (data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11) / 255
+    const upper = GOLD.findIndex(([at]) => at >= light)
+    const [fromAt, from] = GOLD[Math.max(upper - 1, 0)]
+    const [toAt, to] = GOLD[upper]
+    color.copy(from).lerp(to, toAt > fromAt ? (light - fromAt) / (toAt - fromAt) : 0)
+    const srgb = color.clone().convertLinearToSRGB()
+    data[i] = srgb.r * 255
+    data[i + 1] = srgb.g * 255
+    data[i + 2] = srgb.b * 255
+  }
+  context.putImageData(pixels, 0, 0)
+  const result = new THREE.CanvasTexture(canvas)
+  for (const key of ['flipY', 'colorSpace', 'wrapS', 'wrapT', 'magFilter', 'minFilter', 'channel']) result[key] = texture[key]
+  return result
+}
+
+function readPaint() {
+  try {
+    return localStorage.getItem(PAINT_KEY) === 'gold' ? 'gold' : 'classic'
+  } catch {
+    return 'classic'
+  }
+}
+
+function savePaint(paint) {
+  try {
+    localStorage.setItem(PAINT_KEY, paint)
+  } catch {
+    // Private mode: the paint just isn't remembered
+  }
+}
 
 // Hull box half extents; the boat faces -Z
 const HULL = { x: 0.85, y: 0.32, z: 1.85 }
@@ -105,6 +161,22 @@ export class Boat {
     model.rotation.y = MODEL_ROTATION
     this.lean.clear()
     this.lean.add(model)
+    this.setPaint(readPaint())
+  }
+
+  // The model's own colours, or gold: the treasure's reward
+  setPaint(paint) {
+    this.paint = paint
+    savePaint(paint)
+    this.lean.traverse(child => {
+      if (!child.isMesh) return
+      child.userData.classic ??= child.material
+      const classic = child.userData.classic
+      if (paint === 'gold' && !goldMaterials.has(classic)) {
+        goldMaterials.set(classic, createStylizedMaterial(classic.map ? { map: gilded(classic.map) } : { color: '#f2c64a' }))
+      }
+      child.material = paint === 'gold' ? goldMaterials.get(classic) : classic
+    })
   }
 
   step(dt, time) {

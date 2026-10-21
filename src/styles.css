@@ -1205,6 +1205,14 @@ body:has(dialog[open]) .hud > * {
   transform: scale(1.35);
 }
 
+.map-treasure {
+  fill: none;
+  stroke: #e0402f;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 1.5px #fff);
+}
+
 .map-boat {
   fill: var(--accent);
   stroke: #fff;
@@ -1460,3 +1468,60 @@ body:has(dialog[open]) .hud > * {
   white-space: nowrap;
 }
 
+/* The treasure map card in the log: the aged chart beside a few words */
+.treasure-card {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 0.9rem;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 0.05);
+  border: 2px solid rgb(139 90 51 / 0.55);
+}
+
+.treasure-map {
+  width: 150px;
+  height: 150px;
+}
+
+.treasure-card h3 {
+  margin: 0 0 0.35rem;
+  font: 800 1.2rem/1.1 var(--font-display);
+  color: var(--sign-text);
+}
+
+.treasure-card p {
+  margin: 0;
+  color: rgb(244 241 234 / 0.8);
+  line-height: 1.45;
+}
+
+.paint-switch {
+  display: inline-flex;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+}
+
+.paint-option {
+  padding: 0.5rem 0.8rem;
+  border: 0;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 0.08);
+  color: var(--sign-text);
+  font: 800 0.9rem/1 var(--font-display);
+  cursor: pointer;
+}
+
+.paint-option[aria-pressed='true'] {
+  background: #ffc93d;
+  color: var(--ink);
+}
+
+@media (max-width: 480px) {
+  .treasure-card {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+}
