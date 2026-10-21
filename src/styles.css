@@ -826,9 +826,18 @@ body:has(dialog[open]) .hud > * {
   background: var(--navy);
   color: var(--sign-text);
   box-shadow: var(--board-shadow);
-  transform: translateY(calc(100% + 7rem));
-  transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1);
+  transform: translateY(calc(100% + 12rem));
+  transition:
+    transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1),
+    bottom 0.6s ease;
   pointer-events: none;
+}
+
+/* While the legend shows, a message stands above it rather than over it */
+@media (pointer: fine) and (min-width: 601px) {
+  .hud:has(.controls:not(.is-faded)) .toast {
+    bottom: max(5rem, calc(max(1.2rem, env(safe-area-inset-bottom)) + var(--controls-height, 0px) + 0.9rem));
+  }
 }
 
 .toast.is-visible {
@@ -1309,15 +1318,43 @@ body:has(dialog[open]) .hud > * {
   stroke: var(--ink);
   stroke-width: 2.2px;
   paint-order: stroke;
-  text-anchor: middle;
+  pointer-events: none;
 }
 
+.map-label-landmark {
+  font-size: 5.6px;
+  stroke-width: 1.9px;
+}
+
+/* Pins for the places you can sail to, ticked in gold once done */
 .map-pin {
+  pointer-events: none;
+}
+
+.map-pin > circle {
   stroke: #fff;
   stroke-width: 1.2;
   transform-box: fill-box;
   transform-origin: center;
   transition: transform 0.15s ease;
+}
+
+.map-pin.is-hot > circle {
+  transform: scale(1.35);
+}
+
+.map-tick circle {
+  fill: #ffb84a;
+  stroke: var(--ink);
+  stroke-width: 0.9;
+}
+
+.map-tick path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .map-spot {
@@ -1349,10 +1386,6 @@ body:has(dialog[open]) .hud > * {
   opacity: 0.16;
 }
 
-.map-spot.is-hot .map-pin {
-  transform: scale(1.35);
-}
-
 .map-treasure {
   fill: none;
   stroke: #e0402f;
@@ -1367,8 +1400,34 @@ body:has(dialog[open]) .hud > * {
   stroke-width: 1.2;
 }
 
-/* The ring course: a dashed gold route, a small ring at each gate and the
-   chequered start */
+/* Landmark badges: an icon on a round board, like the HUD's buttons */
+.map-badge-disc {
+  fill: var(--navy);
+  stroke: #fff;
+  stroke-width: 1;
+}
+
+.map-icon-stroke {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-icon-fill {
+  fill: #fff;
+}
+
+.map-badge {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.15s ease;
+}
+
+/* The ring course: a dashed gold route with arrows the way the lap goes,
+   and the chequered start; a wide band either side of the route and a
+   ring round the start pick it, so it never takes a precise click */
 .map-route {
   fill: none;
   stroke: #ffb84a;
@@ -1376,91 +1435,37 @@ body:has(dialog[open]) .hud > * {
   stroke-dasharray: 2.2 2.2;
   stroke-linecap: round;
   opacity: 0.8;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
 }
 
-.map-ring {
+.map-arrow {
   fill: none;
   stroke: #ffb84a;
   stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 
-.map-start circle {
+.map-course-hit {
   fill: none;
-  stroke-width: 1.5;
+  stroke: rgb(255 255 255 / 0);
+  pointer-events: stroke;
+  cursor: pointer;
 }
 
-.map-start-white {
-  stroke: #fff;
-}
-
-.map-start-black {
-  stroke: #1c1c1c;
-  stroke-dasharray: 1.466 1.466;
-}
-
-.map-start circle {
-  transform-box: fill-box;
-  transform-origin: center;
-  transition: transform 0.15s ease;
-}
-
-.map-course.is-hot .map-start circle {
-  transform: scale(1.5);
+.map-pick {
+  cursor: pointer;
 }
 
 .map-course.is-hot .map-route {
   opacity: 1;
-  stroke-width: 1.2;
+  stroke-width: 1.3;
 }
 
-/* Landmarks out at sea: smaller names than the islands', and never in the
-   way of pointing at an island */
-.map-landmark {
-  pointer-events: none;
-}
-
-.map-landmark-label {
-  font: 800 5.6px var(--font-display);
-  fill: rgb(244 241 234 / 0.92);
-  stroke: var(--ink);
-  stroke-width: 1.8px;
-  paint-order: stroke;
-  text-anchor: middle;
-}
-
-.map-best {
-  fill: #ffb84a;
-  font-size: 4.8px;
-}
-
-.map-glyph {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 1;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 0 1px var(--ink));
-}
-
-/* What the visitor has already done, ticked off in gold */
-.map-check {
-  fill: #ffb84a;
-}
-
-.map-done {
-  display: inline-grid;
-  color: #ffb84a;
-}
-
-.map-done .icon {
-  width: 18px;
-  height: 18px;
-}
-
-.map-legend {
-  margin: 0.8rem 0.8rem 0;
-  font: 600 0.8rem/1.3 var(--font-text);
-  color: rgb(244 241 234 / 0.65);
+.map-pick.is-hot .map-badge {
+  transform: scale(1.25);
 }
 
 /* Destinations as plain rows painted on the board, split by faint rules */
@@ -1474,7 +1479,7 @@ body:has(dialog[open]) .hud > * {
   align-items: center;
   gap: 0.75rem;
   width: 100%;
-  padding: 0.85rem 0.8rem;
+  padding: 0.7rem 0.8rem;
   border: 0;
   border-radius: 10px;
   background: none;
@@ -1506,6 +1511,32 @@ body:has(dialog[open]) .hud > * {
   bottom: 0;
   height: 1px;
   background: rgb(244 241 234 / 0.14);
+}
+
+/* Each row: the name, and under it how far you've got there */
+.map-text {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.map-status {
+  font: 600 0.8rem/1 var(--font-text);
+  letter-spacing: 0;
+  color: rgb(244 241 234 / 0.6);
+}
+
+.map-button.is-done .map-status {
+  color: #ffb84a;
+}
+
+.map-done {
+  display: inline-grid;
+  color: #ffb84a;
+}
+
+.map-done .icon {
+  width: 18px;
+  height: 18px;
 }
 
 /* Only where there's a keyboard to press them on */

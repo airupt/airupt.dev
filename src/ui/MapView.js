@@ -8,6 +8,20 @@ import { smoothstep } from '../utils/noise.js'
 
 const SVG = 'http://www.w3.org/2000/svg'
 const EXTENT = 96 // metres from the centre to each edge of the chart
+// Labels stay inside the round chart, this far from its middle at most
+const ROUND = EXTENT * 0.93
+const PIN = 3.6
+const BADGE = 4.8
+// The course's route reacts to a pointer this many units either side of it
+const COURSE_REACH = 9
+
+// Icons for the landmark badges, drawn on a 24 unit grid: [strokes, fills]
+const ICONS = {
+  flag: ['M6 21V3.5M6 4h13v9H6', 'M6 4h4.33v4.5H6ZM14.67 4H19v4.5h-4.33ZM10.33 8.5h4.34V13h-4.34Z'],
+  arch: ['', 'M3 20v-8.5a9 9 0 0 1 18 0V20h-5.5v-8.5a3.5 3.5 0 0 0-7 0V20Z'],
+  waves: ['M3 9.5c2.25 0 2.25-2 4.5-2s2.25 2 4.5 2 2.25-2 4.5-2 2.25 2 4.5 2M3 15.5c2.25 0 2.25-2 4.5-2s2.25 2 4.5 2 2.25-2 4.5-2 2.25 2 4.5 2', ''],
+  anchor: ['M12 7.5V21M8 11h8M4.5 13.5a7.5 7.5 0 0 0 15 0M12 7.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z', ''],
+}
 
 function svg(tag, attributes = {}) {
   const node = document.createElementNS(SVG, tag)
@@ -15,22 +29,50 @@ function svg(tag, attributes = {}) {
   return node
 }
 
-// A smooth closed curve through every point (Catmull-Rom as cubic Béziers)
+// From the world's ground plane to the chart, which is turned 45°
+const toChart = (x, z) => ({ x: (x - z) * Math.SQRT1_2, y: (x + z) * Math.SQRT1_2 })
+
+// The closed curve through every point: Catmull-Rom, as cubic Béziers for
+// the drawing and as a point at `t` along segment `i` for everything else
+function catmull(points, i, t) {
+  const at = index => points[(index + points.length) % points.length]
+  const [p0, p1, p2, p3] = [at(i - 1), at(i), at(i + 1), at(i + 2)]
+  const blend = (a, b, c, d) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (3 * b - a - 3 * c + d) * t * t * t)
+  return { x: blend(p0.x, p1.x, p2.x, p3.x), z: blend(p0.z, p1.z, p2.z, p3.z) }
+}
+
 function loopThrough(points) {
   const at = index => points[(index + points.length) % points.length]
-  let d = `M ${points[0].x} ${points[0].z}`
+  const round = value => value.toFixed(2)
+  let d = `M ${round(points[0].x)} ${round(points[0].z)}`
   for (let i = 0; i < points.length; i++) {
     const [p0, p1, p2, p3] = [at(i - 1), at(i), at(i + 1), at(i + 2)]
     const c1 = [p1.x + (p2.x - p0.x) / 6, p1.z + (p2.z - p0.z) / 6]
     const c2 = [p2.x - (p3.x - p1.x) / 6, p2.z - (p3.z - p1.z) / 6]
-    d += ` C ${c1.map(value => value.toFixed(2)).join(' ')} ${c2.map(value => value.toFixed(2)).join(' ')} ${p2.x.toFixed(2)} ${p2.z.toFixed(2)}`
+    d += ` C ${c1.map(round).join(' ')} ${c2.map(round).join(' ')} ${round(p2.x)} ${round(p2.z)}`
   }
   return `${d} Z`
 }
 
-// Upright text at a point on the turned chart, `offset` units below it (negative: above)
-function chartText(className, offset) {
-  return svg('text', { class: className, transform: `rotate(-45) translate(0 ${offset})` })
+// A round badge with an icon, centred on 0 0
+function badge(icon, className) {
+  const group = svg('g', { class: `map-badge ${className}` })
+  group.append(svg('circle', { r: BADGE, class: 'map-badge-disc' }))
+  const [strokes, fills] = ICONS[icon]
+  const drawing = svg('g', { transform: `scale(${(BADGE * 1.45) / 24}) translate(-12 -12)` })
+  if (strokes) drawing.append(svg('path', { d: strokes, class: 'map-icon-stroke' }))
+  if (fills) drawing.append(svg('path', { d: fills, class: 'map-icon-fill' }))
+  group.append(drawing)
+  return group
+}
+
+// The gold tick on whatever the visitor has done, at the top right of a pin or badge
+function tick(radius) {
+  const offset = radius * 0.9
+  const group = svg('g', { class: 'map-tick', transform: `translate(${offset} ${-offset})` })
+  group.append(svg('circle', { r: 2.3 }), svg('path', { d: 'M -1.15 0.05 L -0.3 0.9 L 1.2 -0.75' }))
+  group.style.display = 'none'
+  return group
 }
 
 function titleOf(island) {
@@ -38,133 +80,53 @@ function titleOf(island) {
   return sections.find(section => section.id === island.section)?.title ?? island.label
 }
 
+const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+
 // Chart of the archipelago: a picture of the real world taken from straight
-// above at boot, turned 45° so "up" on the chart is "up" on screen, with the
-// ring course and the landmarks drawn over it. What the visitor has done is
-// ticked off: islands docked at, landmarks in the captain's log, the best
-// lap. Choosing a place sails you there.
+// above at boot, turned 45° so "up" on the chart is "up" on screen. Over it:
+// the ring course, pins for the places you can sail to and badges for the
+// landmarks, each ticked once done, and names placed where they overlap
+// nothing. Choosing a place sails you there; the list beside the chart says
+// how far you've got with each.
 export class MapView {
   constructor(app) {
     this.app = app
     this.dialog = document.querySelector('#map')
     this.chart = this.dialog.querySelector('.map-chart')
-    const list = this.dialog.querySelector('.map-list')
+    this.list = this.dialog.querySelector('.map-list')
 
     this.highlights = []
     this.destinations = []
-    this.ticks = []
-    this.root = svg('svg', { viewBox: `${-EXTENT} ${-EXTENT} ${EXTENT * 2} ${EXTENT * 2}`, role: 'img', 'aria-label': 'Map of the islands' })
+    this.rows = []
+    // Pins and badges ({ x, y, radius } on the chart, `shown`) and names to place
+    this.marks = []
+    this.labels = []
+
+    this.root = svg('svg', { viewBox: `${-EXTENT} ${-EXTENT} ${EXTENT * 2} ${EXTENT * 2}`, role: 'img', 'aria-label': 'Map of the islands and the ring course' })
     const blur = svg('filter', { id: 'map-glow-blur', x: '-30%', y: '-30%', width: '160%', height: '160%' })
     // Blurred, then its alpha boosted so the rim reads as a glow
     const transfer = svg('feComponentTransfer')
     transfer.append(svg('feFuncA', { type: 'linear', slope: '2.4' }))
     blur.append(svg('feGaussianBlur', { stdDeviation: '2' }), transfer)
-    const defs = svg('defs')
-    defs.append(blur)
-    this.content = svg('g', { transform: 'rotate(45)' })
-    this.root.append(defs, this.content)
+    this.defs = svg('defs')
+    this.defs.append(blur)
+    // The world, turned; then pins, badges and names, upright; the boat on top
+    this.ground = svg('g', { transform: 'rotate(45)' })
+    this.overlay = svg('g')
+    this.top = svg('g', { transform: 'rotate(45)' })
+    this.root.append(this.defs, this.ground, this.overlay, this.top)
     this.picture = svg('image', { x: -EXTENT, y: -EXTENT, width: EXTENT * 2, height: EXTENT * 2 })
-    this.content.append(this.picture)
-    this.content.append(svg('circle', { r: worldRadius, class: 'map-edge' }))
+    this.ground.append(this.picture, svg('circle', { r: worldRadius, class: 'map-edge' }))
 
-    // The ring course, drawn rather than photographed: its rings only rise
-    // once the visitor sets sail, after the picture was taken
-    this.course = courseGates(ringCourse, arch, 1)
-    const start = this.course[0]
-    this.courseGroup = svg('g', { class: 'map-course', 'aria-hidden': 'true' })
-    this.courseGroup.append(svg('path', { d: loopThrough(this.course), class: 'map-route' }))
-    for (const gate of this.course) {
-      if (gate.kind === 'ring') this.courseGroup.append(svg('circle', { cx: gate.x, cy: gate.z, r: 1.6, class: 'map-ring' }))
-    }
-    // The chequered start: a white ring with black squares round it
-    const flag = svg('g', { transform: `translate(${start.x} ${start.z})`, class: 'map-start' })
-    flag.append(svg('circle', { r: 2.8, class: 'map-start-white' }), svg('circle', { r: 2.8, class: 'map-start-black' }))
-    this.courseGroup.append(flag)
-    this.content.append(this.courseGroup)
+    this.addCourse()
+    for (const island of islands) if (titleOf(island)) this.addIsland(island)
+    this.addLandmarks()
 
-    // Landmarks out at sea, ticked once they are in the log; the wreck stays
-    // off the chart until it has been found
-    const reef = islands.find(island => island.reef)
-    this.landmarks = [
-      { title: 'Ring course', at: start, log: 'course', offset: 9 },
-      { title: 'Rock arch', at: arch, log: 'arch', offset: 7, glyph: 'M -3.2 1.8 V 0.2 A 3.2 3.2 0 0 1 3.2 0.2 V 1.8' },
-      { title: 'Lagoon', at: reef, log: 'reef', offset: reef.radius + 5 },
-      { title: 'Wreck', at: wreck, log: 'wreck', offset: 7, secret: true, glyph: 'M -3.4 0.4 Q 0 3 3.4 0.4 Z M -0.4 0.9 L 1.8 -3.4' },
-    ].map(landmark => {
-      const group = svg('g', { transform: `translate(${landmark.at.x} ${landmark.at.z})`, class: 'map-landmark', 'aria-hidden': 'true' })
-      if (landmark.glyph) group.append(svg('path', { d: landmark.glyph, class: 'map-glyph', transform: 'rotate(-45)' }))
-      const label = chartText('map-landmark-label', landmark.offset)
-      label.textContent = landmark.title
-      const check = svg('tspan', { class: 'map-check' })
-      check.textContent = ' ✓'
-      label.append(check)
-      group.append(label)
-      this.content.append(group)
-      return { ...landmark, group, label, check }
-    })
-    // The best lap, under the course's name
-    this.bestTime = chartText('map-landmark-label map-best', this.landmarks[0].offset + 6)
-    this.landmarks[0].group.append(this.bestTime)
-
-    for (const island of islands) {
-      const title = titleOf(island)
-      if (!title) continue
-      // The whole island on the chart is a target too; the list stays the
-      // keyboard route, so the chart's copy is hidden from screen readers
-      const group = svg('g', { transform: `translate(${island.x} ${island.z})`, class: 'map-spot', 'aria-hidden': 'true' })
-      // Pointing at it lights the island up in its own shape: a soft glow
-      // and a fill, both drawn from the terrain the first time the map opens
-      const reach = island.radius * 1.3
-      const shape = { x: -reach, y: -reach, width: reach * 2, height: reach * 2 }
-      // The glow only shows outside the coast: masked by the island itself
-      const mask = svg('mask', { id: `map-mask-${island.id}`, maskUnits: 'userSpaceOnUse', ...shape })
-      const cutout = svg('image', shape)
-      mask.append(svg('rect', { ...shape, fill: '#fff' }), cutout)
-      defs.append(mask)
-      const glow = svg('image', { ...shape, class: 'map-glow', mask: `url(#${mask.id})` })
-      const fill = svg('image', { ...shape, class: 'map-fill' })
-      this.highlights.push({ island, images: [glow, fill], cutout })
-      group.append(svg('circle', { r: island.radius * 0.85, class: 'map-hit' }), glow, fill)
-      if (island.color) group.append(svg('circle', { r: 3.4, class: 'map-pin', fill: island.color }))
-      // Above the island when the label fits inside the round chart there.
-      // Chart position after the 45° turn; text is ~4.2 units per letter wide
-      const chartX = Math.SQRT1_2 * (island.x - island.z)
-      const chartY = Math.SQRT1_2 * (island.x + island.z)
-      const halfWidth = title.length * 2.1
-      const top = chartY - island.radius * 0.75 - 11
-      const above = Math.hypot(Math.abs(chartX) + halfWidth, top) < EXTENT * 0.94
-      // No room above: write the name across the island itself rather than
-      // below it, where it would seem to name whatever lies further down
-      const offset = above ? -island.radius * 0.75 - 4 : 3
-      const label = chartText('map-label', offset)
-      label.textContent = title
-      // Ticked once docked at (or, for Mount Airupt, landed on)
-      const check = svg('tspan', { class: 'map-check' })
-      check.textContent = ' ✓'
-      label.append(check)
-      group.append(label)
-      this.content.append(group)
-
-      const button = this.addDestination(list, title, island.color ?? (island.volcano ? '#4f4440' : 'var(--sign-text)'), () => this.sailTo(island), group)
-      group.addEventListener('click', () => this.sailTo(island))
-      this.ticks.push({ island, check, button })
-    }
-    // The course's start is a destination too, with a chequered pin
-    this.courseButton = this.addDestination(list, 'Ring course', 'repeating-conic-gradient(#1c1c1c 0 25%, #fff 0 50%) 50% / 6px 6px', () => this.sailToCourse(), this.courseGroup)
-    const legend = document.createElement('p')
-    legend.className = 'map-legend'
-    legend.textContent = '✓ Docked, landed or found'
-    list.append(legend)
-
-    // The treasure's X, shown once the treasure map is complete
-    const cay = islands.find(island => island.id === 'reef-cay')
-    // (turned back upright, or the chart's turn would make it a plus)
-    this.treasureMark = svg('path', { d: 'M -4 -4 L 4 4 M -4 4 L 4 -4', class: 'map-treasure', transform: `translate(${cay.x} ${cay.z}) rotate(-45)` })
-    this.treasureMark.style.display = 'none'
-    this.content.append(this.treasureMark)
+    // The course's start is a destination too, after the islands
+    this.courseRow = this.addRow('Ring course', 'repeating-conic-gradient(#1c1c1c 0 25%, #fff 0 50%) 50% / 6px 6px', () => this.sailToCourse(), this.courseSpots)
 
     this.boat = svg('path', { d: 'M 0 -5 L 3.6 4 L -3.6 4 Z', class: 'map-boat' })
-    this.content.append(this.boat)
+    this.top.append(this.boat)
     this.chart.append(this.root)
 
     this.dialog.addEventListener('close', () => app.overlay.setSailing(true))
@@ -181,58 +143,274 @@ export class MapView {
     app.inputs.on('map', () => this.open())
   }
 
-  // A row in the travel list beside the chart (which keeps them keyboard
-  // friendly), with a number key; pointing at it lights up its place on the
-  // chart and the other way round
-  addDestination(list, title, pin, go, spot) {
+  // The ring course, drawn rather than photographed (its rings only rise
+  // once the visitor sets sail, after the picture was taken): a dashed gold
+  // route with arrows the way the lap goes, and the chequered start. A wide
+  // band along the route and round the start picks it, so a rough click or
+  // tap anywhere near it is enough.
+  addCourse() {
+    this.course = courseGates(ringCourse, arch, 1)
+    const route = loopThrough(this.course)
+    const group = svg('g', { class: 'map-course' })
+    group.append(svg('path', { d: route, class: 'map-route' }))
+    for (const index of [3, 8, 13, 18]) {
+      const gate = this.course[index]
+      const angle = (Math.atan2(-gate.normal.x, gate.normal.z) * 180) / Math.PI
+      group.append(svg('path', { d: 'M -1.7 -0.9 L 0 0.9 L 1.7 -0.9', class: 'map-arrow', transform: `translate(${gate.x} ${gate.z}) rotate(${angle.toFixed(1)})` }))
+    }
+    const band = svg('path', { d: route, class: 'map-course-hit', 'stroke-width': COURSE_REACH * 2 })
+    group.append(band)
+    this.ground.append(group)
+
+    // Where the route runs, as points on the chart, so names keep off it
+    this.routePoints = []
+    for (let i = 0; i < this.course.length; i++) {
+      for (let t = 0; t < 1; t += 0.125) {
+        const point = catmull(this.course, i, t)
+        this.routePoints.push(toChart(point.x, point.z))
+      }
+    }
+
+    const start = toChart(this.course[0].x, this.course[0].z)
+    const flag = badge('flag', 'map-start')
+    const done = tick(BADGE)
+    flag.append(done)
+    const place = svg('g', { transform: `translate(${start.x.toFixed(2)} ${start.y.toFixed(2)})`, class: 'map-pick' })
+    place.append(svg('circle', { r: COURSE_REACH + 2, class: 'map-hit' }), flag)
+    this.overlay.append(place)
+    const mark = { ...start, radius: BADGE, shown: true }
+    this.marks.push(mark)
+    this.courseTick = done
+    this.addLabel('Ring course', mark, 'landmark')
+    this.courseSpots = [group, place]
+    for (const target of [band, place]) target.addEventListener('click', () => this.sailToCourse())
+  }
+
+  // A named island: its whole shape on the chart is a target, lit up in its
+  // own outline when pointed at, with a pin and its name
+  addIsland(island) {
+    const title = titleOf(island)
+    // The list stays the keyboard route, so the chart's copy is hidden from screen readers
+    const spot = svg('g', { transform: `translate(${island.x} ${island.z})`, class: 'map-spot', 'aria-hidden': 'true' })
+    const reach = island.radius * 1.3
+    const shape = { x: -reach, y: -reach, width: reach * 2, height: reach * 2 }
+    // The glow only shows outside the coast: masked by the island itself
+    const mask = svg('mask', { id: `map-mask-${island.id}`, maskUnits: 'userSpaceOnUse', ...shape })
+    const cutout = svg('image', shape)
+    mask.append(svg('rect', { ...shape, fill: '#fff' }), cutout)
+    this.defs.append(mask)
+    const glow = svg('image', { ...shape, class: 'map-glow', mask: `url(#${mask.id})` })
+    const fill = svg('image', { ...shape, class: 'map-fill' })
+    this.highlights.push({ island, images: [glow, fill], cutout })
+    spot.append(svg('circle', { r: island.radius * 0.85, class: 'map-hit' }), glow, fill)
+    this.ground.append(spot)
+
+    const color = island.color ?? (island.volcano ? '#a8a29c' : '#fffaf0')
+    const at = toChart(island.x, island.z)
+    const pin = svg('g', { transform: `translate(${at.x.toFixed(2)} ${at.y.toFixed(2)})`, class: 'map-pin', 'aria-hidden': 'true' })
+    const done = tick(PIN)
+    pin.append(svg('circle', { r: PIN, fill: color }), done)
+    this.overlay.append(pin)
+    const mark = { ...at, radius: PIN, shown: true, island }
+    this.marks.push(mark)
+    const label = this.addLabel(title, mark, 'island')
+
+    const go = () => this.sailTo(island)
+    spot.addEventListener('click', go)
+    const row = this.addRow(title, color, go, [spot, pin, label])
+    row.island = island
+    row.tick = done
+  }
+
+  // Landmarks out at sea, each with its badge; the wreck stays off the
+  // chart until it has been found
+  addLandmarks() {
+    const reef = islands.find(island => island.reef)
+    this.landmarks = [
+      { title: 'Rock arch', at: arch, icon: 'arch', log: 'arch', hint: 'Sail through it' },
+      { title: 'Lagoon', at: reef, icon: 'waves', log: 'reef', hint: 'Slip in through a gap in the reef' },
+      { title: 'Wreck', at: wreck, icon: 'anchor', log: 'wreck', secret: true },
+    ].map(landmark => {
+      const at = toChart(landmark.at.x, landmark.at.z)
+      const place = svg('g', { transform: `translate(${at.x.toFixed(2)} ${at.y.toFixed(2)})`, class: 'map-landmark' })
+      const title = svg('title')
+      const done = tick(BADGE)
+      place.append(title, badge(landmark.icon, ''), done)
+      this.overlay.append(place)
+      const mark = { ...at, radius: BADGE, shown: true }
+      this.marks.push(mark)
+      return { ...landmark, place, title, done, mark, label: this.addLabel(landmark.title, mark, 'landmark') }
+    })
+
+    // The treasure's X, shown once the treasure map is complete, in the
+    // lagoon (where it takes the lagoon badge's place)
+    const cay = islands.find(island => island.id === 'reef-cay')
+    const at = toChart(cay.x, cay.z)
+    this.treasureMark = svg('path', { d: 'M -4 -4 L 4 4 M -4 4 L 4 -4', class: 'map-treasure', transform: `translate(${at.x.toFixed(2)} ${at.y.toFixed(2)})` })
+    this.treasureMark.style.display = 'none'
+    this.overlay.append(this.treasureMark)
+  }
+
+  // A name on the chart, put in place each time the map opens (see layout)
+  addLabel(text, mark, kind) {
+    const element = svg('text', { class: `map-label map-label-${kind}` })
+    element.textContent = text
+    this.overlay.append(element)
+    const label = { element, text, mark, kind }
+    this.labels.push(label)
+    return element
+  }
+
+  // A row in the travel list beside the chart, with how far you've got
+  // there and a number key; pointing at it (or focusing it) lights up its
+  // place on the chart, and the other way round
+  addRow(title, pin, go, spots) {
     const button = document.createElement('button')
     button.className = 'map-button'
+    const text = document.createElement('span')
+    text.className = 'map-text'
     const name = document.createElement('span')
     name.className = 'map-name'
     name.textContent = title
-    // Ticked off like the chart (said in words for screen readers)
+    const status = document.createElement('span')
+    status.className = 'map-status'
+    text.append(name, status)
     const done = document.createElement('span')
     done.className = 'map-done'
     done.hidden = true
-    done.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#icon-check" /></svg><span class="visually-hidden">, been there</span>'
+    done.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#icon-check" /></svg>'
     const number = String(this.destinations.length + 1)
     const cap = document.createElement('kbd')
     cap.className = 'key map-key'
     cap.textContent = number
-    button.append(name, done, cap)
+    button.append(text, done, cap)
     button.setAttribute('aria-keyshortcuts', number)
     button.style.setProperty('--pin', pin)
     button.addEventListener('click', go)
-    list.append(button)
+    this.list.append(button)
     this.destinations.push(go)
+
     const hot = value => {
-      spot.classList.toggle('is-hot', value)
+      for (const spot of spots) spot.classList.toggle('is-hot', value)
       button.classList.toggle('is-hot', value)
     }
-    for (const target of [spot, button]) {
+    for (const target of [...spots, button]) {
       target.addEventListener('pointerenter', () => hot(true))
       target.addEventListener('pointerleave', () => hot(false))
     }
-    return button
+    button.addEventListener('focusin', () => hot(true))
+    button.addEventListener('focusout', () => hot(false))
+    const row = { button, status, done }
+    this.rows.push(row)
+    return row
   }
 
-  // Ticks, the best lap and the wreck, as they are now
+  // Ticks, statuses, the wreck and the X, as they are now
   refresh() {
     const { logbook, reactions, ringCourse: course } = this.app.world
     const has = id => Boolean(logbook?.has(id))
-    for (const { island, check, button } of this.ticks) {
-      const done = island.section ? Boolean(reactions?.visited.has(island.section)) : island.landing ? has('landing') : false
-      check.style.display = done ? '' : 'none'
-      button.querySelector('.map-done').hidden = !done
+    for (const row of this.rows) {
+      let status = ''
+      let done = false
+      if (row === this.courseRow) {
+        done = has('course')
+        status = course?.best ? `Best lap ${course.best.toFixed(1)} s` : 'No lap yet'
+      } else if (row.island.section) {
+        done = Boolean(reactions?.visited.has(row.island.section))
+        status = done ? 'Docked' : 'Not docked yet'
+      } else if (row.island.landing) {
+        done = has('landing')
+        status = done ? 'Landed' : 'Not landed yet'
+      } else {
+        status = 'Where you set sail'
+      }
+      row.status.textContent = status
+      row.done.hidden = !done
+      row.button.classList.toggle('is-done', done)
+      if (row.tick) row.tick.style.display = done ? '' : 'none'
     }
+    this.courseTick.style.display = has('course') ? '' : 'none'
+
+    const treasure = this.treasureMark.style.display !== 'none'
     for (const landmark of this.landmarks) {
       const found = has(landmark.log)
-      landmark.check.style.display = found ? '' : 'none'
-      landmark.group.style.display = landmark.secret && !found ? 'none' : ''
+      // The X stands where the lagoon badge would
+      const shown = !(landmark.secret && !found) && !(landmark.log === 'reef' && treasure)
+      landmark.place.style.display = shown ? '' : 'none'
+      landmark.mark.shown = shown
+      landmark.done.style.display = found ? '' : 'none'
+      landmark.title.textContent = found ? `${landmark.title}: found` : `${landmark.title}${landmark.hint ? `: ${landmark.hint.toLowerCase()}` : ''}`
+      // With the X up, the lagoon's name goes beside the X instead
+      landmark.label.style.display = shown || landmark.log === 'reef' ? '' : 'none'
     }
-    this.courseButton.querySelector('.map-done').hidden = !has('course')
-    const best = course?.best
-    this.bestTime.textContent = best ? `best ${best.toFixed(1)} s` : ''
+    this.treasureShown = treasure
+  }
+
+  // Every name where it overlaps no pin, badge or other name, and keeps
+  // off the course's route where it can: of a few spots round its pin or
+  // badge (an island's name prefers above the island), the first that is
+  // clear wins
+  layout() {
+    const font = getComputedStyle(document.documentElement).getPropertyValue('--font-display')
+    const context = (this.measure ??= document.createElement('canvas').getContext('2d'))
+    const taken = this.marks
+      .filter(mark => mark.shown)
+      .map(mark => ({ left: mark.x - mark.radius - 0.6, right: mark.x + mark.radius + 0.6, top: mark.y - mark.radius - 0.6, bottom: mark.y + mark.radius + 0.6 }))
+    if (this.treasureShown) {
+      const { x, y } = this.lagoonPoint()
+      taken.push({ left: x - 4.6, right: x + 4.6, top: y - 4.6, bottom: y + 4.6 })
+    }
+    const inside = box => [box.left, box.right].every(x => [box.top, box.bottom].every(y => Math.hypot(x, y) < ROUND))
+    const onRoute = box => this.routePoints.filter(point => point.x > box.left && point.x < box.right && point.y > box.top && point.y < box.bottom).length
+
+    // Islands first: their names are the biggest and matter most
+    const ordered = [...this.labels].sort((a, b) => (a.kind === 'island' ? 0 : 1) - (b.kind === 'island' ? 0 : 1))
+    for (const label of ordered) {
+      if (label.element.style.display === 'none') continue
+      const size = label.kind === 'island' ? 7 : 5.6
+      context.font = `800 ${size}px ${font}`
+      const width = context.measureText(label.text).width
+      const { x, y, radius } = label.mark
+      const gap = 1.6
+      const above = y - radius - gap - size * 0.22
+      const below = y + radius + gap + size * 0.78
+      const middle = y + size * 0.3
+      const side = radius + gap
+      const candidates = [
+        [x, above, 'middle'],
+        [x, below, 'middle'],
+        [x + side, middle, 'start'],
+        [x - side, middle, 'end'],
+        [x + side * 0.7, above, 'start'],
+        [x - side * 0.7, above, 'end'],
+        [x + side * 0.7, below, 'start'],
+        [x - side * 0.7, below, 'end'],
+      ]
+      // An island's name sits above the island itself first, clear of its pin
+      if (label.kind === 'island') {
+        const island = label.mark.island
+        candidates.unshift([x, y - island.radius * 0.75 - 3, 'middle'], [x, y + island.radius * 0.6 + size, 'middle'])
+      }
+      let best = null
+      candidates.forEach(([cx, cy, anchor], index) => {
+        const left = anchor === 'middle' ? cx - width / 2 : anchor === 'start' ? cx : cx - width
+        // A little more round the text for its dark outline
+        const box = { left: left - 1.2, right: left + width + 1.2, top: cy - size * 0.78 - 1, bottom: cy + size * 0.22 + 1 }
+        if (!inside(box)) return
+        const score = taken.filter(other => overlaps(box, other)).length * 1000 + onRoute(box) * 20 + index
+        if (!best || score < best.score) best = { score, cx, cy, anchor, box }
+      })
+      if (!best) continue
+      label.element.setAttribute('x', best.cx.toFixed(2))
+      label.element.setAttribute('y', best.cy.toFixed(2))
+      label.element.setAttribute('text-anchor', best.anchor)
+      taken.push(best.box)
+    }
+  }
+
+  lagoonPoint() {
+    const cay = islands.find(island => island.id === 'reef-cay')
+    return toChart(cay.x, cay.z)
   }
 
   // Renders the whole archipelago once from straight above into an image
@@ -359,6 +537,7 @@ export class MapView {
     if (!this.app.inputs.enabled) return
     for (const highlight of this.highlights) if (!highlight.drawn) this.drawHighlight(highlight)
     this.refresh()
+    this.layout()
     this.dialog.showModal()
     this.app.overlay.setSailing(false)
     this.app.sounds.play('click', 0.5, 1.1)

@@ -40,6 +40,8 @@ export class Overlay {
     const hudTop = this.hud.querySelector('.hud-top-left')
     new ResizeObserver(() => (this.hudEdge = hudTop.getBoundingClientRect().bottom)).observe(hudTop)
     this.controls = document.querySelector('#controls')
+    // Messages rise above the legend while it shows (it can wrap to two rows)
+    new ResizeObserver(() => this.hud.style.setProperty('--controls-height', `${this.controls.offsetHeight}px`)).observe(this.controls)
     this.prompt = document.querySelector('#prompt')
     this.promptButton = document.querySelector('#prompt-button')
     this.promptKey = document.querySelector('#prompt-key')

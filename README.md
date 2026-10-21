@@ -88,7 +88,7 @@ too.
 | `src/world/layout.js` | Every hand-placed thing: islands, sea stacks, the arch, anchored boats, bottles, the start |
 | `src/world/terrain.js` | Island ground heights as pure maths, shared by the meshes, the sea map and the tests |
 | `src/ui/` | Loader, HUD, island labels, section panel, map, captain's log, photo mode, classic view |
-| `src/ui/MapView.js` | The chart: a picture of the world from above, with the ring course and landmarks drawn over it and what you've done ticked off; choosing a place sails you there |
+| `src/ui/MapView.js` | The chart: a picture of the world from above with the ring course, pins and landmark badges over it, names placed so nothing overlaps, and what you've done ticked off; choosing a place (or anywhere near the course) sails you there |
 | `src/ui/GamepadUi.js` | Menus by gamepad: focus, pressing, going back and scrolling |
 | `src/ui/PhotoMode.js` | Photo mode: camera, light, blur, boat and grid, the shutter and the preview |
 | `src/content/` | Portfolio text |

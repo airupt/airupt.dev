@@ -87,7 +87,7 @@ export class RingCourse {
     rings.forEach((gate, index) => (gate.instance = index))
 
     // The chequered start on its own, the striped rings in one draw call, and
-    // the gold one standing in for whichever ring is next
+    // the gold one standing in for whichever striped ring is next
     this.start = mesh([createRingGeometry(['#f4f1ea', '#1d2433'])])
     const striped = mesh([createRingGeometry(['#e8543a', '#f4f1ea'])])
     this.striped = new THREE.InstancedMesh(striped.geometry, striped.material, rings.length)
@@ -149,12 +149,14 @@ export class RingCourse {
     }
     this.striped.instanceMatrix.needsUpdate = true
 
-    // The gold ring pops as it becomes the next one, and sits just outside
-    // the start ring when the start is what's next
+    // The gold ring pops as it becomes the next one. The start stays one
+    // chequered ring: when it is what's next it breathes the same way, and
+    // the chevron and the light column mark it
     this.pulse = Math.max(this.pulse - delta * 2.5, 0)
     const pop = 1 + this.pulse * 0.25 + Math.sin(time * 4) * 0.03
-    this.glowing.visible = target.kind !== 'arch'
-    this.glowing.scale.setScalar(target.kind === 'start' ? pop * 1.08 : pop)
+    this.glowing.visible = target.kind === 'ring'
+    this.glowing.scale.setScalar(pop)
+    this.start.scale.setScalar(target.kind === 'start' ? pop : 1)
 
     // The chevron floats over the gate (over the arch's top there, where the
     // camera can see it), pointing the way through
