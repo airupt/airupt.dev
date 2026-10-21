@@ -35,7 +35,7 @@ legend and the tooltips follow whichever one is in use (`src/engine/bindings.js`
 | Boost | Shift or Space | RT or RB |
 | Zoom | Scroll, − and = | Right stick up and down |
 | Open a section | E or Enter | A |
-| Map | M (1–6 sails to an island) | View |
+| Map | M (1–7 sails to an island or the ring course) | View |
 | Captain's log | L | Menu |
 | Photo mode | P | X |
 | Sound on or off | N | LB |
@@ -88,6 +88,7 @@ too.
 | `src/world/layout.js` | Every hand-placed thing: islands, sea stacks, the arch, anchored boats, bottles, the start |
 | `src/world/terrain.js` | Island ground heights as pure maths, shared by the meshes, the sea map and the tests |
 | `src/ui/` | Loader, HUD, island labels, section panel, map, captain's log, photo mode, classic view |
+| `src/ui/MapView.js` | The chart: a picture of the world from above, with the ring course and landmarks drawn over it and what you've done ticked off; choosing a place sails you there |
 | `src/ui/GamepadUi.js` | Menus by gamepad: focus, pressing, going back and scrolling |
 | `src/ui/PhotoMode.js` | Photo mode: camera, light, blur, boat and grid, the shutter and the preview |
 | `src/content/` | Portfolio text |
