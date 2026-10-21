@@ -1,16 +1,21 @@
 import * as THREE from 'three'
-import { ringCourse } from './layout.js'
+import { arch, ringCourse } from './layout.js'
+import { courseGates, throughGate } from './gates.js'
+import { createLightColumn } from './lightColumn.js'
 import { mesh } from './Structures.js'
 import { waveHeight } from './waves.js'
 
 const RADIUS = 2.8 // the opening the boat passes through
 const TUBE = 0.26
 const HEIGHT = 2 // ring centre above the sea: the bottom dips into the water
-const GIVE_UP = 40 // seconds without the next ring and the run is off
+const SINK = 4 // how far a passed ring sinks
+const GIVE_UP = 40 // seconds without the next gate and the run is off
 const BEST_KEY = 'airupt-course-best'
+const GOLD = '#ffb84a'
 
 const projected = new THREE.Vector3()
 const dummy = new THREE.Object3D()
+const point = new THREE.Vector3()
 
 function readBest() {
   try {
@@ -31,14 +36,13 @@ function saveBest(best) {
 
 const format = seconds => `${seconds.toFixed(1)} s`
 
-// A ring's geometry, painted in stripes
+// A ring's geometry, painted in twelve stripes of two colours
 function createRingGeometry(colors) {
   const geometry = new THREE.TorusGeometry(RADIUS + TUBE, TUBE, 8, 36).toNonIndexed()
   geometry.deleteAttribute('uv')
   const position = geometry.attributes.position
   const values = new Float32Array(position.count * 3)
   const color = new THREE.Color()
-  // Twelve stripes round the ring, picked by each triangle's angle
   for (let i = 0; i < position.count; i += 3) {
     const x = (position.getX(i) + position.getX(i + 1) + position.getX(i + 2)) / 3
     const y = (position.getY(i) + position.getY(i + 1) + position.getY(i + 2)) / 3
@@ -50,10 +54,24 @@ function createRingGeometry(colors) {
   return geometry
 }
 
-// A lap of rings round the home island. Sail through the chequered one to
-// start the clock, then each ring in turn (the next one glows, and an arrow
-// at the screen edge points to it when it is out of view), and back through
-// the chequered one to finish. The best time is kept in this browser.
+// A chevron pointing along +Z, made of two bars meeting at the tip
+function createChevron() {
+  const material = new THREE.MeshBasicMaterial({ color: new THREE.Color(GOLD).multiplyScalar(2.6) })
+  const group = new THREE.Group()
+  for (const side of [-1, 1]) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 1.5), material)
+    bar.position.set(side * 0.5, 0, -0.1)
+    bar.rotation.y = side * -0.8
+    group.add(bar)
+  }
+  return group
+}
+
+// A lap of the whole archipelago (see layout.js). Sail through the
+// chequered ring to start the clock. The next gate glows gold with a chevron
+// over it and a column of light that shows from far off; when it is out of
+// view an arrow at the screen edge points to it. Rings you pass sink away.
+// Back through the chequered ring finishes; the best time is kept.
 export class RingCourse {
   constructor(app, logbook) {
     this.app = app
@@ -62,65 +80,92 @@ export class RingCourse {
     this.state = 'idle'
     this.time = 0
 
-    this.rings = ringCourse.map(([x, z], index) => {
-      const [px, pz] = ringCourse[(index - 1 + ringCourse.length) % ringCourse.length]
-      const [nx, nz] = ringCourse[(index + 1) % ringCourse.length]
-      const normal = new THREE.Vector3(nx - px, 0, nz - pz).normalize()
-      return { x, z, normal, yaw: Math.atan2(normal.x, normal.z), side: 0 }
-    })
+    this.gates = courseGates(ringCourse, arch, RADIUS - 0.2).map(gate => ({ ...gate, side: 0, sink: 0, passed: false }))
+    const rings = this.gates.filter(gate => gate.kind === 'ring')
+    rings.forEach((gate, index) => (gate.instance = index))
 
-    // The chequered start ring on its own, the striped ones in one draw call
+    // The chequered start on its own, the striped rings in one draw call, and
+    // the gold one standing in for whichever ring is next
     this.start = mesh([createRingGeometry(['#f4f1ea', '#1d2433'])])
     const striped = mesh([createRingGeometry(['#e8543a', '#f4f1ea'])])
-    this.striped = new THREE.InstancedMesh(striped.geometry, striped.material, this.rings.length - 1)
+    this.striped = new THREE.InstancedMesh(striped.geometry, striped.material, rings.length)
     this.striped.castShadow = true
     this.striped.receiveShadow = true
-    app.scene.add(this.start, this.striped)
-
-    // The glow round whichever ring is next
-    this.halo = new THREE.Mesh(
-      new THREE.TorusGeometry(RADIUS + TUBE * 2.2, 0.1, 6, 48),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffb84a').multiplyScalar(3) })
+    this.glowing = new THREE.Mesh(
+      createRingGeometry([GOLD, '#fff6dc']),
+      new THREE.MeshBasicMaterial({ vertexColors: true, color: new THREE.Color(1.8, 1.8, 1.8) })
     )
-    app.scene.add(this.halo)
+    this.chevron = createChevron()
+    this.chevron.scale.setScalar(1.25)
+    const column = createLightColumn(GOLD, { radius: 2.2, base: 3.2, height: 26 })
+    this.column = column.mesh
+    this.columnMaterial = column.material
+    app.scene.add(this.start, this.striped, this.glowing, this.chevron, this.column)
 
     this.hud = document.querySelector('#course')
     this.label = this.hud.querySelector('.course-label')
     this.share = this.hud.querySelector('.course-share')
     this.arrow = document.querySelector('#course-arrow')
     this.share.addEventListener('click', () => this.shareTime())
-    this.setNext(0)
+
+    this.next = 0
+    this.pulse = 0
     // Placed once now so the instanced rings get bounds that cover them all
-    this.start.rotation.y = this.rings[0].yaw
-    this.place(0)
+    this.place(0, 0)
     this.striped.computeBoundingSphere()
   }
 
-  setNext(index) {
-    this.next = index
-    for (const ring of this.rings) ring.side = 0
+  get target() {
+    return this.gates[this.next]
   }
 
-  // Each ring rides the swell a little; the halo sits on the next one
-  place(time) {
-    this.rings.forEach((ring, index) => {
-      dummy.position.set(ring.x, HEIGHT + waveHeight(ring.x, ring.z, time) * 0.6, ring.z)
-      dummy.rotation.set(0, ring.yaw, 0)
+  // Each ring rides the swell, passed ones sink away; the next gate glows
+  place(time, delta) {
+    const target = this.target
+    for (const gate of this.gates) {
+      if (gate.kind === 'arch') continue
+      gate.sink += ((gate.passed ? 1 : 0) - gate.sink) * (1 - Math.exp(-(gate.passed ? 3 : 1.5) * delta))
+      const glowing = gate === target
+      dummy.position.set(gate.x, HEIGHT + waveHeight(gate.x, gate.z, time) * 0.6 - gate.sink * SINK, gate.z)
+      dummy.rotation.set(0, Math.atan2(gate.normal.x, gate.normal.z), 0)
+      dummy.scale.setScalar(glowing && gate.kind === 'ring' ? 0 : 1 - gate.sink * 0.25)
       dummy.updateMatrix()
-      if (index === 0) this.start.position.copy(dummy.position)
-      else this.striped.setMatrixAt(index - 1, dummy.matrix)
-      if (index === this.next) {
-        this.halo.position.copy(dummy.position)
-        this.halo.rotation.copy(dummy.rotation)
+      if (gate.kind === 'start') {
+        this.start.position.copy(dummy.position)
+        this.start.rotation.copy(dummy.rotation)
+      } else {
+        this.striped.setMatrixAt(gate.instance, dummy.matrix)
       }
-    })
+      if (glowing) {
+        this.glowing.position.copy(dummy.position)
+        this.glowing.rotation.copy(dummy.rotation)
+      }
+    }
     this.striped.instanceMatrix.needsUpdate = true
-    this.halo.scale.setScalar(1 + Math.sin(time * 4) * 0.04)
+
+    // The gold ring pops as it becomes the next one, and sits just outside
+    // the start ring when the start is what's next
+    this.pulse = Math.max(this.pulse - delta * 2.5, 0)
+    const pop = 1 + this.pulse * 0.25 + Math.sin(time * 4) * 0.03
+    this.glowing.visible = target.kind !== 'arch'
+    this.glowing.scale.setScalar(target.kind === 'start' ? pop * 1.08 : pop)
+
+    // The chevron floats over the gate (over the arch's top there, where the
+    // camera can see it), pointing the way through
+    const lift = target.kind === 'arch' ? 7.4 : HEIGHT + RADIUS + 1.6
+    this.chevron.position.set(target.x, lift + Math.sin(time * 3) * 0.25, target.z)
+    this.chevron.rotation.set(0, Math.atan2(target.normal.x, target.normal.z), 0)
+
+    // The light column fades as you come close, so it never stands in the way
+    this.column.position.set(target.x, 0, target.z)
+    const boat = this.app.world.boat.object.position
+    const distance = Math.hypot(boat.x - target.x, boat.z - target.z)
+    this.columnMaterial.uniforms.uStrength.value = 0.6 * THREE.MathUtils.clamp((distance - 12) / 25, 0, 1)
   }
 
   update(delta) {
     const boat = this.app.world.boat.object.position
-    this.place(this.app.physics.renderTime)
+    this.place(this.app.physics.renderTime, delta)
     // Photo mode stops the clock with everything else
     if (this.app.photo?.active) return
 
@@ -131,57 +176,69 @@ export class RingCourse {
 
     if (this.state === 'running') {
       this.time += delta
-      this.sinceRing += delta
-      if (jumped || this.sinceRing > GIVE_UP) return this.stop()
-      this.show(`Ring ${this.next === 0 ? this.rings.length : this.next} of ${this.rings.length} · ${format(this.time)}`)
+      this.sinceGate += delta
+      if (jumped || this.sinceGate > GIVE_UP) return this.stop()
+      const gate = this.next === 0 ? this.gates.length : this.next
+      this.show(`Gate ${gate} of ${this.gates.length} · ${format(this.time)}`)
     }
 
-    if (this.passed(this.rings[this.next], boat)) {
+    const target = this.target
+    const { through, side } = throughGate(target, boat.x, boat.z, target.side, target.kind === 'arch' ? 10 : 8)
+    target.side = side
+    if (through) {
       if (this.state !== 'running') this.begin()
       else if (this.next === 0) this.finish()
-      else this.ringPassed()
+      else this.passGate()
     }
     this.updateArrow()
   }
 
-  // Through the ring's opening in the direction of the lap
-  passed(ring, boat) {
-    const dx = boat.x - ring.x
-    const dz = boat.z - ring.z
-    const along = dx * ring.normal.x + dz * ring.normal.z
-    const across = Math.abs(dx * ring.normal.z - dz * ring.normal.x)
-    const side = Math.sign(along)
-    const through = ring.side < 0 && side > 0 && across < RADIUS - 0.2
-    ring.side = Math.hypot(dx, dz) < 8 ? side : 0
-    return through
-  }
-
-  // Only touch the page when the text actually changes (ten times a second)
+  // Only touch the page when the text actually changes
   show(text) {
     if (text === this.shown) return
     this.shown = text
     this.label.textContent = text
   }
 
+  setNext(index) {
+    this.next = index
+    this.target.side = 0
+    this.pulse = 1
+  }
+
+  // Spray across the gate as the boat goes through
+  burst(gate) {
+    const splashes = this.app.world.splashes
+    for (let i = -3; i <= 3; i++) {
+      point.set(gate.x + gate.normal.z * i * 0.9, 0.2, gate.z - gate.normal.x * i * 0.9)
+      splashes.emit(point, new THREE.Vector3(), { count: 3, spread: 0.4, up: 2.6, size: 0.09, life: 0.8 })
+    }
+  }
+
   begin() {
     if (!this.explained) {
       this.explained = true
-      this.app.overlay.toast('Through each ring in turn, then back through the chequered one. An arrow points the way.', 'Ring course', { duration: 6000 })
+      this.app.overlay.toast('A lap of the whole archipelago: sail through each gold gate in turn, and back through the chequered ring to finish.', 'Ring course', { duration: 6500 })
     }
     this.state = 'running'
     this.time = 0
-    this.sinceRing = 0
+    this.sinceGate = 0
     this.hud.hidden = false
     this.share.hidden = true
     clearTimeout(this.hideTimer)
+    for (const gate of this.gates) gate.passed = false
+    this.burst(this.gates[0])
     this.app.sounds.bell(0.2, null, { pitch: 660 })
     this.setNext(1)
   }
 
-  ringPassed() {
-    this.sinceRing = 0
-    this.app.sounds.bell(0.18, null, { pitch: 660 * Math.pow(2, this.next / 12) })
-    this.setNext((this.next + 1) % this.rings.length)
+  passGate() {
+    const gate = this.target
+    gate.passed = gate.kind === 'ring'
+    this.sinceGate = 0
+    this.burst(gate)
+    this.app.sounds.bell(0.18, null, { pitch: 660 * Math.pow(2, (this.next % 12) / 12) })
+    this.setNext((this.next + 1) % this.gates.length)
   }
 
   finish() {
@@ -194,16 +251,22 @@ export class RingCourse {
     this.show(record ? `${format(this.time)} · best time!` : `${format(this.time)} · best ${format(this.best)}`)
     this.share.hidden = false
     this.share.textContent = 'Share'
+    this.burst(this.gates[0])
     this.app.sounds.fanfare(0.2)
     this.logbook.record('course')
-    this.state = 'idle'
-    this.setNext(0)
+    this.reset()
     this.hideTimer = setTimeout(() => (this.hud.hidden = true), 9000)
   }
 
   stop() {
-    this.state = 'idle'
     this.hud.hidden = true
+    this.reset()
+  }
+
+  // Back to waiting at the start, the sunk rings rising again
+  reset() {
+    this.state = 'idle'
+    for (const gate of this.gates) gate.passed = false
     this.setNext(0)
   }
 
@@ -223,30 +286,27 @@ export class RingCourse {
   }
 
   // While running, an arrow at the edge of the screen points to the next
-  // ring whenever it is out of view
+  // gate whenever it is out of view
   updateArrow() {
     if (this.state !== 'running') {
       this.arrow.hidden = true
       return
     }
-    const ring = this.rings[this.next]
-    const camera = this.app.cameraRig.camera
-    projected.set(ring.x, HEIGHT, ring.z).project(camera)
+    const target = this.target
+    projected.set(target.x, HEIGHT, target.z).project(this.app.cameraRig.camera)
     const { width, height } = this.app.viewport
-    let x = projected.x
-    let y = projected.y
-    if (projected.z > 1) {
-      x = -x
-      y = -y
-    }
-    const inView = projected.z < 1 && Math.abs(x) < 0.9 && Math.abs(y) < 0.85
+    // Pixels from the middle of the screen; behind the camera flips it
+    const flip = projected.z > 1 ? -1 : 1
+    const dx = projected.x * flip * (width / 2)
+    const dy = -projected.y * flip * (height / 2)
+    // The arrow keeps clear of the HUD along the top and the legend below
+    const room = { x: width / 2 - 44, up: height / 2 - 100, down: height / 2 - 110 }
+    const inView = flip > 0 && Math.abs(dx) < room.x && dy > -room.up && dy < room.down
     this.arrow.hidden = inView
     if (inView) return
-    // Pushed out to the edge along the direction from the centre
-    const scale = 1 / Math.max(Math.abs(x) / 0.88, Math.abs(y) / 0.8)
-    const left = (x * scale * 0.5 + 0.5) * width
-    const top = (-y * scale * 0.5 + 0.5) * height
-    const angle = Math.atan2(-y, x)
-    this.arrow.style.transform = `translate(${left}px, ${top}px) translate(-50%, -50%) rotate(${angle}rad)`
+    const scale = Math.min(room.x / Math.abs(dx || 1e-6), (dy < 0 ? room.up : room.down) / Math.abs(dy || 1e-6))
+    const left = width / 2 + dx * scale
+    const top = height / 2 + dy * scale
+    this.arrow.style.transform = `translate(${left}px, ${top}px) translate(-50%, -50%) rotate(${Math.atan2(dy, dx)}rad)`
   }
 }

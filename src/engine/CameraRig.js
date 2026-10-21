@@ -1,6 +1,9 @@
 import * as THREE from 'three'
 
 const desired = new THREE.Vector3()
+const viewDirection = new THREE.Vector3()
+const POLAR = Math.PI * 0.3
+const AZIMUTH = Math.PI * 0.25
 
 // Fixed-angle follow camera looking down diagonally across the world, with a
 // narrow field of view so the scene reads like a miniature. It never rotates,
@@ -9,7 +12,11 @@ export class CameraRig {
   constructor(app) {
     this.app = app
     this.camera = new THREE.PerspectiveCamera(25, 1, 1, 600)
-    this.direction = new THREE.Vector3().setFromSphericalCoords(1, Math.PI * 0.3, Math.PI * 0.25)
+    this.direction = new THREE.Vector3().setFromSphericalCoords(1, POLAR, AZIMUTH)
+    // Photo mode can swing the camera round and tilt it (set `orbit` to the
+    // angles wanted); without it the view eases back to the fixed angle
+    this.orbit = null
+    this.angles = { polar: POLAR, azimuth: AZIMUTH }
     // The ground direction that points up the screen
     this.screenUp = new THREE.Vector3(-this.direction.x, 0, -this.direction.z).normalize()
     this.screenRight = new THREE.Vector3(-this.screenUp.z, 0, this.screenUp.x)
@@ -55,6 +62,11 @@ export class CameraRig {
       },
       { passive: true }
     )
+  }
+
+  // The fixed viewing angle everything is designed around
+  get defaultAngles() {
+    return { polar: POLAR, azimuth: AZIMUTH }
   }
 
   // A short jolt, e.g. when the boat hits a dock
@@ -144,7 +156,14 @@ export class CameraRig {
       this.distance += (this.targetDistance - this.distance) * (1 - Math.exp(-1.6 * delta))
     }
 
-    this.camera.position.copy(this.focus).addScaledVector(this.direction, this.distance)
+    const goal = this.orbit ?? this.defaultAngles
+    // The short way round when easing back after a full turn
+    this.angles.azimuth = goal.azimuth + THREE.MathUtils.euclideanModulo(this.angles.azimuth - goal.azimuth + Math.PI, Math.PI * 2) - Math.PI
+    const ease = 1 - Math.exp(-6 * delta)
+    this.angles.polar += (goal.polar - this.angles.polar) * ease
+    this.angles.azimuth += (goal.azimuth - this.angles.azimuth) * ease
+    viewDirection.setFromSphericalCoords(1, this.angles.polar, this.angles.azimuth)
+    this.camera.position.copy(this.focus).addScaledVector(viewDirection, this.distance)
     this.camera.lookAt(this.focus)
 
     if (!this.override) this.nudgeTarget.set(0, 0, 0)

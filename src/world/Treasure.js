@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { islands, spawn } from './layout.js'
-import { islandHeight } from './terrain.js'
+import { dryGround } from './terrain.js'
 import { createStylizedMaterial } from './shading.js'
 import { element } from '../ui/render.js'
 
@@ -19,7 +19,11 @@ export class Treasure {
   constructor(app, models, logbook) {
     this.app = app
     this.logbook = logbook
-    this.spot = findSpot(islands.find(island => island.id === 'reef-cay'), app.cameraRig.screenUp)
+    // The cay's coast wanders with noise, so its sand is found rather than
+    // assumed; a little toward the camera keeps the chest clear of its palm
+    const cay = islands.find(island => island.id === 'reef-cay')
+    const spot = dryGround(cay, app.cameraRig.screenUp.clone().negate(), 0.8)
+    this.spot = new THREE.Vector3(cay.x + spot.x, spot.y, cay.z + spot.z)
     this.state = logbook.has('treasure') ? 'open' : 'buried'
     this.time = 0
 
@@ -272,24 +276,6 @@ export class Treasure {
     const group = element('div', { class: 'paint-switch', role: 'group', 'aria-label': 'Boat paint' }, [option('classic', 'Classic'), option('gold', 'Gold')])
     return group
   }
-}
-
-// The cay's coast wanders with noise, so its sand is found rather than
-// assumed: the highest point, then a little toward the camera (clear of the
-// palm growing there) if that is still dry sand
-function findSpot(cay, screenUp) {
-  let best = { x: 0, z: 0, y: -Infinity }
-  const reach = cay.radius * 1.3
-  for (let x = -reach; x <= reach; x += 0.25) {
-    for (let z = -reach; z <= reach; z += 0.25) {
-      const y = islandHeight(cay, x, z)
-      if (y > best.y) best = { x, z, y }
-    }
-  }
-  const x = best.x - screenUp.x * 0.8
-  const z = best.z - screenUp.z * 0.8
-  const y = islandHeight(cay, x, z)
-  return y > 0.2 ? new THREE.Vector3(cay.x + x, y, cay.z + z) : new THREE.Vector3(cay.x + best.x, best.y, cay.z + best.z)
 }
 
 // The overhead chart turned 45° and toned to old paper, made once

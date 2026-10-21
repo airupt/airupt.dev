@@ -216,17 +216,32 @@ export const bottleSpots = [
   [40, 46],
 ]
 
-// The ring course: a lap round the home island, starting and finishing at
-// the first ring, east of the island
+// The ring course: a lap of the whole archipelago. From the chequered ring
+// east of Skills it heads south and west, threads the rock arch out of a
+// hairpin, hugs the volcano's coast, takes the long straight along the north
+// edge, rounds the reef, threads the gap between islet 5 and the sea stacks
+// and hairpins round the wreck back to the start. Each stop is a ring at
+// [x, z]; 'arch' is the rock arch, which is a gate of its own.
 export const ringCourse = [
-  [22, 0],
-  [12, 25],
-  [-4, 32],
-  [-16, 20],
-  [-22, -4],
-  [-16, -22],
-  [-2, -24],
-  [16, -14],
+  [12, 52],
+  [6, 74],
+  [-28, 74],
+  [-56, 48],
+  'arch',
+  [-72, 0],
+  [-66, -22],
+  [-30, -26],
+  [-22, -56],
+  [0, -80],
+  [32, -78],
+  [62, -60],
+  [80, -36],
+  [74, -8],
+  [63, -5],
+  [53, 17],
+  [63, 40],
+  [42, 58],
+  [26, 60],
 ]
 
 // A natural arch out west, wide enough to sail through

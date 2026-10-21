@@ -30,7 +30,7 @@ npm run deploy   # build + deploy to Cloudflare (needs `npx wrangler login` once
 | Open a section | E or Enter | A |
 | Map | M | — |
 | Captain's log | L | — |
-| Photo mode | P (Space to shoot) | — |
+| Photo mode | P (drag to turn the camera, Space to shoot) | — |
 | Reset | R | Y |
 
 On touch devices an on-screen stick appears: point it where you want to sail.
@@ -46,13 +46,14 @@ On touch devices an on-screen stick appears: point it where you want to sail.
 | `src/world/Logbook.js` | The captain's log: sixteen things to find, and the checks for the ones about where the boat is |
 | `src/world/Treasure.js` | Bottles as treasure map pieces, the chest on the reef cay, and the map card in the log |
 | `src/world/Wildlife.js` | Dolphins that race a boat going flat out, a whale at night, a tentacle by the wreck |
-| `src/world/RingCourse.js` | The timed lap of rings round the home island |
+| `src/world/RingCourse.js` | The ring course: a timed lap of the whole archipelago, through the rock arch |
+| `src/world/gates.js` | Gates the boat sails through (rings, the arch): the crossing check and the course as gates |
 | `src/world/layout.js` | Every hand-placed thing: islands, sea stacks, the arch, anchored boats, bottles, the start |
 | `src/world/terrain.js` | Island ground heights as pure maths, shared by the meshes, the sea map and the tests |
 | `src/ui/` | Loader, HUD, island labels, section panel, map, captain's log, photo mode, classic view |
 | `src/content/` | Portfolio text |
 | `scripts/build-models.mjs` | Bundles the hand-picked Kenney models into one GLB |
-| `test/` | Checks that everything at sea is in open water, docks have shores, islands don't merge, and the touch stick steers right |
+| `test/` | Layout (everything at sea in open water, docks, islands apart, the course clear), gates and a simulated lap, the captain's log, the treasure spot, and the touch stick |
 
 ## Debugging
 

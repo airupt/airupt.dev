@@ -1,4 +1,4 @@
-import * as THREE from 'three'
+import { createLightColumn } from './lightColumn.js'
 
 const STORAGE_KEY = 'airupt-guided'
 
@@ -21,39 +21,9 @@ export class Guide {
     this.time = 0
     this.tipsShown = readSeen() ? 2 : 0
 
-    const geometry = new THREE.CylinderGeometry(0.5, 0.9, 16, 16, 1, true)
-    geometry.translate(0, 8, 0)
     this.beacons = zones.list.map(zone => {
-      const material = new THREE.ShaderMaterial({
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        uniforms: { uColor: { value: new THREE.Color(zone.island.color) }, uStrength: { value: 0 } },
-        vertexShader: /* glsl */ `
-          varying float vHeight;
-          varying float vFacing;
-          void main() {
-            vHeight = uv.y;
-            vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-            vFacing = abs(dot(normalize(normalMatrix * normal), normalize(-viewPosition.xyz)));
-            gl_Position = projectionMatrix * viewPosition;
-          }
-        `,
-        fragmentShader: /* glsl */ `
-          uniform vec3 uColor;
-          uniform float uStrength;
-          varying float vHeight;
-          varying float vFacing;
-          void main() {
-            // Brightest at the foot, fading up into the sky, soft at the edges
-            float glow = pow(1.0 - vHeight, 1.6) * pow(vFacing, 1.5) * uStrength;
-            gl_FragColor = vec4(uColor * glow, 1.0);
-          }
-        `,
-      })
-      const mesh = new THREE.Mesh(geometry, material)
+      const { mesh, material } = createLightColumn(zone.island.color)
       mesh.position.set(zone.buoy.anchor.x, 0, zone.buoy.anchor.z)
-      mesh.frustumCulled = false
       app.scene.add(mesh)
       return { zone, mesh, material }
     })

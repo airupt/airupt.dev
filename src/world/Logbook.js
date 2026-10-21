@@ -1,4 +1,5 @@
 import { arch, islands, worldRadius, wreck } from './layout.js'
+import { archGate, throughGate } from './gates.js'
 
 const STORAGE_KEY = 'airupt-log'
 
@@ -19,7 +20,7 @@ export const discoveries = [
   ['whale', 'Saw the whale', 'Something big comes up at night, far from land.'],
   ['night', 'Sailed by night', 'Stay out until the lighthouse comes on.'],
   ['edge', 'Reached the edge of the map', 'Sail as far as the sea will let you.'],
-  ['course', 'Finished the ring course', 'A starting ring floats near the home island.'],
+  ['course', 'Finished the ring course', 'A chequered ring floats in the water east of Skills.'],
   ['photo', 'Took a photo', 'Try the camera button up in the corner.'],
 ]
 
@@ -48,7 +49,10 @@ export class Logbook {
     this.found = readFound()
     this.listeners = []
     this.reef = islands.find(island => island.reef)
-    this.archSide = 0
+    // The arch counts whichever way you sail through it
+    const gate = archGate(arch)
+    this.archGates = [gate, { ...gate, normal: { x: -gate.normal.x, z: -gate.normal.z } }]
+    this.archSides = [0, 0]
   }
 
   get count() {
@@ -92,13 +96,11 @@ export class Logbook {
     const { boat, dayCycle } = this.app.world
     const { x, z } = boat.object.position
 
-    // Through the arch: across the line between its feet, between the feet
-    const dx = x - arch.x
-    const dz = z - arch.z
-    const along = dx * Math.cos(arch.yaw) - dz * Math.sin(arch.yaw)
-    const side = Math.sign(dx * Math.sin(arch.yaw) + dz * Math.cos(arch.yaw))
-    if (side && this.archSide && side !== this.archSide && Math.abs(along) < arch.span / 2 - 1) this.record('arch')
-    this.archSide = Math.hypot(dx, dz) < arch.span ? side : 0
+    this.archGates.forEach((gate, index) => {
+      const { through, side } = throughGate(gate, x, z, this.archSides[index])
+      this.archSides[index] = side
+      if (through) this.record('arch')
+    })
 
     if (Math.hypot(x - wreck.x, z - wreck.z) < 14) this.record('wreck')
     if (this.reef && Math.hypot(x - this.reef.x, z - this.reef.z) < this.reef.radius * 0.5) this.record('reef')

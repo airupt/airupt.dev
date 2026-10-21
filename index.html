@@ -41,6 +41,7 @@
         <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" /></symbol>
         <symbol id="icon-camera" viewBox="0 0 24 24"><path d="M3.5 8h3.5l2-3h6l2 3h3.5v11h-17Zm8.5 9a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /></symbol>
         <symbol id="icon-sun" viewBox="0 0 24 24"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-14v2.5m0 15V22M2 12h2.5m15 0H22M4.9 4.9l1.8 1.8m10.6 10.6 1.8 1.8m0-14.2-1.8 1.8M6.7 17.3l-1.8 1.8" /></symbol>
+        <symbol id="icon-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" /></symbol>
         <symbol id="icon-zoom" viewBox="0 0 24 24"><path d="M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Zm4.6-1.9L20 20" /></symbol>
       </defs>
     </svg>
@@ -110,6 +111,7 @@
     </dialog>
 
     <div class="photo-bar" id="photo-bar" hidden>
+      <p class="photo-hint">Drag to turn the camera, scroll or pinch to zoom, and pick the light.</p>
       <label class="photo-control">
         <svg class="icon" aria-hidden="true"><use href="#icon-sun" /></svg>
         <span class="visually-hidden">Time of day</span>
@@ -120,12 +122,23 @@
         <span class="visually-hidden">Zoom</span>
         <input type="range" id="photo-zoom" step="0.5" />
       </label>
+      <button class="icon-button icon-button-small" id="photo-reset" aria-label="Back to the usual view" data-tooltip="Usual view">
+        <svg class="icon"><use href="#icon-reset" /></svg>
+      </button>
       <button class="photo-shutter" id="photo-shutter" aria-label="Take the photo"></button>
       <button class="icon-button icon-button-small" id="photo-exit" aria-label="Leave photo mode" data-tooltip="Close · Esc">
         <svg class="icon"><use href="#icon-close" /></svg>
       </button>
     </div>
     <div class="photo-flash" id="photo-flash" aria-hidden="true"></div>
+    <div class="photo-preview" id="photo-preview" role="dialog" aria-label="Your photo" hidden>
+      <img alt="The photo you just took" />
+      <div class="photo-actions">
+        <button class="button" data-save>Save</button>
+        <button class="button" data-share hidden>Share</button>
+        <button class="button button-quiet" data-close>Keep shooting</button>
+      </div>
+    </div>
 
     <dialog id="logbook" class="logbook" aria-labelledby="logbook-title">
       <form method="dialog" class="dialog-header">

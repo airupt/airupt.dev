@@ -1603,7 +1603,8 @@ body:has(dialog[open]) .hud > * {
 /* Photo mode: everything but the world steps aside; a bar at the bottom
    holds the light and zoom sliders and the shutter */
 .is-photo .hud,
-.is-photo .labels {
+.is-photo .labels,
+.is-previewing .photo-bar {
   display: none;
 }
 
@@ -1621,7 +1622,7 @@ body:has(dialog[open]) .hud > * {
   width: max-content;
   max-width: calc(100% - 2rem);
   padding: 0.7rem 0.9rem 0.7rem 1.1rem;
-  border-radius: 999px;
+  border-radius: 20px;
   background: var(--navy);
   color: var(--sign-text);
   box-shadow: var(--board-shadow);
@@ -1642,6 +1643,14 @@ body:has(dialog[open]) .hud > * {
 .photo-control input {
   width: 130px;
   accent-color: #ffb84a;
+}
+
+.photo-hint {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: center;
+  font: 600 0.85rem/1.3 var(--font-text);
+  color: rgb(244 241 234 / 0.8);
 }
 
 .photo-shutter {
@@ -1695,5 +1704,37 @@ body:has(dialog[open]) .hud > * {
     width: 42px;
     height: 42px;
   }
+}
+
+/* The picture just taken, with what to do with it */
+.photo-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 27;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgb(13 43 69 / 0.55);
+}
+
+.photo-preview img {
+  max-width: min(760px, 100%);
+  max-height: 65vh;
+  border: 7px solid var(--wood);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgb(13 43 69 / 0.5);
+}
+
+.photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.button-quiet {
+  background: rgb(13 43 69 / 0.7);
 }
 
