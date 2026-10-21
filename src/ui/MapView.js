@@ -172,7 +172,7 @@ export class MapView {
     }
 
     const start = toChart(this.course[0].x, this.course[0].z)
-    const flag = badge('flag', 'map-start')
+    const flag = badge('flag', 'map-start map-grow')
     const done = tick(BADGE)
     flag.append(done)
     const place = svg('g', { transform: `translate(${start.x.toFixed(2)} ${start.y.toFixed(2)})`, class: 'map-pick' })
@@ -208,8 +208,11 @@ export class MapView {
     const color = island.color ?? (island.volcano ? '#a8a29c' : '#fffaf0')
     const at = toChart(island.x, island.z)
     const pin = svg('g', { transform: `translate(${at.x.toFixed(2)} ${at.y.toFixed(2)})`, class: 'map-pin', 'aria-hidden': 'true' })
+    // Pin and tick in one body, so pointing at it grows both together
+    const body = svg('g', { class: 'map-grow' })
     const done = tick(PIN)
-    pin.append(svg('circle', { r: PIN, fill: color }), done)
+    body.append(svg('circle', { r: PIN, fill: color, class: 'map-pin-dot' }), done)
+    pin.append(body)
     this.overlay.append(pin)
     const mark = { ...at, radius: PIN, shown: true, island }
     this.marks.push(mark)
@@ -261,29 +264,24 @@ export class MapView {
     return element
   }
 
-  // A row in the travel list beside the chart, with how far you've got
-  // there and a number key; pointing at it (or focusing it) lights up its
+  // A row in the travel list beside the chart, ticked like its place on the
+  // chart, with a number key; pointing at it (or focusing it) lights up its
   // place on the chart, and the other way round
   addRow(title, pin, go, spots) {
     const button = document.createElement('button')
     button.className = 'map-button'
-    const text = document.createElement('span')
-    text.className = 'map-text'
     const name = document.createElement('span')
-    name.className = 'map-name'
     name.textContent = title
-    const status = document.createElement('span')
-    status.className = 'map-status'
-    text.append(name, status)
+    // Said in words for screen readers
     const done = document.createElement('span')
     done.className = 'map-done'
     done.hidden = true
-    done.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#icon-check" /></svg>'
+    done.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#icon-check" /></svg><span class="visually-hidden">, done</span>'
     const number = String(this.destinations.length + 1)
     const cap = document.createElement('kbd')
     cap.className = 'key map-key'
     cap.textContent = number
-    button.append(text, done, cap)
+    button.append(name, done, cap)
     button.setAttribute('aria-keyshortcuts', number)
     button.style.setProperty('--pin', pin)
     button.addEventListener('click', go)
@@ -300,33 +298,21 @@ export class MapView {
     }
     button.addEventListener('focusin', () => hot(true))
     button.addEventListener('focusout', () => hot(false))
-    const row = { button, status, done }
+    const row = { button, done }
     this.rows.push(row)
     return row
   }
 
-  // Ticks, statuses, the wreck and the X, as they are now
+  // Ticks, the wreck and the X, as they are now
   refresh() {
-    const { logbook, reactions, ringCourse: course } = this.app.world
+    const { logbook, reactions } = this.app.world
     const has = id => Boolean(logbook?.has(id))
     for (const row of this.rows) {
-      let status = ''
-      let done = false
-      if (row === this.courseRow) {
-        done = has('course')
-        status = course?.best ? `Best lap ${course.best.toFixed(1)} s` : 'No lap yet'
-      } else if (row.island.section) {
-        done = Boolean(reactions?.visited.has(row.island.section))
-        status = done ? 'Docked' : 'Not docked yet'
-      } else if (row.island.landing) {
-        done = has('landing')
-        status = done ? 'Landed' : 'Not landed yet'
-      } else {
-        status = 'Where you set sail'
-      }
-      row.status.textContent = status
+      // Docked at a section island, landed on Mount Airupt, a lap of the
+      // course; airupt is where you start, so there is nothing to tick
+      const done =
+        row === this.courseRow ? has('course') : row.island.section ? Boolean(reactions?.visited.has(row.island.section)) : row.island.landing ? has('landing') : false
       row.done.hidden = !done
-      row.button.classList.toggle('is-done', done)
       if (row.tick) row.tick.style.display = done ? '' : 'none'
     }
     this.courseTick.style.display = has('course') ? '' : 'none'
