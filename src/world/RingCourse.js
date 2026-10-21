@@ -90,7 +90,8 @@ export class RingCourse {
     this.start = mesh([createRingGeometry(['#f4f1ea', '#1d2433'])])
     const striped = mesh([createRingGeometry(['#e8543a', '#f4f1ea'])])
     this.striped = new THREE.InstancedMesh(striped.geometry, striped.material, rings.length)
-    this.striped.castShadow = true
+    // Markers, not scenery: a ring's shadow is just a dark loop on the water
+    this.start.castShadow = false
     this.striped.receiveShadow = true
     this.glowing = new THREE.Mesh(
       createRingGeometry([GOLD, '#fff6dc']),

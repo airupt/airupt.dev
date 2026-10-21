@@ -137,3 +137,10 @@ test('the ring course keeps clear of docks, berths, buoys and channel marks', ()
   })
 })
 
+
+test('every section buoy floats in open water, clear of the sea stacks', () => {
+  for (const [x, z, , what] of harbourPoints().filter(([, , , what]) => what.endsWith('buoy'))) {
+    assert.ok(highestNear(x, z, 4) < OPEN_WATER, `the ${what} has land within 4 m`)
+    for (const [rx, rz] of rockClusters) assert.ok(Math.hypot(rx - x, rz - z) > 9, `the ${what} is too close to the sea stacks at (${rx}, ${rz})`)
+  }
+})

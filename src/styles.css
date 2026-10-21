@@ -937,7 +937,7 @@ body:has(dialog[open]) .hud > * {
   color: rgb(244 241 234 / 0.88);
 }
 
-.panel .section a:not(.button) {
+.panel .section a:not(.button):not(.contact-link) {
   color: color-mix(in srgb, var(--section-color) 55%, white);
 }
 
@@ -1024,7 +1024,7 @@ body:has(dialog[open]) .hud > * {
   margin: 0 0 1rem;
 }
 
-.section a:not(.button) {
+.section a:not(.button):not(.contact-link) {
   color: var(--sea);
   font-weight: 700;
 }
@@ -1118,12 +1118,54 @@ body:has(dialog[open]) .hud > * {
   margin-top: 1.3rem;
 }
 
-.links {
-  list-style: none;
-  padding: 0;
+/* Contact routes as wide buttons: the mark, the name, the handle */
+.contact-links {
   display: grid;
-  gap: 0.5rem;
-  font-size: 1.1rem;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+
+.contact-link {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 14%, transparent);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    transform 0.12s ease;
+}
+
+.contact-link:hover,
+.contact-link:focus-visible {
+  background: color-mix(in srgb, currentColor 13%, transparent);
+  transform: translateY(-1px);
+}
+
+.contact-link .icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--section-color, var(--accent));
+}
+
+.icon-filled {
+  fill: currentColor;
+  stroke: none;
+}
+
+.contact-name {
+  font: 800 1.1rem/1 var(--font-display);
+}
+
+.contact-handle {
+  margin-left: auto;
+  font: 600 0.95rem/1 var(--font-text);
+  opacity: 0.7;
 }
 
 /* Map: a navy chart with the real world rendered from above */
@@ -1301,6 +1343,13 @@ body:has(dialog[open]) .hud > * {
   bottom: 0;
   height: 1px;
   background: rgb(244 241 234 / 0.14);
+}
+
+/* Only where there's a keyboard to press them on */
+@media (hover: none) {
+  .map-key {
+    display: none;
+  }
 }
 
 .map-key {
@@ -1666,6 +1715,17 @@ body:has(dialog[open]) .hud > * {
   box-shadow: var(--board-shadow);
 }
 
+.photo-sliders,
+.photo-buttons {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.photo-buttons {
+  gap: 0.8rem;
+}
+
 .photo-control {
   display: flex;
   align-items: center;
@@ -1774,5 +1834,29 @@ body:has(dialog[open]) .hud > * {
 
 .button-quiet {
   background: rgb(13 43 69 / 0.7);
+}
+
+/* Phones: the two sliders stacked full width, the buttons in a row below */
+@media (max-width: 600px) {
+  .photo-bar {
+    flex-direction: column;
+    width: calc(100% - 2rem);
+    gap: 0.8rem;
+  }
+
+  .photo-sliders {
+    flex-direction: column;
+    align-self: stretch;
+    gap: 0.6rem;
+  }
+
+  .photo-control {
+    width: 100%;
+  }
+
+  .photo-control input {
+    flex: 1;
+    width: auto;
+  }
 }
 

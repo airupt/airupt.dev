@@ -138,7 +138,8 @@ export class PhotoMode {
     this.hint.hidden = false
     clearTimeout(this.hintTimer)
     this.hintTimer = setTimeout(() => this.hideHint(), 9000)
-    this.bar.querySelector('#photo-shutter').focus({ preventScroll: true })
+    // Keys work from anywhere; the bar takes focus without lighting up a tooltip
+    this.bar.focus({ preventScroll: true })
     this.follow()
   }
 

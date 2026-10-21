@@ -1,15 +1,5 @@
 import { discoveries } from '../world/Logbook.js'
-import { element } from './render.js'
-
-// An icon from the sprite in index.html
-function icon(name) {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  svg.setAttribute('class', 'icon')
-  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use')
-  use.setAttribute('href', `#icon-${name}`)
-  svg.append(use)
-  return svg
-}
+import { element, icon } from './render.js'
 
 // The captain's log as a dialog: how much has been found and every
 // discovery, the found ones in full and the rest as hints. Other parts can
@@ -71,6 +61,8 @@ export class LogbookView {
       { class: 'log-list' },
       discoveries.map(([id, title, hint]) => {
         const found = this.logbook.has(id)
+        // With the map complete, the treasure's hint points to the X
+        if (id === 'treasure' && this.logbook.has('bottles')) hint = 'The map is complete: X marks a sandy cay in the lagoon.'
         const mark = element('span', { class: 'log-mark', 'aria-hidden': 'true' }, [found ? icon('check') : '?'])
         return element('li', { class: found ? 'log-entry is-found' : 'log-entry' }, [
           mark,

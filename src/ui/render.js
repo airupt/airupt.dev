@@ -9,6 +9,29 @@ export function element(tag, attributes = {}, children = []) {
   return node
 }
 
+// An icon from the sprite in index.html
+export function icon(name, className = 'icon') {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('class', className)
+  svg.setAttribute('aria-hidden', 'true')
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use')
+  use.setAttribute('href', `#icon-${name}`)
+  svg.append(use)
+  return svg
+}
+
+// A contact route as a wide button: its mark, its name and the handle
+function contactLink(url, name, handle, mark) {
+  const external = !url.startsWith('mailto:')
+  return element('a', { class: 'contact-link', href: url, ...(external && { target: '_blank', rel: 'noopener' }) }, [
+    icon(mark, mark === 'mail' ? 'icon' : 'icon icon-filled'),
+    element('span', { class: 'contact-name', text: name }),
+    element('span', { class: 'contact-handle', text: handle }),
+  ])
+}
+
+const marks = { github: 'github', x: 'x' }
+
 const externalLink = (url, text, className) =>
   element('a', { href: url, target: '_blank', rel: 'noopener', text, ...(className && { class: className }) })
 
@@ -58,9 +81,9 @@ const renderers = {
 
   contact: (section, profile) => [
     element('p', { text: section.intro }),
-    element('ul', { class: 'links' }, [
-      profile.email && element('li', {}, [element('a', { href: `mailto:${profile.email}`, text: profile.email })]),
-      ...profile.links.map(link => element('li', {}, [externalLink(link.url, link.label)])),
+    element('div', { class: 'contact-links' }, [
+      profile.email && contactLink(`mailto:${profile.email}`, 'Email', profile.email, 'mail'),
+      ...profile.links.map(link => contactLink(link.url, link.label, `@${new URL(link.url).pathname.split('/').filter(Boolean)[0] ?? ''}`, marks[link.label.toLowerCase()] ?? 'arrow')),
     ]),
   ],
 }

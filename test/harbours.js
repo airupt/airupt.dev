@@ -3,7 +3,8 @@
 // Zones, Seascape), for tests that keep other things clear of them
 import { facingDirection, islandHeight } from '../src/world/terrain.js'
 import { islands, spawn } from '../src/world/layout.js'
-import { DOCK_INLAND, DOCK_LENGTH, DOCK_WIDTH } from '../src/world/Dock.js'
+import { DOCK_INLAND, DOCK_LENGTH } from '../src/world/Dock.js'
+import { harbourLayout } from '../src/world/harbour.js'
 
 // The fixed camera looks along this (CameraRig: polar 0.3π, azimuth 0.25π)
 const toCamera = { x: Math.sin(Math.PI * 0.3) * Math.sin(Math.PI * 0.25), z: Math.sin(Math.PI * 0.3) * Math.cos(Math.PI * 0.25) }
@@ -25,14 +26,9 @@ export function harbourPoints() {
       points.push([x + out.x * reach, z + out.z * reach, 1.5, `${island.id} dock`])
     }
     if (!island.section) continue
-    const side = Math.sign(out.z * toCamera.x - out.x * toCamera.z) || 1
-    const across = { x: out.z * side, z: -out.x * side }
-    const offset = DOCK_WIDTH / 2 + 1.45
-    const reach = (DOCK_LENGTH - DOCK_INLAND) * 0.55
-    const berth = { x: x + out.x * reach + across.x * offset, z: z + out.z * reach + across.z * offset }
+    const { berth, buoy } = harbourLayout({ x, z }, out, toCamera)
     points.push([berth.x, berth.z, 2.5, `${island.id} berth`])
-    const buoyReach = DOCK_LENGTH - DOCK_INLAND + 3.4
-    points.push([x + out.x * buoyReach + across.x * (offset + 3.4), z + out.z * buoyReach + across.z * (offset + 3.4), 1.5, `${island.id} buoy`])
+    points.push([buoy.x, buoy.z, 1.5, `${island.id} buoy`])
     // Channel marks halfway along the run from the start to the berth
     const dx = berth.x - spawn.x
     const dz = berth.z - spawn.z

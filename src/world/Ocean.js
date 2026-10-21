@@ -101,6 +101,7 @@ export class Ocean {
         uniform float uTrailSize;
         varying float vWave;
         varying vec2 vOceanPosition;
+        ${waveNormalGLSL()}
         ${waterMapGLSL}`
       )
       .replace(
@@ -177,10 +178,14 @@ export class Ocean {
       )
       .replace(
         '// STYLIZED_EXTRA',
-        `// Sun glints: a tight highlight on facets that mirror the sun toward the camera.
-        // It goes above 1.0, so only these sparkles reach the bloom threshold.
+        `// Sun glints: a tight highlight where the waves mirror the sun toward the camera.
+        // It goes above 1.0, so only these sparkles reach the bloom threshold. The
+        // exact wave normal is worked out here for every pixel: the one passed down
+        // from the vertices is blended across whole triangles, and a highlight this
+        // sharp would trace their edges in zigzags when the sun is low.
         vec3 viewDirection = normalize(cameraPosition - vStylizedWorld);
-        float glint = pow(max(dot(stylizedNormal, normalize(uSunDirection + viewDirection)), 0.0), 260.0);
+        vec3 glintNormal = waveNormal(vOceanPosition, uTime);
+        float glint = pow(max(dot(glintNormal, normalize(uSunDirection + viewDirection)), 0.0), 260.0);
         stylizedColor += uLightColor * glint * uGlint * (1.0 - shade) * smoothstep(0.2, 0.6, depth) * mix(1.0, 0.25, uNight);
 
         // Warm lamplight spilling onto the water at night, broken up by the ripples

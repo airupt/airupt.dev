@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { Buoy } from './Buoy.js'
-import { DOCK_INLAND, DOCK_LENGTH, DOCK_WIDTH } from './Dock.js'
+import { harbourLayout } from './harbour.js'
 
 const RADIUS = 7.5
 
@@ -13,26 +13,10 @@ export class Zones {
     this.active = null
     this.list = []
 
-    const toCamera = app.cameraRig.direction
     for (const island of islands.list) {
       if (!island.section) continue
-      const { shore, out } = island
-      // The berth is on the camera's side of the dock, so the dock never
-      // stands in front of the moored boat
-      const side = Math.sign(out.z * toCamera.x - out.x * toCamera.z) || 1
-      const across = { x: out.z * side, z: -out.x * side }
-      const offset = DOCK_WIDTH / 2 + 1.45
-      const reach = (DOCK_LENGTH - DOCK_INLAND) * 0.55
-      const x = shore.x + out.x * reach + across.x * offset
-      const z = shore.z + out.z * reach + across.z * offset
-      // Moored parallel to the dock, bow out to sea, ready to leave
-      const yaw = Math.atan2(-out.x, -out.z)
-      // The buoy stands off the dock's end, a few metres to the side of the
-      // moored boat's way out, so leaving the berth never runs into it
-      const buoyReach = DOCK_LENGTH - DOCK_INLAND + 3.4
-      const buoyAcross = offset + 3.4
-      const buoy = new Buoy(app, { x: shore.x + out.x * buoyReach + across.x * buoyAcross, z: shore.z + out.z * buoyReach + across.z * buoyAcross, color: island.color })
-      this.list.push({ section: island.section, island, x, z, yaw, buoy })
+      const { berth, buoy } = harbourLayout(island.shore, island.out, app.cameraRig.direction)
+      this.list.push({ section: island.section, island, x: berth.x, z: berth.z, yaw: berth.yaw, buoy: new Buoy(app, { ...buoy, color: island.color }) })
     }
 
     app.inputs.on('interact', () => this.open())
@@ -87,7 +71,9 @@ export class Zones {
     let nearestDistance = RADIUS
 
     for (const zone of this.list) {
-      const distance = Math.hypot(zone.x - boat.x, zone.z - boat.z)
+      // Near the berth or the buoy: the ring on the water is drawn round the buoy
+      const { anchor } = zone.buoy
+      const distance = Math.min(Math.hypot(zone.x - boat.x, zone.z - boat.z), Math.hypot(anchor.x - boat.x, anchor.z - boat.z))
       if (distance < nearestDistance) {
         nearest = zone
         nearestDistance = distance
