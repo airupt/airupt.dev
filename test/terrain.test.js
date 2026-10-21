@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { islandHeight, facingDirection } from '../src/world/terrain.js'
-import { arch, bottleSpots, islands, moorings, rockClusters, spawn, wreck } from '../src/world/layout.js'
+import { arch, bottleSpots, islands, moorings, ringCourse, rockClusters, spawn, wreck } from '../src/world/layout.js'
 
 // Highest ground of any island at a world position (-10 out at sea)
 function groundAt(x, z, list = islands) {
@@ -35,6 +35,7 @@ test('everything placed out at sea sits in open water', () => {
     ['wreck', wreck.x, wreck.z, 4],
     ['rock arch', arch.x, arch.z, arch.span / 2 + 1],
     ['start', spawn.x, spawn.z, 2],
+    ...ringCourse.map(([x, z], index) => [`ring ${index + 1}`, x, z, 5]),
   ]
   for (const [name, x, z, clearance] of placed) {
     const height = highestNear(x, z, clearance)
@@ -86,5 +87,18 @@ test('no two islands run into each other', () => {
         }
       }
     }
+  }
+})
+
+test('the ring course runs through open water from ring to ring', () => {
+  ringCourse.forEach(([ax, az], index) => {
+    const [bx, bz] = ringCourse[(index + 1) % ringCourse.length]
+    for (let t = 0; t <= 1; t += 0.05) {
+      const height = highestNear(ax + (bx - ax) * t, az + (bz - az) * t, 4)
+      assert.ok(height < OPEN_WATER, `land within 4 m between ring ${index + 1} and the next`)
+    }
+  })
+  for (const [x, z] of ringCourse) {
+    for (const [rx, rz] of rockClusters) assert.ok(Math.hypot(rx - x, rz - z) > 9, `ring at (${x}, ${z}) is too close to the sea stacks`)
   }
 })

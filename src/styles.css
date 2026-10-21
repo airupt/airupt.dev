@@ -1525,3 +1525,69 @@ body:has(dialog[open]) .hud > * {
     text-align: center;
   }
 }
+
+/* Ring course: the clock at the top while a lap is on, and an arrow at the
+   screen edge pointing to the next ring when it is out of view */
+.course {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem 0.5rem 1rem;
+  border-radius: var(--radius);
+  background: var(--navy);
+  color: var(--sign-text);
+  box-shadow: var(--board-shadow);
+  font: 800 1rem/1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.course-label {
+  padding: 0.35rem 0;
+}
+
+.course-share {
+  padding: 0.45rem 0.75rem;
+  border: 0;
+  border-radius: 9px;
+  background: #ffb84a;
+  color: var(--ink);
+  font: 800 0.9rem/1 var(--font-display);
+  cursor: pointer;
+}
+
+.course-arrow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #ffb84a;
+  box-shadow: var(--board-shadow);
+  pointer-events: none;
+}
+
+.course-arrow .icon {
+  width: 24px;
+  height: 24px;
+  stroke-width: 3;
+}
+
+/* Phones: no room between the top corners, so the clock sits under the buttons */
+@media (max-width: 600px) {
+  .course {
+    top: calc(max(1rem, env(safe-area-inset-top)) + 3.7rem);
+    left: auto;
+    right: max(1rem, env(safe-area-inset-right));
+    transform: none;
+  }
+}
+

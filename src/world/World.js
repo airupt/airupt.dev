@@ -31,6 +31,7 @@ import { ProjectBoards } from './ProjectBoards.js'
 import { Logbook } from './Logbook.js'
 import { Treasure } from './Treasure.js'
 import { Wildlife } from './Wildlife.js'
+import { RingCourse } from './RingCourse.js'
 import { profile, sections } from '../content/portfolio.js'
 
 const seeThroughPoint = new THREE.Vector3()
@@ -158,6 +159,7 @@ export class World {
     }
     this.treasure = new Treasure(this.app, this.models, this.logbook)
     this.wildlife = new Wildlife(this.app, this.splashes, this.logbook)
+    this.ringCourse = new RingCourse(this.app, this.logbook)
 
     // Signs and boards are painted with the site fonts, so wait until they have loaded
     await Promise.all([document.fonts.load('800 96px "Bricolage Grotesque"'), document.fonts.load('600 30px "Figtree"')])
@@ -210,6 +212,7 @@ export class World {
     this.logbook?.update()
     this.treasure?.update(delta)
     this.wildlife?.update(delta)
+    this.ringCourse?.update(delta)
     this.guide?.update(delta)
     this.props?.instances.update()
     this.ocean.update(focus)

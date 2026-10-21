@@ -216,6 +216,19 @@ export const bottleSpots = [
   [40, 46],
 ]
 
+// The ring course: a lap round the home island, starting and finishing at
+// the first ring, east of the island
+export const ringCourse = [
+  [22, 0],
+  [12, 25],
+  [-4, 32],
+  [-16, 20],
+  [-22, -4],
+  [-16, -22],
+  [-2, -24],
+  [16, -14],
+]
+
 // A natural arch out west, wide enough to sail through
 export const arch = { x: -64, z: 22, yaw: 0.5, span: 10 }
 
