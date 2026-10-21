@@ -63,15 +63,28 @@ export class Logbook {
     this.listeners.push(callback)
   }
 
+  // Progress made before the log existed (bottles found on an earlier
+  // visit): noted quietly, without a toast
+  restore(id) {
+    this.add(id)
+  }
+
   record(id) {
-    if (this.found.has(id)) return
-    const entry = discoveries.find(([key]) => key === id)
+    const entry = this.add(id)
     if (!entry) return
-    this.found.add(id)
-    saveFound(this.found)
     this.app.sounds.fanfare()
     this.app.overlay.toast(entry[1], `Captain's log · ${this.count} of ${discoveries.length}`, { duration: 4500 })
+  }
+
+  // Notes an entry once; returns it, or nothing if it was already there
+  add(id) {
+    if (this.found.has(id)) return null
+    const entry = discoveries.find(([key]) => key === id)
+    if (!entry) return null
+    this.found.add(id)
+    saveFound(this.found)
     for (const callback of this.listeners) callback(id)
+    return entry
   }
 
   update() {

@@ -15,8 +15,8 @@ function isOpenWater(x, z, margin) {
   return islands.every(island => Math.hypot(island.x - x, island.z - z) > island.radius * 1.15 + margin)
 }
 
-// A few rare animals, each with its own moment: dolphins race a boat going
-// flat out, a whale comes up at night far from land, and something under
+// A few rare animals, each with its own moment: dolphins race a boat at
+// full speed, a whale comes up at night far from land, and something under
 // the wreck doesn't like being disturbed
 export class Wildlife {
   constructor(app, splashes, logbook) {
@@ -61,7 +61,7 @@ function createDolphin() {
   return group
 }
 
-// Three dolphins join a boat that has been going flat out in open water for
+// Three dolphins join a boat that has been at full speed in open water for
 // a moment, ride along leaping, then peel away
 class Dolphins {
   constructor(app, splashes, logbook) {
@@ -88,7 +88,8 @@ class Dolphins {
     const input = this.app.inputs.state
     const position = boat.object.position
     this.cooldown -= delta
-    const flatOut = input.boost && input.throttle > 0 && boat.speed > 9 && isOpenWater(position.x, position.z, 10)
+    // Full throttle and fast, boost or not: phones have no boost key
+    const flatOut = input.throttle > 0.9 && boat.speed > 10.5 && isOpenWater(position.x, position.z, 10)
 
     if (!this.active) {
       this.boosting = flatOut ? this.boosting + delta : 0

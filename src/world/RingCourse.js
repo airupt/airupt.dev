@@ -10,6 +10,7 @@ const GIVE_UP = 40 // seconds without the next ring and the run is off
 const BEST_KEY = 'airupt-course-best'
 
 const projected = new THREE.Vector3()
+const dummy = new THREE.Object3D()
 
 function readBest() {
   try {
@@ -30,8 +31,8 @@ function saveBest(best) {
 
 const format = seconds => `${seconds.toFixed(1)} s`
 
-// A ring standing on the water in painted stripes, facing along `normal`
-function createRing(colors) {
+// A ring's geometry, painted in stripes
+function createRingGeometry(colors) {
   const geometry = new THREE.TorusGeometry(RADIUS + TUBE, TUBE, 8, 36).toNonIndexed()
   geometry.deleteAttribute('uv')
   const position = geometry.attributes.position
@@ -46,7 +47,7 @@ function createRing(colors) {
     for (let k = 0; k < 3; k++) color.toArray(values, (i + k) * 3)
   }
   geometry.setAttribute('color', new THREE.BufferAttribute(values, 3))
-  return mesh([geometry])
+  return geometry
 }
 
 // A lap of rings round the home island. Sail through the chequered one to
@@ -65,18 +66,23 @@ export class RingCourse {
       const [px, pz] = ringCourse[(index - 1 + ringCourse.length) % ringCourse.length]
       const [nx, nz] = ringCourse[(index + 1) % ringCourse.length]
       const normal = new THREE.Vector3(nx - px, 0, nz - pz).normalize()
-      const model = createRing(index === 0 ? ['#f4f1ea', '#1d2433'] : ['#e8543a', '#f4f1ea'])
-      model.position.set(x, HEIGHT, z)
-      model.rotation.y = Math.atan2(normal.x, normal.z)
-      app.scene.add(model)
-      return { x, z, normal, model, side: 0 }
+      return { x, z, normal, yaw: Math.atan2(normal.x, normal.z), side: 0 }
     })
+
+    // The chequered start ring on its own, the striped ones in one draw call
+    this.start = mesh([createRingGeometry(['#f4f1ea', '#1d2433'])])
+    const striped = mesh([createRingGeometry(['#e8543a', '#f4f1ea'])])
+    this.striped = new THREE.InstancedMesh(striped.geometry, striped.material, this.rings.length - 1)
+    this.striped.castShadow = true
+    this.striped.receiveShadow = true
+    app.scene.add(this.start, this.striped)
 
     // The glow round whichever ring is next
     this.halo = new THREE.Mesh(
       new THREE.TorusGeometry(RADIUS + TUBE * 2.2, 0.1, 6, 48),
       new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffb84a').multiplyScalar(3) })
     )
+    app.scene.add(this.halo)
 
     this.hud = document.querySelector('#course')
     this.label = this.hud.querySelector('.course-label')
@@ -84,19 +90,39 @@ export class RingCourse {
     this.arrow = document.querySelector('#course-arrow')
     this.share.addEventListener('click', () => this.shareTime())
     this.setNext(0)
+    // Placed once now so the instanced rings get bounds that cover them all
+    this.start.rotation.y = this.rings[0].yaw
+    this.place(0)
+    this.striped.computeBoundingSphere()
   }
 
   setNext(index) {
     this.next = index
-    this.rings[index].model.add(this.halo)
     for (const ring of this.rings) ring.side = 0
+  }
+
+  // Each ring rides the swell a little; the halo sits on the next one
+  place(time) {
+    this.rings.forEach((ring, index) => {
+      dummy.position.set(ring.x, HEIGHT + waveHeight(ring.x, ring.z, time) * 0.6, ring.z)
+      dummy.rotation.set(0, ring.yaw, 0)
+      dummy.updateMatrix()
+      if (index === 0) this.start.position.copy(dummy.position)
+      else this.striped.setMatrixAt(index - 1, dummy.matrix)
+      if (index === this.next) {
+        this.halo.position.copy(dummy.position)
+        this.halo.rotation.copy(dummy.rotation)
+      }
+    })
+    this.striped.instanceMatrix.needsUpdate = true
+    this.halo.scale.setScalar(1 + Math.sin(time * 4) * 0.04)
   }
 
   update(delta) {
     const boat = this.app.world.boat.object.position
-    const time = this.app.physics.renderTime
-    for (const ring of this.rings) ring.model.position.y = HEIGHT + waveHeight(ring.x, ring.z, time) * 0.6
-    this.halo.scale.setScalar(1 + Math.sin(this.app.physics.renderTime * 4) * 0.04)
+    this.place(this.app.physics.renderTime)
+    // Photo mode stops the clock with everything else
+    if (this.app.photo?.active) return
 
     // A jump (map travel, a respawn) calls the run off
     const jumped = this.last && this.last.distanceTo(boat) > 8
@@ -107,7 +133,7 @@ export class RingCourse {
       this.time += delta
       this.sinceRing += delta
       if (jumped || this.sinceRing > GIVE_UP) return this.stop()
-      this.label.textContent = `Ring ${this.next === 0 ? this.rings.length : this.next} of ${this.rings.length} · ${format(this.time)}`
+      this.show(`Ring ${this.next === 0 ? this.rings.length : this.next} of ${this.rings.length} · ${format(this.time)}`)
     }
 
     if (this.passed(this.rings[this.next], boat)) {
@@ -130,7 +156,18 @@ export class RingCourse {
     return through
   }
 
+  // Only touch the page when the text actually changes (ten times a second)
+  show(text) {
+    if (text === this.shown) return
+    this.shown = text
+    this.label.textContent = text
+  }
+
   begin() {
+    if (!this.explained) {
+      this.explained = true
+      this.app.overlay.toast('Through each ring in turn, then back through the chequered one. An arrow points the way.', 'Ring course', { duration: 6000 })
+    }
     this.state = 'running'
     this.time = 0
     this.sinceRing = 0
@@ -154,7 +191,7 @@ export class RingCourse {
       saveBest(this.time)
     }
     this.result = this.time
-    this.label.textContent = record ? `${format(this.time)} · best time!` : `${format(this.time)} · best ${format(this.best)}`
+    this.show(record ? `${format(this.time)} · best time!` : `${format(this.time)} · best ${format(this.best)}`)
     this.share.hidden = false
     this.share.textContent = 'Share'
     this.app.sounds.fanfare(0.2)

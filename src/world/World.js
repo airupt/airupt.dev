@@ -153,6 +153,8 @@ export class World {
     this.props.instances.build()
     this.bottles = new Bottles(this.app, this.models, this.splashes)
     this.logbook = new Logbook(this.app)
+    if (this.bottles.collected.size) this.logbook.restore('bottle')
+    if (this.bottles.collected.size >= this.bottles.items.length) this.logbook.restore('bottles')
     this.bottles.onCollect = (count, total) => {
       this.logbook.record('bottle')
       if (count === total) this.logbook.record('bottles')

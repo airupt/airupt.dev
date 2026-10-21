@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import { islands, worldRadius } from '../world/layout.js'
 import { profile, sections } from '../content/portfolio.js'
 import { shared } from '../world/shading.js'
+import { islandHeight } from '../world/terrain.js'
+import { smoothstep } from '../utils/noise.js'
 
 const SVG = 'http://www.w3.org/2000/svg'
 const EXTENT = 96 // metres from the centre to each edge of the chart
@@ -27,9 +29,17 @@ export class MapView {
     this.chart = this.dialog.querySelector('.map-chart')
     const list = this.dialog.querySelector('.map-list')
 
+    this.highlights = []
     this.root = svg('svg', { viewBox: `${-EXTENT} ${-EXTENT} ${EXTENT * 2} ${EXTENT * 2}`, role: 'img', 'aria-label': 'Map of the islands' })
+    const blur = svg('filter', { id: 'map-glow-blur', x: '-30%', y: '-30%', width: '160%', height: '160%' })
+    // Blurred, then its alpha boosted so the rim reads as a glow
+    const transfer = svg('feComponentTransfer')
+    transfer.append(svg('feFuncA', { type: 'linear', slope: '2.4' }))
+    blur.append(svg('feGaussianBlur', { stdDeviation: '2' }), transfer)
+    const defs = svg('defs')
+    defs.append(blur)
     this.content = svg('g', { transform: 'rotate(45)' })
-    this.root.append(this.content)
+    this.root.append(defs, this.content)
     this.picture = svg('image', { x: -EXTENT, y: -EXTENT, width: EXTENT * 2, height: EXTENT * 2 })
     this.content.append(this.picture)
     this.content.append(svg('circle', { r: worldRadius, class: 'map-edge' }))
@@ -40,7 +50,19 @@ export class MapView {
       // The whole island on the chart is a target too; the list stays the
       // keyboard route, so the chart's copy is hidden from screen readers
       const group = svg('g', { transform: `translate(${island.x} ${island.z})`, class: 'map-spot', 'aria-hidden': 'true' })
-      group.append(svg('circle', { r: island.radius * 0.95, class: 'map-ring' }))
+      // Pointing at it lights the island up in its own shape: a soft glow
+      // and a fill, both drawn from the terrain the first time the map opens
+      const reach = island.radius * 1.3
+      const shape = { x: -reach, y: -reach, width: reach * 2, height: reach * 2 }
+      // The glow only shows outside the coast: masked by the island itself
+      const mask = svg('mask', { id: `map-mask-${island.id}`, maskUnits: 'userSpaceOnUse', ...shape })
+      const cutout = svg('image', shape)
+      mask.append(svg('rect', { ...shape, fill: '#fff' }), cutout)
+      defs.append(mask)
+      const glow = svg('image', { ...shape, class: 'map-glow', mask: `url(#${mask.id})` })
+      const fill = svg('image', { ...shape, class: 'map-fill' })
+      this.highlights.push({ island, images: [glow, fill], cutout })
+      group.append(svg('circle', { r: island.radius * 0.85, class: 'map-hit' }), glow, fill)
       if (island.color) group.append(svg('circle', { r: 3.4, class: 'map-pin', fill: island.color }))
       // Above the island when the label fits inside the round chart there.
       // Chart position after the 45° turn; text is ~4.2 units per letter wide
@@ -164,6 +186,7 @@ export class MapView {
     this.picture.setAttribute('href', canvas.toDataURL('image/jpeg', 0.85))
     // Kept for the treasure map in the captain's log
     this.chartCanvas = canvas
+    this.queueHighlights()
   }
 
   get extent() {
@@ -174,8 +197,51 @@ export class MapView {
     this.treasureMark.style.display = visible ? '' : 'none'
   }
 
+  // Each named island as a white silhouette, soft at the coast. Drawn one
+  // island at a time when the page is idle after loading, so the first
+  // look at the map never waits for them.
+  queueHighlights() {
+    const later = window.requestIdleCallback ?? (callback => setTimeout(callback, 50))
+    const next = () => {
+      const pending = this.highlights.find(highlight => !highlight.drawn)
+      if (!pending) return
+      this.drawHighlight(pending)
+      later(next)
+    }
+    later(next)
+  }
+
+  drawHighlight(highlight) {
+    highlight.drawn = true
+    const { island, images, cutout } = highlight
+    const perMetre = 2.5
+    const reach = island.radius * 1.3
+    const size = Math.ceil(reach * 2 * perMetre)
+    const canvas = document.createElement('canvas')
+    canvas.width = size
+    canvas.height = size
+    const context = canvas.getContext('2d')
+    const image = context.createImageData(size, size)
+    for (let row = 0; row < size; row++) {
+      for (let column = 0; column < size; column++) {
+        const height = islandHeight(island, (column + 0.5) / perMetre - reach, (row + 0.5) / perMetre - reach)
+        const index = (row * size + column) * 4
+        image.data[index] = image.data[index + 1] = image.data[index + 2] = 255
+        image.data[index + 3] = 255 * smoothstep(-0.25, 0.25, height)
+      }
+    }
+    context.putImageData(image, 0, 0)
+    const url = canvas.toDataURL()
+    for (const element of images) element.setAttribute('href', url)
+    // The same silhouette in black cuts the island out of its glow's mask
+    for (let i = 0; i < image.data.length; i += 4) image.data[i] = image.data[i + 1] = image.data[i + 2] = 0
+    context.putImageData(image, 0, 0)
+    cutout.setAttribute('href', canvas.toDataURL())
+  }
+
   open() {
     if (this.dialog.open || document.querySelector('#panel').open) return
+    for (const highlight of this.highlights) if (!highlight.drawn) this.drawHighlight(highlight)
     this.dialog.showModal()
     this.app.overlay.setSailing(false)
     this.app.sounds.play('click', 0.5, 1.1)

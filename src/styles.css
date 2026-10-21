@@ -1185,20 +1185,29 @@ body:has(dialog[open]) .hud > * {
   cursor: pointer;
 }
 
-/* Invisible until pointed at: a ring round the island you'd sail to */
-.map-ring {
+/* Pointing at an island lights it up in its own shape: a soft glow round
+   the coast and a light wash over the land */
+.map-hit {
   fill: rgb(255 255 255 / 0);
-  stroke: #fff;
-  stroke-width: 1.4;
-  stroke-opacity: 0;
-  transition:
-    stroke-opacity 0.15s ease,
-    fill 0.15s ease;
 }
 
-.map-spot.is-hot .map-ring {
-  fill: rgb(255 255 255 / 0.12);
-  stroke-opacity: 0.85;
+.map-glow,
+.map-fill {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.map-glow {
+  filter: url(#map-glow-blur);
+}
+
+.map-spot.is-hot .map-glow {
+  opacity: 1;
+}
+
+.map-spot.is-hot .map-fill {
+  opacity: 0.16;
 }
 
 .map-spot.is-hot .map-pin {
