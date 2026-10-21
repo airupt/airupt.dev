@@ -216,32 +216,35 @@ export const bottleSpots = [
   [40, 46],
 ]
 
-// The ring course: a lap of the whole archipelago. From the chequered ring
-// east of Skills it heads south and west, threads the rock arch out of a
-// hairpin, hugs the volcano's coast, takes the long straight along the north
-// edge, rounds the reef, threads the gap between islet 5 and the sea stacks
-// and hairpins round the wreck back to the start. Each stop is a ring at
-// [x, z]; 'arch' is the rock arch, which is a gate of its own.
+// The ring course: one flowing lap round the whole archipelago. The rings
+// sit every 26 m or so along a smooth curve (no turn tighter than about 11 m
+// across, so it can be taken flat out): from the chequered ring east of
+// Skills it sweeps south and west, runs straight through the rock arch,
+// curls round past the volcano's coast, swings wide of its landing and up
+// between the volcano and Projects, takes the long arc along the north and east edges, and comes
+// home past islet 5. 'arch' is the rock arch, a gate of its own.
 export const ringCourse = [
-  [12, 52],
-  [6, 74],
-  [-28, 74],
-  [-56, 48],
+  [14, 58],
+  [-6.5, 72.5],
+  [-31, 74],
+  [-51.5, 60],
+  [-56.5, 35.5],
   'arch',
-  [-72, 0],
-  [-66, -22],
-  [-30, -26],
-  [-22, -56],
-  [0, -80],
-  [32, -78],
-  [62, -60],
-  [80, -36],
-  [74, -8],
-  [63, -5],
-  [53, 17],
-  [63, 40],
-  [42, 58],
-  [26, 60],
+  [-76, -7.5],
+  [-68, -20.5],
+  [-56, -23],
+  [-31, -26],
+  [-20, -46.5],
+  [-13, -71],
+  [8, -82],
+  [33, -79],
+  [55.5, -67.5],
+  [72.5, -48.5],
+  [82, -25.5],
+  [82.5, 0],
+  [76, 24.5],
+  [60, 44],
+  [39, 58],
 ]
 
 // A natural arch out west, wide enough to sail through

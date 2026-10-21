@@ -37,6 +37,8 @@ export class Experience {
     this.viewport = new Viewport()
     this.ticker = new Ticker()
     this.inputs = new Inputs(this)
+    this.inputs.on('sound', () => this.overlay.toggleSound())
+    this.inputs.on('page', () => this.overlay.showClassic())
     this.scene = new THREE.Scene()
     this.physics = new Physics()
     this.cameraRig = new CameraRig(this)

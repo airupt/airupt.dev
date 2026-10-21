@@ -1,9 +1,13 @@
-// Photo mode: the interface steps aside and the camera is yours. Drag to
-// swing it round the boat and tilt it (from looking straight down to skimming
-// the water), scroll or pinch to zoom, and pick the light of day on a
-// slider. The shutter shows the picture, with Save and Share, and a small
-// airupt.dev mark in its corner.
+// Photo mode: the interface steps aside and the camera is yours. Drag (or
+// the arrow keys) to swing it round the boat and tilt it, from looking
+// straight down to skimming the water; scroll, pinch or - and = to zoom;
+// the light of day on a slider or [ and ]. The shutter (Space) shows the
+// picture with Save (S) and Share, and a small airupt.dev mark in its corner.
 const TILT = { min: Math.PI * 0.1, max: Math.PI * 0.44 }
+const HINTS = {
+  touch: 'Drag to turn the camera, pinch to zoom, and pick the light.',
+  other: 'Drag or use the arrow keys to turn the camera, scroll to zoom, and pick the light. Space takes the photo.',
+}
 
 export class PhotoMode {
   constructor(app) {
@@ -32,12 +36,12 @@ export class PhotoMode {
         if (event.code === 'KeyP' && app.inputs.enabled && !event.target.closest?.('input, textarea')) this.enter()
         return
       }
-      if (event.code === 'Escape') this.preview.hidden ? this.exit() : this.closePreview()
-      else if (event.code === 'KeyP') this.exit()
-      else if ((event.code === 'Space' || event.code === 'Enter') && this.preview.hidden && !event.target.closest?.('button')) {
-        event.preventDefault()
-        this.capture()
+      if (!this.preview.hidden) {
+        if (event.code === 'Escape') this.closePreview()
+        else if (event.code === 'KeyS') this.save()
+        return
       }
+      this.key(event)
     })
 
     this.time.addEventListener('input', () => (app.world.dayCycle.progress = Number(this.time.value)))
@@ -56,6 +60,46 @@ export class PhotoMode {
     canvas.addEventListener('pointercancel', release)
   }
 
+  // Keys while shooting: the arrows turn the camera (unless a slider has
+  // them), [ ] the light, - = zoom, R the usual view, Space the shutter
+  key(event) {
+    const rig = this.app.cameraRig
+    const onSlider = event.target.closest?.('input')
+    const turn = { ArrowLeft: [0.12, 0], ArrowRight: [-0.12, 0], ArrowUp: [0, -0.06], ArrowDown: [0, 0.06] }[event.code]
+    // By the key's place or its character, whichever the keyboard gives
+    const is = (code, ...keys) => event.code === code || keys.includes(event.key)
+    const later = is('BracketRight', ']')
+    const earlier = is('BracketLeft', '[')
+    const closer = is('Equal', '=', '+')
+    const further = is('Minus', '-', '_')
+    if (event.code === 'Escape' || event.code === 'KeyP') this.exit()
+    else if (turn && !onSlider) {
+      event.preventDefault()
+      rig.orbit.azimuth += turn[0]
+      rig.orbit.polar = Math.min(Math.max(rig.orbit.polar + turn[1], TILT.min), TILT.max)
+      this.hideHint()
+    } else if (later || earlier) {
+      const progress = (this.app.world.dayCycle.progress + (later ? 0.01 : -0.01) + 1) % 1
+      this.app.world.dayCycle.progress = progress
+      this.time.value = String(progress)
+    } else if (closer || further) {
+      rig.zoomTo(rig.targetDistance * (further ? 1.1 : 1 / 1.1))
+    } else if (event.code === 'KeyR') {
+      this.resetView()
+    } else if ((event.code === 'Space' || event.code === 'Enter') && !event.target.closest?.('button')) {
+      event.preventDefault()
+      this.capture()
+    }
+  }
+
+  // The zoom slider follows the wheel, pinch and keys
+  follow() {
+    if (!this.active) return
+    const distance = String(Math.round(this.app.cameraRig.targetDistance * 2) / 2)
+    if (this.zoom.value !== distance && document.activeElement !== this.zoom) this.zoom.value = distance
+    requestAnimationFrame(() => this.follow())
+  }
+
   drag(event) {
     const last = this.pointers.get(event.pointerId)
     if (!this.active || !last) return
@@ -69,10 +113,7 @@ export class PhotoMode {
       const [other] = [...this.pointers].filter(([id]) => id !== event.pointerId).map(([, position]) => position)
       const before = Math.hypot(last.x - other.x, last.y - other.y)
       const after = Math.hypot(event.clientX - other.x, event.clientY - other.y)
-      if (before > 0 && after > 0) {
-        rig.zoomTo(rig.targetDistance * (before / after))
-        this.zoom.value = String(rig.targetDistance)
-      }
+      if (before > 0 && after > 0) rig.zoomTo(rig.targetDistance * (before / after))
     }
     this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
   }
@@ -92,11 +133,13 @@ export class PhotoMode {
     document.body.classList.add('is-photo')
     this.bar.hidden = false
     this.app.overlay.setSailing(false)
-    // How it works, the first few times
+    // How it works
+    this.hint.textContent = this.app.viewport.isTouch ? HINTS.touch : HINTS.other
     this.hint.hidden = false
     clearTimeout(this.hintTimer)
-    this.hintTimer = setTimeout(() => this.hideHint(), 6000)
+    this.hintTimer = setTimeout(() => this.hideHint(), 9000)
     this.bar.querySelector('#photo-shutter').focus({ preventScroll: true })
+    this.follow()
   }
 
   exit() {

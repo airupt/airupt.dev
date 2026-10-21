@@ -5,10 +5,10 @@ import { createLightColumn } from './lightColumn.js'
 import { mesh } from './Structures.js'
 import { waveHeight } from './waves.js'
 
-const RADIUS = 2.8 // the opening the boat passes through
+const RADIUS = 3.3 // the opening the boat passes through
 const TUBE = 0.26
 const HEIGHT = 2 // ring centre above the sea: the bottom dips into the water
-const SINK = 4 // how far a passed ring sinks
+const SINK = 7 // how far a passed ring sinks: right under, out of sight
 const GIVE_UP = 40 // seconds without the next gate and the run is off
 const BEST_KEY = 'airupt-course-best'
 const GOLD = '#ffb84a'
@@ -80,7 +80,8 @@ export class RingCourse {
     this.state = 'idle'
     this.time = 0
 
-    this.gates = courseGates(ringCourse, arch, RADIUS - 0.2).map(gate => ({ ...gate, side: 0, sink: 0, passed: false }))
+    // Clipping the ring itself still counts: at speed, near enough is good
+    this.gates = courseGates(ringCourse, arch, RADIUS + TUBE).map(gate => ({ ...gate, side: 0, sink: 0, passed: false }))
     const rings = this.gates.filter(gate => gate.kind === 'ring')
     rings.forEach((gate, index) => (gate.instance = index))
 
@@ -164,6 +165,13 @@ export class RingCourse {
   }
 
   update(delta) {
+    // Kept out of the opening shot: the course appears once you set sail
+    const shown = this.app.overlay.started
+    this.start.visible = this.striped.visible = this.chevron.visible = this.column.visible = shown
+    if (!shown) {
+      this.glowing.visible = false
+      return
+    }
     const boat = this.app.world.boat.object.position
     this.place(this.app.physics.renderTime, delta)
     // Photo mode stops the clock with everything else

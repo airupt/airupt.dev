@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { dryGround, islandHeight, facingDirection } from '../src/world/terrain.js'
 import { archGate } from '../src/world/gates.js'
+import { harbourPoints } from './harbours.js'
 import { arch, bottleSpots, islands, moorings, ringCourse, rockClusters, spawn, wreck } from '../src/world/layout.js'
 
 // Highest ground of any island at a world position (-10 out at sea)
@@ -115,5 +116,24 @@ test('the treasure stands on dry sand on the reef cay', () => {
     assert.ok(spot.y > 0.2, `the chest would stand at ${spot.y.toFixed(2)} m`)
     assert.ok(islandHeight(cay, spot.x, spot.z) > 0.2)
   }
+})
+
+test('the ring course keeps clear of docks, berths, buoys and channel marks', () => {
+  const opening = archGate(arch)
+  const stops = ringCourse.map(stop => (stop === 'arch' ? [opening.x, opening.z] : stop))
+  const harbours = harbourPoints()
+  stops.forEach(([ax, az], index) => {
+    const [bx, bz] = stops[(index + 1) % stops.length]
+    const length = Math.hypot(bx - ax, bz - az)
+    for (let t = 0; t <= 1; t += 0.5 / length) {
+      const x = ax + (bx - ax) * t
+      const z = az + (bz - az) * t
+      for (const [hx, hz, radius, what] of harbours) {
+        // Rings need room round them; the line between them just has to miss
+        const room = t === 0 ? 6 : 3
+        assert.ok(Math.hypot(hx - x, hz - z) - radius > room, `gate ${index + 1} or the run after it passes too close to the ${what}`)
+      }
+    }
+  })
 })
 

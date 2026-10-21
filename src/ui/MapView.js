@@ -30,6 +30,7 @@ export class MapView {
     const list = this.dialog.querySelector('.map-list')
 
     this.highlights = []
+    this.destinations = []
     this.root = svg('svg', { viewBox: `${-EXTENT} ${-EXTENT} ${EXTENT * 2} ${EXTENT * 2}`, role: 'img', 'aria-label': 'Map of the islands' })
     const blur = svg('filter', { id: 'map-glow-blur', x: '-30%', y: '-30%', width: '160%', height: '160%' })
     // Blurred, then its alpha boosted so the rim reads as a glow
@@ -83,6 +84,14 @@ export class MapView {
       const button = document.createElement('button')
       button.className = 'map-button'
       button.textContent = title
+      // Number keys sail there too, shown as a key cap at the end of the row
+      const number = String(list.children.length + 1)
+      const cap = document.createElement('kbd')
+      cap.className = 'key map-key'
+      cap.textContent = number
+      button.append(cap)
+      button.setAttribute('aria-keyshortcuts', number)
+      this.destinations.push(island)
       button.style.setProperty('--pin', island.color ?? (island.volcano ? '#4f4440' : 'var(--sign-text)'))
       button.addEventListener('click', () => this.sailTo(island))
       list.append(button)
@@ -115,6 +124,8 @@ export class MapView {
     })
     this.dialog.addEventListener('keydown', event => {
       if (event.code === 'KeyM') this.dialog.close()
+      const island = this.destinations[Number(event.key) - 1]
+      if (island) this.sailTo(island)
     })
     document.querySelector('#open-map').addEventListener('click', () => this.open())
     app.inputs.on('map', () => this.open())

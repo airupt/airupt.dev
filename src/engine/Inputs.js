@@ -14,6 +14,8 @@ const actions = {
   reset: ['KeyR'],
   map: ['KeyM'],
   log: ['KeyL'],
+  sound: ['KeyN'],
+  page: ['KeyV'],
 }
 
 const gamepadActions = { interact: 0, reset: 3 }

@@ -195,18 +195,25 @@ a:focus-visible {
   height: 42px;
 }
 
-/* Tooltip under icon buttons, shown on hover and keyboard focus */
-.icon-button[data-tooltip]::after {
+/* Every control says what it does and which key does it: a tooltip under
+   it on hover and keyboard focus (above it in the photo bar at the bottom) */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
   content: attr(data-tooltip);
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
+  z-index: 3;
   padding: 0.45rem 0.6rem;
   border-radius: 8px;
   background: var(--navy-edge);
   box-shadow: inset 0 0 0 1px var(--wood);
   color: var(--sign-text);
   font: 700 0.8rem/1 var(--font-text);
+  letter-spacing: 0;
   white-space: nowrap;
   opacity: 0;
   transform: translateY(-4px);
@@ -216,15 +223,38 @@ a:focus-visible {
   pointer-events: none;
 }
 
-.icon-button[data-tooltip]:hover::after,
-.icon-button[data-tooltip]:focus-visible::after {
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after,
+[data-tooltip]:focus-within::after {
   opacity: 1;
   transform: none;
 }
 
+/* Along the left edge the tooltip hangs to the right instead */
+.hud-top-left [data-tooltip]::after {
+  right: auto;
+  left: 0;
+}
+
+.photo-bar [data-tooltip]::after,
+.photo-preview [data-tooltip]::after {
+  top: auto;
+  bottom: calc(100% + 10px);
+  right: 50%;
+  transform: translate(50%, 4px);
+}
+
+.photo-bar [data-tooltip]:hover::after,
+.photo-bar [data-tooltip]:focus-visible::after,
+.photo-bar [data-tooltip]:focus-within::after,
+.photo-preview [data-tooltip]:hover::after,
+.photo-preview [data-tooltip]:focus-visible::after {
+  transform: translate(50%, 0);
+}
+
 /* No hover on touch screens, and a tooltip stuck on a focused button only gets in the way */
 @media (hover: none) {
-  .icon-button[data-tooltip]::after {
+  [data-tooltip]::after {
     display: none;
   }
 }
@@ -889,7 +919,7 @@ body:has(dialog[open]) .hud > * {
   margin: 0;
 }
 
-.panel-close-form .icon-button[data-tooltip]::after {
+.panel-close-form [data-tooltip]::after {
   right: 0;
 }
 
@@ -1271,6 +1301,14 @@ body:has(dialog[open]) .hud > * {
   bottom: 0;
   height: 1px;
   background: rgb(244 241 234 / 0.14);
+}
+
+.map-key {
+  margin-left: auto;
+  min-width: 1.6em;
+  height: 1.6em;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 0 var(--wood);
 }
 
 .map-button:hover,

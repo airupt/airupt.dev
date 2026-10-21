@@ -63,7 +63,7 @@
     <div id="hud" class="hud" hidden>
       <div class="hud-top-left">
         <p class="brand brand-small"><svg class="brand-mark"><use href="#icon-mark" /></svg>airupt</p>
-        <button class="chip chip-button" id="open-log" aria-label="Captain's log" aria-keyshortcuts="L"><svg class="icon"><use href="#icon-log" /></svg><span></span></button>
+        <button class="chip chip-button" id="open-log" aria-label="Captain's log" aria-keyshortcuts="L" data-tooltip="Captain's log · L"><svg class="icon"><use href="#icon-log" /></svg><span></span></button>
       </div>
       <div class="hud-top-right">
         <button class="icon-button" id="open-photo" aria-label="Photo mode" aria-keyshortcuts="P" data-tooltip="Photo · P">
@@ -72,11 +72,11 @@
         <button class="icon-button" id="open-map" aria-label="Open the map" aria-keyshortcuts="M" data-tooltip="Map · M">
           <svg class="icon"><use href="#icon-map" /></svg>
         </button>
-        <button class="icon-button" id="sound-toggle" aria-label="Sound" aria-pressed="true" data-tooltip="Sound">
+        <button class="icon-button" id="sound-toggle" aria-label="Sound" aria-pressed="true" aria-keyshortcuts="N" data-tooltip="Sound · N">
           <svg class="icon icon-on"><use href="#icon-sound" /></svg>
           <svg class="icon icon-off"><use href="#icon-mute" /></svg>
         </button>
-        <button class="icon-button" data-open-classic aria-label="Read as a normal page" data-tooltip="Read as a page">
+        <button class="icon-button" data-open-classic aria-label="Read as a normal page" aria-keyshortcuts="V" data-tooltip="Read as a page · V">
           <svg class="icon"><use href="#icon-page" /></svg>
         </button>
       </div>
@@ -111,22 +111,22 @@
     </dialog>
 
     <div class="photo-bar" id="photo-bar" hidden>
-      <p class="photo-hint">Drag to turn the camera, scroll or pinch to zoom, and pick the light.</p>
-      <label class="photo-control">
+      <p class="photo-hint"></p>
+      <label class="photo-control" data-tooltip="Light · [ ]">
         <svg class="icon" aria-hidden="true"><use href="#icon-sun" /></svg>
         <span class="visually-hidden">Time of day</span>
-        <input type="range" id="photo-time" min="0" max="1" step="0.001" />
+        <input type="range" id="photo-time" min="0" max="1" step="0.001" aria-keyshortcuts="[ ]" />
       </label>
-      <label class="photo-control">
+      <label class="photo-control" data-tooltip="Zoom · − =">
         <svg class="icon" aria-hidden="true"><use href="#icon-zoom" /></svg>
         <span class="visually-hidden">Zoom</span>
-        <input type="range" id="photo-zoom" step="0.5" />
+        <input type="range" id="photo-zoom" step="0.5" aria-keyshortcuts="- =" />
       </label>
-      <button class="icon-button icon-button-small" id="photo-reset" aria-label="Back to the usual view" data-tooltip="Usual view">
+      <button class="icon-button icon-button-small" id="photo-reset" aria-label="Back to the usual view" aria-keyshortcuts="R" data-tooltip="Usual view · R">
         <svg class="icon"><use href="#icon-reset" /></svg>
       </button>
-      <button class="photo-shutter" id="photo-shutter" aria-label="Take the photo"></button>
-      <button class="icon-button icon-button-small" id="photo-exit" aria-label="Leave photo mode" data-tooltip="Close · Esc">
+      <button class="photo-shutter" id="photo-shutter" aria-label="Take the photo" aria-keyshortcuts="Space" data-tooltip="Take the photo · Space"></button>
+      <button class="icon-button icon-button-small" id="photo-exit" aria-label="Leave photo mode" aria-keyshortcuts="Escape P" data-tooltip="Close · Esc">
         <svg class="icon"><use href="#icon-close" /></svg>
       </button>
     </div>
@@ -134,9 +134,9 @@
     <div class="photo-preview" id="photo-preview" role="dialog" aria-label="Your photo" hidden>
       <img alt="The photo you just took" />
       <div class="photo-actions">
-        <button class="button" data-save>Save</button>
+        <button class="button" data-save aria-keyshortcuts="S" data-tooltip="Save · S">Save</button>
         <button class="button" data-share hidden>Share</button>
-        <button class="button button-quiet" data-close>Keep shooting</button>
+        <button class="button button-quiet" data-close aria-keyshortcuts="Escape" data-tooltip="Back · Esc">Keep shooting</button>
       </div>
     </div>
 

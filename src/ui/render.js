@@ -90,7 +90,12 @@ function brand() {
 export const isBrandName = name => name.trim().toLowerCase() === 'airupt'
 
 export function renderClassic(profile, sections, colors, onBack) {
-  const back = element('button', { class: 'button button-primary classic-back', text: 'Back to the sea' })
+  const back = element('button', {
+    class: 'button button-primary classic-back',
+    text: 'Back to the sea',
+    'aria-keyshortcuts': 'Escape',
+    'data-tooltip': 'Back to the sea · Esc',
+  })
   back.addEventListener('click', onBack)
 
   return element('div', { class: 'classic-inner' }, [

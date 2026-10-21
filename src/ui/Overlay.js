@@ -12,6 +12,8 @@ const controls = {
     [['Shift'], 'Boost'],
     [['E'], 'Explore'],
     [['M'], 'Map'],
+    [['L'], 'Log'],
+    [['P'], 'Photo'],
   ],
   gamepad: [
     [['Stick'], 'Sail'],
@@ -87,15 +89,21 @@ export class Overlay {
       this.setSailing(true)
     })
 
-    this.soundToggle = document.querySelector('#sound-toggle')
-    this.soundToggle.addEventListener('click', () => {
-      const muted = !this.app.sounds.muted
-      this.app.sounds.setMuted(muted)
-      this.updateSoundToggle()
+    // Esc leaves the page view for the sea (unless there is no sea to go to)
+    window.addEventListener('keydown', event => {
+      if (event.code === 'Escape' && this.isClassicOpen && !this.classic.classList.contains('is-fallback')) this.hideClassic()
     })
+
+    this.soundToggle = document.querySelector('#sound-toggle')
+    this.soundToggle.addEventListener('click', () => this.toggleSound())
     this.panel.addEventListener('click', event => {
       if (event.target === this.panel) this.panel.close()
     })
+  }
+
+  toggleSound() {
+    this.app.sounds.setMuted(!this.app.sounds.muted)
+    this.updateSoundToggle()
   }
 
   setProgress(value) {
@@ -166,7 +174,7 @@ export class Overlay {
   updateSoundToggle() {
     const on = !this.app.sounds.muted
     this.soundToggle.setAttribute('aria-pressed', String(on))
-    this.soundToggle.dataset.tooltip = on ? 'Sound on' : 'Sound off'
+    this.soundToggle.dataset.tooltip = on ? 'Sound on · N' : 'Sound off · N'
   }
 
   get isClassicOpen() {
