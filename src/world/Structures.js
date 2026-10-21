@@ -21,7 +21,7 @@ const euler = new THREE.Euler()
 
 // A shape, coloured and moved into place: position [x, y, z], rotation
 // [x, y, z] with an optional Euler order as a fourth entry
-function part(geometry, hex, position = [0, 0, 0], rotation = [0, 0, 0]) {
+export function part(geometry, hex, position = [0, 0, 0], rotation = [0, 0, 0]) {
   geometry = geometry.index ? geometry.toNonIndexed() : geometry
   geometry.deleteAttribute('uv')
   matrix.compose(new THREE.Vector3(...position), quaternion.setFromEuler(euler.set(...rotation)), new THREE.Vector3(1, 1, 1))
@@ -41,7 +41,7 @@ let doubleSided = null
 // Thin flat pieces (pennants) are seen from both sides
 const pennantMaterial = () => (doubleSided ??= createStylizedMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide }, { waterLine: false, key: 'double' }))
 
-function mesh(parts) {
+export function mesh(parts) {
   material ??= createStylizedMaterial({ vertexColors: true, flatShading: true }, { waterLine: false })
   const object = new THREE.Mesh(mergeGeometries(parts), material)
   object.castShadow = true
