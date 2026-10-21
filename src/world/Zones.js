@@ -27,8 +27,11 @@ export class Zones {
       const z = shore.z + out.z * reach + across.z * offset
       // Moored parallel to the dock, bow out to sea, ready to leave
       const yaw = Math.atan2(-out.x, -out.z)
+      // The buoy stands off the dock's end, a few metres to the side of the
+      // moored boat's way out, so leaving the berth never runs into it
       const buoyReach = DOCK_LENGTH - DOCK_INLAND + 3.4
-      const buoy = new Buoy(app, { x: shore.x + out.x * buoyReach + across.x * (offset + 0.6), z: shore.z + out.z * buoyReach + across.z * (offset + 0.6), color: island.color })
+      const buoyAcross = offset + 3.4
+      const buoy = new Buoy(app, { x: shore.x + out.x * buoyReach + across.x * buoyAcross, z: shore.z + out.z * buoyReach + across.z * buoyAcross, color: island.color })
       this.list.push({ section: island.section, island, x, z, yaw, buoy })
     }
 

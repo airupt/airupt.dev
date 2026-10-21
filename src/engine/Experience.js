@@ -80,8 +80,8 @@ export class Experience {
       this.sounds.start()
       this.cameraRig.attract = false
       // One continuous move from the volcano down to the opening shot: the
-      // whole home island with the boat in the lower third. The boat drops
-      // in as the camera arrives.
+      // whole home island with the boat, already afloat at its start, in the
+      // lower third
       const rig = this.cameraRig
       const home = this.world.islands.list.find(island => island.label === 'name')
       // A portrait screen is too narrow for both, so it favours the boat and the dock bay
@@ -91,7 +91,7 @@ export class Experience {
         .addScaledVector(rig.screenUp, portrait ? 3 : 4.5)
       const distance = portrait ? 70 : 66
       rig.establishing = { focus, distance, origin: this.world.boat.object.position.clone() }
-      rig.flyTo(focus, distance, 3.2, () => this.world.boat.drop())
+      rig.flyTo(focus, distance, 3.2)
     })
   }
 

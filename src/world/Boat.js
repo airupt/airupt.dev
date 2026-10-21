@@ -97,7 +97,6 @@ export class Boat {
     this.sync = app.physics.sync(this.body, this.object)
     app.physics.beforeStep.push((dt, time) => this.step(dt, time))
     app.inputs.on('reset', () => this.respawn())
-    this.hide()
   }
 
   setModel(model) {
@@ -109,10 +108,6 @@ export class Boat {
   }
 
   step(dt, time) {
-    if (this.hidden) {
-      this.inWater = 0
-      return
-    }
     const body = this.body
     const mass = body.mass()
     const input = this.app.inputs.state
@@ -223,25 +218,6 @@ export class Boat {
       duration,
       t: 0,
     }
-  }
-
-  // Before the intro the boat is parked out of sight, so it can arrive on cue
-  hide() {
-    this.hidden = true
-    this.object.visible = false
-    this.body.setEnabled(false)
-  }
-
-  // Intro: the boat falls into the sea from a little height and splashes down
-  drop() {
-    this.hidden = false
-    this.object.visible = true
-    this.body.setEnabled(true)
-    this.body.setTranslation({ x: spawn.x, y: 4, z: spawn.z }, true)
-    this.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
-    this.body.setRotation(spawnRotation, true)
-    this.body.setAngvel({ x: 0.4, y: 0, z: 0.25 }, true)
-    this.sync.reset()
   }
 
   // Jump straight to a spot (map travel), hidden behind the same wipe as a respawn

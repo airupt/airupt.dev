@@ -53,6 +53,7 @@ export class Overlay {
     this.joystick = document.querySelector('#joystick')
     this.panel = document.querySelector('#panel')
     this.panelBody = this.panel.querySelector('.panel-body')
+    this.panelTitle = this.panel.querySelector('#panel-title')
     this.classic = document.querySelector('#classic')
     this.labelsRoot = document.querySelector('#labels')
 
@@ -174,7 +175,12 @@ export class Overlay {
     const section = sections.find(candidate => candidate.id === id)
     // Enter on the prompt button fires both the interact key and a click
     if (!section || this.panel.open) return
-    this.panelBody.replaceChildren(renderSection(section, profile, 'panel', sectionColors[id]))
+    // The title moves up beside the close button, outside the scrolling part
+    const content = renderSection(section, profile, 'panel', sectionColors[id])
+    content.querySelector(':scope > h2').remove()
+    content.setAttribute('aria-labelledby', 'panel-title')
+    this.panelTitle.textContent = section.title
+    this.panelBody.replaceChildren(content)
     // Pointing at a project card lights up its board on the island behind
     this.panelBody.querySelectorAll('.project').forEach((card, index) => {
       const highlight = value => this.app?.world.projectBoards?.highlight(value)

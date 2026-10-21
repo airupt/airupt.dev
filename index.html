@@ -86,12 +86,15 @@
       <div class="joystick" id="joystick" hidden><div class="joystick-knob"></div></div>
     </div>
 
-    <dialog id="panel" class="panel">
-      <form method="dialog" class="panel-close-form">
-        <button class="icon-button icon-button-small" aria-label="Close" data-tooltip="Close · Esc">
-          <svg class="icon"><use href="#icon-close" /></svg>
-        </button>
-      </form>
+    <dialog id="panel" class="panel" aria-labelledby="panel-title">
+      <div class="panel-head">
+        <h2 id="panel-title"></h2>
+        <form method="dialog" class="panel-close-form">
+          <button class="icon-button icon-button-small" aria-label="Close" data-tooltip="Close · Esc">
+            <svg class="icon"><use href="#icon-close" /></svg>
+          </button>
+        </form>
+      </div>
       <div class="panel-body" tabindex="-1" autofocus></div>
     </dialog>
 

@@ -50,20 +50,22 @@ export class Inputs {
   }
 
   onKey(event, down) {
+    // Letting go always counts, even inside a panel, or the key would stay
+    // held down once the panel closes
+    if (!down) {
+      this.pressed.delete(event.code)
+      return
+    }
     // Keys typed inside the panel or classic view must not steer the boat
     if (event.target.closest?.('dialog, .classic, input, textarea')) return
 
-    if (down) {
-      if (!event.repeat) {
-        for (const [action, codes] of Object.entries(actions)) {
-          if (codes.includes(event.code)) this.emit(action)
-        }
+    if (!event.repeat) {
+      for (const [action, codes] of Object.entries(actions)) {
+        if (codes.includes(event.code)) this.emit(action)
       }
-      this.pressed.add(event.code)
-      this.lastDevice = 'keyboard'
-    } else {
-      this.pressed.delete(event.code)
     }
+    this.pressed.add(event.code)
+    this.lastDevice = 'keyboard'
 
     const isSteeringKey = Object.values(axes).some(codes => codes.includes(event.code))
     if (isSteeringKey && this.enabled) event.preventDefault()

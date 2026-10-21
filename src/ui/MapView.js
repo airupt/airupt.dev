@@ -37,7 +37,10 @@ export class MapView {
     for (const island of islands) {
       const title = titleOf(island)
       if (!title) continue
-      const group = svg('g', { transform: `translate(${island.x} ${island.z})` })
+      // The whole island on the chart is a target too; the list stays the
+      // keyboard route, so the chart's copy is hidden from screen readers
+      const group = svg('g', { transform: `translate(${island.x} ${island.z})`, class: 'map-spot', 'aria-hidden': 'true' })
+      group.append(svg('circle', { r: island.radius * 0.95, class: 'map-ring' }))
       if (island.color) group.append(svg('circle', { r: 3.4, class: 'map-pin', fill: island.color }))
       // Above the island when the label fits inside the round chart there.
       // Chart position after the 45° turn; text is ~4.2 units per letter wide
@@ -61,6 +64,17 @@ export class MapView {
       button.style.setProperty('--pin', island.color ?? (island.volcano ? '#4f4440' : 'var(--sign-text)'))
       button.addEventListener('click', () => this.sailTo(island))
       list.append(button)
+
+      group.addEventListener('click', () => this.sailTo(island))
+      // Pointing at either one lights up both
+      const hot = value => {
+        group.classList.toggle('is-hot', value)
+        button.classList.toggle('is-hot', value)
+      }
+      for (const target of [group, button]) {
+        target.addEventListener('pointerenter', () => hot(true))
+        target.addEventListener('pointerleave', () => hot(false))
+      }
     }
 
     this.boat = svg('path', { d: 'M 0 -5 L 3.6 4 L -3.6 4 Z', class: 'map-boat' })

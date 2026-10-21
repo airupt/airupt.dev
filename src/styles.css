@@ -837,11 +837,31 @@ body:has(dialog[open]) .hud > * {
   background: linear-gradient(90deg, rgb(13 43 69 / 0) 35%, rgb(13 43 69 / 0.28));
 }
 
+/* The title and close button stay put and only the content under them
+   scrolls, so the scrollbar starts below the title's rule instead of
+   running past the button */
+.panel-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0 1.6rem;
+  padding: 1.3rem 0 0.9rem;
+  border-bottom: 6px solid var(--section-color);
+}
+
+/* Like the painted signs on the islands: light lettering on the ink-blue
+   board, with the section colour as the only accent */
+.panel-head h2 {
+  flex: 1;
+  margin: 0;
+  color: var(--sign-text);
+  font-size: clamp(2.2rem, 5vw, 2.8rem);
+  letter-spacing: -0.03em;
+}
+
 .panel-close-form {
-  position: absolute;
-  top: 0.9rem;
-  right: 0.9rem;
-  z-index: 2;
+  flex: none;
   margin: 0;
 }
 
@@ -855,19 +875,8 @@ body:has(dialog[open]) .hud > * {
   overflow: auto;
   overscroll-behavior: contain;
   scrollbar-color: rgb(255 255 255 / 0.25) transparent;
-  padding: 0 1.6rem 2rem;
-  border-radius: 13px;
-}
-
-/* Like the painted signs on the islands: light lettering on the ink-blue
-   board, with the section colour as the only accent */
-.panel .section > h2 {
-  margin: 0 0 1.6rem;
-  padding: 1.5rem 3.5rem 0.9rem 0;
-  color: var(--sign-text);
-  font-size: clamp(2.2rem, 5vw, 2.8rem);
-  letter-spacing: -0.03em;
-  border-bottom: 6px solid var(--section-color);
+  padding: 1.6rem 1.6rem 2rem;
+  border-radius: 0 0 13px 13px;
 }
 
 .panel .section p {
@@ -915,7 +924,7 @@ body:has(dialog[open]) .hud > * {
   }
 
   .panel-body {
-    border-radius: 13px 13px 0 0;
+    border-radius: 0;
   }
 
   .panel[open] {
@@ -926,7 +935,7 @@ body:has(dialog[open]) .hud > * {
     background: rgb(13 43 69 / 0.3);
   }
 
-  .panel .section > h2 {
+  .panel-head {
     padding-top: 1rem;
   }
 }
@@ -1069,11 +1078,13 @@ body:has(dialog[open]) .hud > * {
   width: min(860px, calc(100% - 2rem));
   max-height: calc(100% - 2rem);
   padding: 1.2rem 1.4rem 1.5rem;
-  overflow: auto;
-  scrollbar-color: rgb(255 255 255 / 0.25) transparent;
+  overflow: hidden;
 }
 
+/* As in the panel, only what's under the header scrolls */
 .map[open] {
+  display: flex;
+  flex-direction: column;
   animation: map-in 0.4s cubic-bezier(0.2, 1.25, 0.4, 1);
 }
 
@@ -1106,6 +1117,10 @@ body:has(dialog[open]) .hud > * {
   grid-template-columns: 1fr 230px;
   gap: 1.6rem;
   align-items: center;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(255 255 255 / 0.25) transparent;
 }
 
 .map-chart svg {
@@ -1137,6 +1152,33 @@ body:has(dialog[open]) .hud > * {
 .map-pin {
   stroke: #fff;
   stroke-width: 1.2;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.15s ease;
+}
+
+.map-spot {
+  cursor: pointer;
+}
+
+/* Invisible until pointed at: a ring round the island you'd sail to */
+.map-ring {
+  fill: rgb(255 255 255 / 0);
+  stroke: #fff;
+  stroke-width: 1.4;
+  stroke-opacity: 0;
+  transition:
+    stroke-opacity 0.15s ease,
+    fill 0.15s ease;
+}
+
+.map-spot.is-hot .map-ring {
+  fill: rgb(255 255 255 / 0.12);
+  stroke-opacity: 0.85;
+}
+
+.map-spot.is-hot .map-pin {
+  transform: scale(1.35);
 }
 
 .map-boat {
@@ -1191,6 +1233,7 @@ body:has(dialog[open]) .hud > * {
 }
 
 .map-button:hover,
+.map-button.is-hot,
 .map-button:focus-visible {
   background: var(--navy-raised);
   color: #fff;

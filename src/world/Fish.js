@@ -15,7 +15,8 @@ export class Fish {
     this.pool = kinds.map(id => {
       const model = models.get(id)
       model.visible = false
-      // Kenney's fish swim along +X; pitch around Z follows the arc
+      // Kenney's fish face -X (the tall thin end at +X is the tail), so they
+      // are turned half round to face their jump; pitch around Z follows the arc
       model.rotation.order = 'YZX'
       app.scene.add(model)
       return model
@@ -80,7 +81,7 @@ export class Fish {
 
       // Nose follows the arc: up on the way out, down on the way in
       const rise = (4 * height * (1 - 2 * t)) / duration
-      model.rotation.set(0, jump.heading, Math.atan2(rise, length / duration))
+      model.rotation.set(0, jump.heading + Math.PI, -Math.atan2(rise, length / duration))
 
       if (t >= 1) {
         this.splash(model.position.clone().setY(surface), true)
