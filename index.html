@@ -39,6 +39,9 @@
         <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M5 12h13m-6-6 6 6-6 6" /></symbol>
         <symbol id="icon-log" viewBox="0 0 24 24"><path d="M4 5.5C6.5 4 9.5 4 12 5.5v14c-2.5-1.5-5.5-1.5-8 0Zm16 0C17.5 4 14.5 4 12 5.5v14c2.5-1.5 5.5-1.5 8 0Z" /></symbol>
         <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" /></symbol>
+        <symbol id="icon-camera" viewBox="0 0 24 24"><path d="M3.5 8h3.5l2-3h6l2 3h3.5v11h-17Zm8.5 9a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /></symbol>
+        <symbol id="icon-sun" viewBox="0 0 24 24"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-14v2.5m0 15V22M2 12h2.5m15 0H22M4.9 4.9l1.8 1.8m10.6 10.6 1.8 1.8m0-14.2-1.8 1.8M6.7 17.3l-1.8 1.8" /></symbol>
+        <symbol id="icon-zoom" viewBox="0 0 24 24"><path d="M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Zm4.6-1.9L20 20" /></symbol>
       </defs>
     </svg>
 
@@ -62,6 +65,9 @@
         <button class="chip chip-button" id="open-log" aria-label="Captain's log" aria-keyshortcuts="L"><svg class="icon"><use href="#icon-log" /></svg><span></span></button>
       </div>
       <div class="hud-top-right">
+        <button class="icon-button" id="open-photo" aria-label="Photo mode" aria-keyshortcuts="P" data-tooltip="Photo · P">
+          <svg class="icon"><use href="#icon-camera" /></svg>
+        </button>
         <button class="icon-button" id="open-map" aria-label="Open the map" aria-keyshortcuts="M" data-tooltip="Map · M">
           <svg class="icon"><use href="#icon-map" /></svg>
         </button>
@@ -102,6 +108,24 @@
       </div>
       <div class="panel-body" tabindex="-1" autofocus></div>
     </dialog>
+
+    <div class="photo-bar" id="photo-bar" hidden>
+      <label class="photo-control">
+        <svg class="icon" aria-hidden="true"><use href="#icon-sun" /></svg>
+        <span class="visually-hidden">Time of day</span>
+        <input type="range" id="photo-time" min="0" max="1" step="0.001" />
+      </label>
+      <label class="photo-control">
+        <svg class="icon" aria-hidden="true"><use href="#icon-zoom" /></svg>
+        <span class="visually-hidden">Zoom</span>
+        <input type="range" id="photo-zoom" step="0.5" />
+      </label>
+      <button class="photo-shutter" id="photo-shutter" aria-label="Take the photo"></button>
+      <button class="icon-button icon-button-small" id="photo-exit" aria-label="Leave photo mode" data-tooltip="Close · Esc">
+        <svg class="icon"><use href="#icon-close" /></svg>
+      </button>
+    </div>
+    <div class="photo-flash" id="photo-flash" aria-hidden="true"></div>
 
     <dialog id="logbook" class="logbook" aria-labelledby="logbook-title">
       <form method="dialog" class="dialog-header">

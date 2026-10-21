@@ -175,7 +175,7 @@ export class Overlay {
 
   setSailing(enabled) {
     if (!this.app?.inputs) return
-    this.app.inputs.enabled = enabled && this.started && this.classic.hidden && !document.querySelector('dialog[open]')
+    this.app.inputs.enabled = enabled && this.started && this.classic.hidden && !document.querySelector('dialog[open]') && !this.app.photo?.active
   }
 
   openSection(id) {

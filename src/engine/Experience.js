@@ -10,6 +10,7 @@ import { World } from '../world/World.js'
 import { shared } from '../world/shading.js'
 import { MapView } from '../ui/MapView.js'
 import { LogbookView } from '../ui/LogbookView.js'
+import { PhotoMode } from '../ui/PhotoMode.js'
 import { Quality } from './Quality.js'
 
 // Owns the renderer and wires every system together. Systems receive this
@@ -43,6 +44,7 @@ export class Experience {
     this.sounds = new Sounds(this)
     this.map = new MapView(this)
     this.logbookView = new LogbookView(this)
+    this.photo = new PhotoMode(this)
 
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFShadowMap

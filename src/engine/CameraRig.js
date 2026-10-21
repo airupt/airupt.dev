@@ -50,7 +50,7 @@ export class CameraRig {
     window.addEventListener(
       'wheel',
       event => {
-        if (!app.inputs?.enabled) return
+        if (!app.inputs?.enabled && !app.photo?.active) return
         this.zoomTo(this.targetDistance * Math.exp(event.deltaY * 0.001))
       },
       { passive: true }
