@@ -13,6 +13,7 @@ const actions = {
   interact: ['KeyE', 'Enter'],
   reset: ['KeyR'],
   map: ['KeyM'],
+  log: ['KeyL'],
 }
 
 const gamepadActions = { interact: 0, reset: 3 }

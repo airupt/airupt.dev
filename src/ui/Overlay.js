@@ -105,20 +105,27 @@ export class Overlay {
     this.startButton.style.setProperty('--progress', `${percent}%`)
   }
 
-  setBottleCount(count, total) {
-    const counter = document.querySelector('#bottle-counter')
-    counter.hidden = count === 0
-    counter.querySelector('span').textContent = `${count} / ${total}`
+  // Message card that slides in at the bottom left and leaves on its own.
+  // Messages that arrive while one is showing wait their turn.
+  toast(text, title, { duration = 7000 } = {}) {
+    this.toasts ??= []
+    this.toasts.push({ text, title, duration })
+    if (!this.toastShowing) this.nextToast()
   }
 
-  // Message card that slides in at the bottom left and leaves on its own
-  toast(text, title) {
+  nextToast() {
+    const next = this.toasts.shift()
     const toast = document.querySelector('#toast')
-    toast.querySelector('.toast-title').textContent = title
-    toast.querySelector('.toast-text').textContent = text
+    this.toastShowing = Boolean(next)
+    if (!next) return
+    toast.querySelector('.toast-title').textContent = next.title
+    toast.querySelector('.toast-text').textContent = next.text
     toast.classList.add('is-visible')
-    clearTimeout(this.toastTimer)
-    this.toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 7000)
+    // A queued message cuts the current one shorter
+    setTimeout(() => {
+      toast.classList.remove('is-visible')
+      setTimeout(() => this.nextToast(), 450)
+    }, this.toasts.length ? Math.min(next.duration, 4000) : next.duration)
   }
 
   // Quick wave of colour across the screen to hide a jump cut (respawn)

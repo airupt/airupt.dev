@@ -9,6 +9,7 @@ import { PostProcessing } from './PostProcessing.js'
 import { World } from '../world/World.js'
 import { shared } from '../world/shading.js'
 import { MapView } from '../ui/MapView.js'
+import { LogbookView } from '../ui/LogbookView.js'
 import { Quality } from './Quality.js'
 
 // Owns the renderer and wires every system together. Systems receive this
@@ -41,6 +42,7 @@ export class Experience {
     this.world = new World(this)
     this.sounds = new Sounds(this)
     this.map = new MapView(this)
+    this.logbookView = new LogbookView(this)
 
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFShadowMap
@@ -69,6 +71,7 @@ export class Experience {
     // Audio is fetched alongside but never holds up the start (see Sounds)
     this.sounds.load()
     await this.world.load(progress => this.overlay.setProgress(0.2 + progress * 0.7))
+    this.logbookView.attach(this.world.logbook)
 
     // Compile every shader now rather than the first time each thing comes into view
     await this.renderer.compileAsync(this.scene, this.cameraRig.camera)

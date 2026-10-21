@@ -106,17 +106,17 @@ export class Sounds {
 
   // A small brass bell, made on the spot: a few inharmonic partials that
   // ring out and fade. Panned and faded like play() when given a position.
-  bell(volume = 0.25, position = null) {
+  bell(volume = 0.25, position = null, { pitch = 660, delay = 0 } = {}) {
     if (this.context.state !== 'running') return
     if (position) {
       const rig = this.app.cameraRig
       volume *= Math.max(0, 1 - Math.hypot(position.x - rig.focus.x, position.z - rig.focus.z) / 70)
       if (volume < 0.01) return
     }
-    const now = this.context.currentTime
+    const now = this.context.currentTime + delay
     for (const [ratio, level, decay] of [[1, 1, 2.2], [2.76, 0.45, 1.2], [5.4, 0.25, 0.6], [8.9, 0.12, 0.35]]) {
       const oscillator = this.context.createOscillator()
-      oscillator.frequency.value = 660 * ratio
+      oscillator.frequency.value = pitch * ratio
       const gain = this.context.createGain()
       gain.gain.setValueAtTime(0, now)
       gain.gain.linearRampToValueAtTime(volume * level, now + 0.005)
@@ -125,6 +125,11 @@ export class Sounds {
       oscillator.start(now)
       oscillator.stop(now + decay + 0.05)
     }
+  }
+
+  // Three rising bells: something new for the log
+  fanfare(volume = 0.16) {
+    ;[784, 988, 1175].forEach((pitch, index) => this.bell(volume, null, { pitch, delay: index * 0.11 }))
   }
 
   // One crackle of a wood fire: a few milliseconds of bright noise

@@ -37,6 +37,8 @@
         <symbol id="icon-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></symbol>
         <symbol id="icon-bottle" viewBox="0 0 24 24"><path d="M10 2h4v4l2 3v12H8V9l2-3Zm-2 11h8" /></symbol>
         <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M5 12h13m-6-6 6 6-6 6" /></symbol>
+        <symbol id="icon-log" viewBox="0 0 24 24"><path d="M4 5.5C6.5 4 9.5 4 12 5.5v14c-2.5-1.5-5.5-1.5-8 0Zm16 0C17.5 4 14.5 4 12 5.5v14c2.5-1.5 5.5-1.5 8 0Z" /></symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" /></symbol>
       </defs>
     </svg>
 
@@ -57,7 +59,7 @@
     <div id="hud" class="hud" hidden>
       <div class="hud-top-left">
         <p class="brand brand-small"><svg class="brand-mark"><use href="#icon-mark" /></svg>airupt</p>
-        <p class="chip" id="bottle-counter" hidden><svg class="icon"><use href="#icon-bottle" /></svg><span></span></p>
+        <button class="chip chip-button" id="open-log" aria-label="Captain's log" aria-keyshortcuts="L"><svg class="icon"><use href="#icon-log" /></svg><span></span></button>
       </div>
       <div class="hud-top-right">
         <button class="icon-button" id="open-map" aria-label="Open the map" aria-keyshortcuts="M" data-tooltip="Map · M">
@@ -98,8 +100,18 @@
       <div class="panel-body" tabindex="-1" autofocus></div>
     </dialog>
 
+    <dialog id="logbook" class="logbook" aria-labelledby="logbook-title">
+      <form method="dialog" class="dialog-header">
+        <h2 id="logbook-title" tabindex="-1" autofocus>Captain's log</h2>
+        <button class="icon-button icon-button-small" aria-label="Close the log" data-tooltip="Close · L">
+          <svg class="icon"><use href="#icon-close" /></svg>
+        </button>
+      </form>
+      <div class="logbook-body"></div>
+    </dialog>
+
     <dialog id="map" class="map" aria-labelledby="map-title">
-      <form method="dialog" class="map-header">
+      <form method="dialog" class="dialog-header">
         <h2 id="map-title" tabindex="-1" autofocus>Where to?</h2>
         <button class="icon-button icon-button-small" aria-label="Close map" data-tooltip="Close · M">
           <svg class="icon"><use href="#icon-close" /></svg>

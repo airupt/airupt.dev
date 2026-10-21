@@ -538,6 +538,29 @@ body:has(dialog[open]) .hud > * {
   pointer-events: none;
 }
 
+/* The log chip is a button sitting among the passive brand chips */
+.chip-button {
+  border: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.chip-button:hover,
+.chip-button:focus-visible {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 2px var(--wood-light),
+    0 5px 0 var(--navy-edge),
+    0 14px 28px rgb(13 43 69 / 0.28);
+}
+
+.chip-button:active {
+  transform: translateY(2px);
+}
+
 .hud-top-right {
   right: max(1rem, env(safe-area-inset-right));
 }
@@ -794,7 +817,8 @@ body:has(dialog[open]) .hud > * {
    above (lighter top rail, darker bottom rail), a dark inner rabbet line,
    and the navy board inside. The frame stays put; only the board scrolls. */
 .panel,
-.map {
+.map,
+.logbook {
   /* The browser caps modal dialogs a little short of the screen; the sheet should not be */
   max-width: none;
   border: 7px solid;
@@ -1099,14 +1123,14 @@ body:has(dialog[open]) .hud > * {
   background: rgb(13 43 69 / 0.4);
 }
 
-.map-header {
+.dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
 }
 
-.map-header h2 {
+.dialog-header h2 {
   margin: 0;
   font: 800 2rem/1 var(--font-display);
   letter-spacing: -0.02em;
@@ -1316,3 +1340,123 @@ body:has(dialog[open]) .hud > * {
     animation: none !important;
   }
 }
+
+/* Captain's log: the same wood-framed board as the map, a progress bar,
+   then every discovery as a row: found ones in full, the rest as hints */
+
+.logbook {
+  width: min(720px, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  padding: 1.2rem 1.4rem 1.5rem;
+  overflow: hidden;
+}
+
+.logbook[open] {
+  display: flex;
+  flex-direction: column;
+  animation: map-in 0.4s cubic-bezier(0.2, 1.25, 0.4, 1);
+}
+
+.logbook::backdrop {
+  background: rgb(13 43 69 / 0.4);
+}
+
+.logbook-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(255 255 255 / 0.25) transparent;
+  display: grid;
+  gap: 1.2rem;
+}
+
+.log-progress p {
+  margin: 0 0 0.55rem;
+  font: 700 1rem/1 var(--font-text);
+  color: rgb(244 241 234 / 0.8);
+}
+
+.log-progress strong {
+  font: 800 1.5rem/1 var(--font-display);
+  color: var(--sign-text);
+}
+
+.log-bar {
+  height: 10px;
+  border-radius: 99px;
+  background: rgb(255 255 255 / 0.1);
+  overflow: hidden;
+}
+
+.log-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 0.6s ease;
+}
+
+.log-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.log-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.04);
+  color: rgb(244 241 234 / 0.6);
+  font: 600 0.92rem/1.3 var(--font-text);
+}
+
+.log-entry.is-found {
+  background: rgb(255 255 255 / 0.09);
+  color: var(--sign-text);
+  font-weight: 700;
+}
+
+.log-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px dashed rgb(244 241 234 / 0.3);
+  font: 800 0.9rem/1 var(--font-display);
+}
+
+.is-found .log-mark {
+  border: 0;
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.log-mark .icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 3;
+}
+
+@media (max-width: 560px) {
+  .log-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+

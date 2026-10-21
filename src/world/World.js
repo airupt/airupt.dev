@@ -28,6 +28,7 @@ import { Reactions } from './Reactions.js'
 import { Guide } from './Guide.js'
 import worldModels from '../assets/models/world.glb?url'
 import { ProjectBoards } from './ProjectBoards.js'
+import { Logbook } from './Logbook.js'
 import { profile, sections } from '../content/portfolio.js'
 
 const seeThroughPoint = new THREE.Vector3()
@@ -85,6 +86,7 @@ export class World {
       const boat = this.boat.object.position
       const near = Math.hypot(boat.x - landing.shore.x, boat.z - landing.shore.z) < 10
       if (near && !this.atLanding && this.eruptionTimer < 30) this.eruptionTimer = 0
+      if (near) this.logbook?.record('landing')
       this.atLanding = near
     }
 
@@ -96,6 +98,7 @@ export class World {
     const distance = Math.hypot(boat.x - volcano.x, boat.z - volcano.z)
     const closeness = THREE.MathUtils.clamp(1 - (distance - 25) / 90, 0, 1)
     this.smoke.burst(0)
+    if (closeness > 0.35) this.logbook?.record('eruption')
     this.app.sounds.rumble(0.55 * closeness)
     this.app.cameraRig.shake(0.2 * closeness)
   }
@@ -146,6 +149,11 @@ export class World {
     this.rocks.build()
     this.props.instances.build()
     this.bottles = new Bottles(this.app, this.models, this.splashes)
+    this.logbook = new Logbook(this.app)
+    this.bottles.onCollect = (count, total) => {
+      this.logbook.record('bottle')
+      if (count === total) this.logbook.record('bottles')
+    }
 
     // Signs and boards are painted with the site fonts, so wait until they have loaded
     await Promise.all([document.fonts.load('800 96px "Bricolage Grotesque"'), document.fonts.load('600 30px "Figtree"')])
@@ -195,6 +203,7 @@ export class World {
     this.projectBoards?.update(delta)
     this.signs?.update(delta)
     this.reactions?.update(delta)
+    this.logbook?.update()
     this.guide?.update(delta)
     this.props?.instances.update()
     this.ocean.update(focus)

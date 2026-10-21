@@ -48,8 +48,6 @@ export class Bottles {
       app.scene.add(object)
       return { index, object, x, z, pickup: 0 }
     })
-
-    app.overlay.setBottleCount(this.collected.size, this.items.length)
   }
 
   update(delta) {
@@ -84,9 +82,9 @@ export class Bottles {
     this.splashes.emit(item.object.position.clone(), new THREE.Vector3(), { count: 18, spread: 1.4, up: 2.6, size: 0.08, life: 0.9 })
     this.app.sounds.play('glass', 0.8)
     this.app.sounds.play('chime', 0.4, 1.25)
-    this.app.overlay.setBottleCount(this.collected.size, this.items.length)
     // Messages follow the order you find bottles in, not where they float,
     // so the first one welcomes you and only the final one says it's the last
-    this.app.overlay.toast(messages[this.collected.size - 1], `Bottle ${this.collected.size} of ${this.items.length}`)
+    this.app.overlay.toast(messages[this.collected.size - 1], `Bottle ${this.collected.size} of ${this.items.length} · map piece found`)
+    this.onCollect?.(this.collected.size, this.items.length)
   }
 }

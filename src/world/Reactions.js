@@ -60,8 +60,12 @@ export class Reactions {
 
   // A section was opened: its pennant drops onto the garland
   visit(section) {
-    if (this.visited.has(section)) return
+    const isNew = !this.visited.has(section)
     this.visited.add(section)
+    // Checked on every visit, so someone who had seen them all before the
+    // log existed gets the entry next time too
+    if (this.visited.size >= this.world.zones.list.length) this.world.logbook?.record('islands')
+    if (!isNew) return
     saveVisited(this.visited)
     const pennant = this.pennants[section]
     if (!pennant) return

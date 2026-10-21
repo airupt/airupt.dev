@@ -1,5 +1,5 @@
 // Builds DOM for portfolio content. Uses textContent throughout, never innerHTML.
-function element(tag, attributes = {}, children = []) {
+export function element(tag, attributes = {}, children = []) {
   const node = document.createElement(tag)
   for (const [key, value] of Object.entries(attributes)) {
     if (key === 'text') node.textContent = value
