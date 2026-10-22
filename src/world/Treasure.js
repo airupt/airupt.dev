@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { islands, spawn } from './layout.js'
-import { dryGround } from './terrain.js'
+import { treasureSpot } from './terrain.js'
 import { createStylizedMaterial } from './shading.js'
 import { element } from '../ui/render.js'
 
@@ -20,10 +20,9 @@ export class Treasure {
     this.app = app
     this.logbook = logbook
     // The cay's coast wanders with noise, so its sand is found rather than
-    // assumed; a little toward the camera keeps the chest clear of its palm
-    const cay = islands.find(island => island.id === 'reef-cay')
-    const spot = dryGround(cay, app.cameraRig.screenUp.clone().negate(), 0.8)
-    this.spot = new THREE.Vector3(cay.x + spot.x, spot.y, cay.z + spot.z)
+    // assumed (Decor keeps the cay's palm clear of this spot)
+    const spot = treasureSpot(islands.find(island => island.id === 'reef-cay'))
+    this.spot = new THREE.Vector3(spot.x, spot.y, spot.z)
     this.state = logbook.has('treasure') ? 'open' : 'buried'
     this.time = 0
 
@@ -33,7 +32,7 @@ export class Treasure {
 
     // The chest faces the camera, its lid hinged at the back
     this.chest = models.get('chest')
-    this.chest.scale.setScalar(1.1)
+    this.chest.scale.setScalar(1)
     this.chest.rotation.y = Math.PI / 4
     this.lid = this.chest.getObjectByName('lid')
     group.add(this.chest)
@@ -43,10 +42,11 @@ export class Treasure {
     this.shine.position.y = 0.72
     this.chest.add(this.shine)
 
-    // An X painted on the sand, with a few glints over it
+    // An X painted on the sand, with a few glints over it. The camera looks
+    // along the world's diagonal, so strokes along the axes read as an X
     const paint = createStylizedMaterial({ color: '#c8372d' }, { waterLine: false })
     this.mark = new THREE.Group()
-    for (const angle of [Math.PI / 4, -Math.PI / 4]) {
+    for (const angle of [0, Math.PI / 2]) {
       const stroke = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.32), paint)
       stroke.rotation.y = angle
       this.mark.add(stroke)

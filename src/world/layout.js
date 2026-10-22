@@ -179,8 +179,11 @@ export const islands = [
       return [Math.cos(angle) * ring, Math.sin(angle) * ring, 2.4 + Math.cos(i * 1.9) * 0.6, 0.25]
     }),
   },
-  // A sandy cay in the middle of the reef's lagoon, so the ring reads as an atoll
-  { id: 'reef-cay', x: 60, z: -38, radius: 3, seed: 131, sparse: true, blobs: [[0, 0, 2.3, 1]] },
+  // A sandy cay in the middle of the reef's lagoon, so the ring reads as an
+  // atoll. The treasure is buried on its flattest sand, and its one palm
+  // stands just to the right of that as the camera sees it (both in metres
+  // from the cay's middle)
+  { id: 'reef-cay', x: 60, z: -38, radius: 3, seed: 131, sparse: true, blobs: [[0, 0, 2.3, 1]], treasure: [-0.7, -1.5], palm: [0.3, -2.55] },
 ]
 
 // Sea stacks in a few places along the routes (not sprinkled evenly)

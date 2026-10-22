@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { dryGround, islandHeight, facingDirection } from '../src/world/terrain.js'
+import { islandHeight, facingDirection, treasureSpot } from '../src/world/terrain.js'
 import { archGate } from '../src/world/gates.js'
 import { harbourPoints } from './harbours.js'
 import { channelMarks } from '../src/world/harbour.js'
@@ -110,13 +110,30 @@ test('the ring course runs through open water from gate to gate', () => {
   }
 })
 
-test('the treasure stands on dry sand on the reef cay', () => {
+test('the treasure is buried on flat, dry sand on the reef cay', () => {
   const cay = islands.find(island => island.id === 'reef-cay')
-  for (const toward of [{ x: 0.7, z: 0.7 }, { x: -1, z: 0 }, { x: 0, z: 1 }]) {
-    const spot = dryGround(cay, toward, 0.8)
-    assert.ok(spot.y > 0.2, `the chest would stand at ${spot.y.toFixed(2)} m`)
-    assert.ok(islandHeight(cay, spot.x, spot.z) > 0.2)
+  const spot = treasureSpot(cay)
+  assert.ok(spot.y > 0.3, `the chest would stand at ${spot.y.toFixed(2)} m`)
+  // All round the X (its strokes are 1.6 m long): sand, and nearly level
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2
+    const height = islandHeight(cay, spot.x - cay.x + Math.cos(angle) * 0.85, spot.z - cay.z + Math.sin(angle) * 0.85)
+    assert.ok(height > 0.15, 'the X would reach into the water')
+    assert.ok(Math.abs(height - spot.y) < 0.25, 'the X would sink into a slope')
   }
+})
+
+test("the reef cay's palm stands on its sand, beside the treasure", () => {
+  const cay = islands.find(island => island.id === 'reef-cay')
+  const spot = treasureSpot(cay)
+  const [x, z] = cay.palm
+  assert.ok(islandHeight(cay, x, z) > 0.3, 'the palm would stand in the water')
+  // Beside the chest as the camera sees it (screen right is +x -z), so the
+  // trunk never seems to grow out of it, and not in front of it (+x +z)
+  const dx = cay.x + x - spot.x
+  const dz = cay.z + z - spot.z
+  assert.ok(Math.abs(dx - dz) * Math.SQRT1_2 > 1.15, 'from the camera the palm would seem to grow out of the chest')
+  assert.ok((dx + dz) * Math.SQRT1_2 < 0.3, 'the palm would stand in front of the chest')
 })
 
 test('the ring course keeps clear of docks, berths, buoys and channel marks', () => {

@@ -6,6 +6,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { createDockGeometry, DOCK_DECK, DOCK_INLAND, DOCK_LENGTH, DOCK_WIDTH } from './Dock.js'
 import { createStylizedMaterial } from './shading.js'
 import { footprints } from './IslandScenes.js'
+import { treasureSpot } from './terrain.js'
 import { sections } from '../content/portfolio.js'
 import { createBench, createCampfire, createLighthouse, createLogSeat, createLookout, createLumber, createMailbox, createSignpostHub, createTent, createWorkbench } from './Structures.js'
 
@@ -103,6 +104,16 @@ export class Decor {
         }
       }
       for (const { x, z, radius } of island.paths.clearings) occupied.push({ x, z, radius: radius + 1 })
+      // A palm placed by hand (the reef cay's, behind the treasure)
+      if (island.palm) {
+        const x = island.x + island.palm[0]
+        const z = island.z + island.palm[1]
+        this.add('palm-straight', x, this.groundAt(island, x, z, 0.45) - 0.1, z, random() * Math.PI * 2, 0.95)
+        this.contacts.push({ x, z, radius: 0.5 })
+        occupied.push({ x, z, radius: 1.4 })
+      }
+      // Nothing else on the cay stands where the treasure is buried
+      if (island.id === 'reef-cay') occupied.push({ ...treasureSpot(island), radius: 1 })
       this.scatter(island, random, occupied)
     }
 
@@ -242,22 +253,24 @@ export class Decor {
     // and the camera, so arriving shows the dock, sign, plaza and hero clearly
     const inYard = (x, z) => island.plan && (this.yardShapeAt(island, x, z) < 1.05 || this.blocksView(island, x, z))
 
-    const tryPlace = (count, minRadius, maxRadius, accept, place) => {
+    // `clearance`: metres kept from everything already placed, beyond their own room
+    const tryPlace = (count, minRadius, maxRadius, accept, place, clearance = 1.4) => {
       for (let placed = 0, tries = 0; placed < count && tries < count * 12; tries++) {
         const angle = random() * Math.PI * 2
         const distance = island.radius * (minRadius + random() * (maxRadius - minRadius))
         const x = island.x + Math.cos(angle) * distance
         const z = island.z + Math.sin(angle) * distance
         const surface = this.islands.surfaceAt(island, x, z)
-        if (!surface || !accept(surface, x, z) || !isFree(x, z, 1.4)) continue
+        if (!surface || !accept(surface, x, z) || !isFree(x, z, clearance)) continue
         place(x, surface.y, z)
         occupied.push({ x, z, radius: 1.4 })
         placed++
       }
     }
 
-    // Sandbars and the like get a palm or two and nothing else
-    const amount = count => (island.sparse ? Math.min(count, 1) : count)
+    // Sandbars and the like get a palm or two and nothing else (or just the
+    // one placed by hand)
+    const amount = count => (island.palm ? 0 : island.sparse ? Math.min(count, 1) : count)
 
     tryPlace(
       amount(Math.round(island.radius * 0.45)),
@@ -287,10 +300,19 @@ export class Decor {
     // Nothing grows on the volcano's ash cone
     const onGrass = surface => surface.y > 0.6 && surface.normalY > 0.75 && !(island.volcano && surface.y > 5)
 
-    tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.15), 0.1, 0.6, (surface, x, z) => onGrass(surface) && !inYard(x, z), (x, y, z) => {
-      this.foliage.addTree(new THREE.Vector3(x, this.groundAt(island, x, z, 0.4) - 0.1, z), 2.2 + random() * 1.2, 1.3 + random() * 0.6, pick(treeColors), random)
-      this.contacts.push({ x, z, radius: 0.55 })
-    })
+    // Round crowns keep well clear of the palms' (a leaning palm reaches a
+    // couple of metres out), so no crown grows through another
+    tryPlace(
+      island.sparse ? 0 : Math.round(island.radius * 0.15),
+      0.1,
+      0.6,
+      (surface, x, z) => onGrass(surface) && !inYard(x, z),
+      (x, y, z) => {
+        this.foliage.addTree(new THREE.Vector3(x, this.groundAt(island, x, z, 0.4) - 0.1, z), 2.2 + random() * 1.2, 1.3 + random() * 0.6, pick(treeColors), random)
+        this.contacts.push({ x, z, radius: 0.55 })
+      },
+      2.8
+    )
 
     tryPlace(island.sparse ? 0 : Math.round(island.radius * 0.6), 0.1, 0.85, onGrass, (x, y, z) => {
       const size = 0.55 + random() * 0.6

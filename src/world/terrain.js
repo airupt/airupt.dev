@@ -103,21 +103,9 @@ function naturalHeight(island, x, z) {
   return y - 0.6 - 2.5 * smoothstep(0.75 + cliff * 0.12, 1.3 - cliff * 0.18, nearest)
 }
 
-// The highest point of an island, moved `offset` metres along `toward` if
-// that is still dry ground: somewhere to stand a thing that must not end up
-// in the sea. Relative to the island's centre: { x, y, z }.
-export function dryGround(island, toward, offset = 0) {
-  let best = { x: 0, z: 0, y: -Infinity }
-  const reach = island.radius * 1.3
-  for (let x = -reach; x <= reach; x += 0.25) {
-    for (let z = -reach; z <= reach; z += 0.25) {
-      const y = islandHeight(island, x, z)
-      if (y > best.y) best = { x, z, y }
-    }
-  }
-  const x = best.x + toward.x * offset
-  const z = best.z + toward.z * offset
-  const y = islandHeight(island, x, z)
-  return y > 0.2 ? { x, y, z } : best
+// Where the treasure is buried, in world coordinates (see the reef cay in layout.js)
+export function treasureSpot(cay) {
+  const [x, z] = cay.treasure
+  return { x: cay.x + x, y: islandHeight(cay, x, z), z: cay.z + z }
 }
 
