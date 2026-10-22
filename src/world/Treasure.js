@@ -1,10 +1,11 @@
 import * as THREE from 'three'
 import { islands, spawn } from './layout.js'
-import { treasureSpot } from './terrain.js'
+import { islandHeight, treasureSpot } from './terrain.js'
 import { createStylizedMaterial } from './shading.js'
 import { element } from '../ui/render.js'
 
 const REACH = 10 // metres from the cay at which the chest comes up
+const REST = -0.2 // how far the open chest sits in the sand
 const COINS = 28
 const GRAVITY = 14
 const gold = '#ffc93d'
@@ -21,7 +22,8 @@ export class Treasure {
     this.logbook = logbook
     // The cay's coast wanders with noise, so its sand is found rather than
     // assumed (Decor keeps the cay's palm clear of this spot)
-    const spot = treasureSpot(islands.find(island => island.id === 'reef-cay'))
+    const cay = islands.find(island => island.id === 'reef-cay')
+    const spot = treasureSpot(cay)
     this.spot = new THREE.Vector3(spot.x, spot.y, spot.z)
     this.state = logbook.has('treasure') ? 'open' : 'buried'
     this.time = 0
@@ -30,9 +32,10 @@ export class Treasure {
     group.position.copy(this.spot)
     app.scene.add(group)
 
-    // The chest faces the camera, its lid hinged at the back
+    // The chest faces the camera, its lid hinged at the back; sized for the
+    // little cay, and resting a hand's depth into the sand once dug up
     this.chest = models.get('chest')
-    this.chest.scale.setScalar(1)
+    this.chest.scale.setScalar(0.85)
     this.chest.rotation.y = Math.PI / 4
     this.lid = this.chest.getObjectByName('lid')
     group.add(this.chest)
@@ -60,6 +63,24 @@ export class Treasure {
       return glint
     })
 
+    // Sand thrown up round the hole, there once the chest has been dug up
+    this.mound = new THREE.Group()
+    const sand = createStylizedMaterial({ color: '#e6c98a', flatShading: true }, { waterLine: false })
+    const lumps = 9
+    for (let i = 0; i < lumps; i++) {
+      const angle = (i / lumps) * Math.PI * 2 + Math.sin(i * 2.3) * 0.25
+      const size = 0.2 + ((i * 37) % 10) / 70
+      const lump = new THREE.Mesh(new THREE.DodecahedronGeometry(size, 0), sand)
+      lump.scale.set(1.3, 0.45, 1)
+      lump.rotation.y = angle
+      // On the sand itself, which slopes a little round the hole
+      const x = Math.cos(angle) * 0.68
+      const z = Math.sin(angle) * 0.68
+      lump.position.set(x, islandHeight(cay, spot.x + x - cay.x, spot.z + z - cay.z) - spot.y - 0.04, z)
+      this.mound.add(lump)
+    }
+    group.add(this.mound)
+
     this.coins = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.09, 0.09, 0.025, 10), createStylizedMaterial({ color: gold }, { waterLine: false }), COINS)
     this.coins.visible = false
     this.coins.frustumCulled = false
@@ -74,7 +95,8 @@ export class Treasure {
     const open = this.state === 'open'
     const waiting = this.state === 'waiting'
     this.chest.visible = open
-    this.chest.position.y = open ? -0.05 : -1.3
+    this.mound.visible = open
+    this.chest.position.y = open ? REST : -1.3
     this.lid.rotation.x = open ? -1.9 : 0
     this.shine.visible = open
     this.mark.visible = waiting
@@ -110,6 +132,7 @@ export class Treasure {
     this.mark.visible = false
     for (const glint of this.glints) glint.visible = false
     this.chest.visible = true
+    this.mound.visible = true
     this.app.map?.showTreasure(false)
     this.app.world.splashes.emit(this.spot.clone().setY(this.spot.y + 0.2), null, { count: 30, spread: 1.6, up: 3, size: 0.1, life: 1 })
     this.app.sounds.rumble(0.25)
@@ -121,7 +144,7 @@ export class Treasure {
     // Up out of the sand with a little overshoot, then the lid swings open
     const up = Math.min(this.rise / 1.2, 1)
     const eased = 1 + 2.2 * Math.pow(up - 1, 3) + 1.2 * Math.pow(up - 1, 2)
-    this.chest.position.y = -1.3 + 1.25 * eased
+    this.chest.position.y = -1.3 + (REST + 1.3) * eased
     const opening = THREE.MathUtils.clamp((this.rise - 1.3) / 0.5, 0, 1)
     this.lid.rotation.x = -1.9 * (1 - Math.pow(1 - opening, 3))
     if (opening > 0 && !this.shine.visible) {

@@ -59,6 +59,8 @@ export class Grass {
         // Thins out toward the beach and stays off the footpaths
         if (random() > smoothstep(0.12, 0.75, point.y)) continue
         if (random() < pathAmount(island.paths, point.x + island.x, point.z + island.z) * 1.4) continue
+        // Bare sand where the treasure is buried
+        if (island.treasure && Math.hypot(point.x - island.treasure[0], point.z - island.treasure[1]) < 1.3) continue
 
         const height = random()
         const shade = 0.85 + random() * 0.3
