@@ -7,5 +7,9 @@
     "directory": "./dist",
     "not_found_handling": "404-page"
   },
-  "routes": [{ "pattern": "airupt.dev", "custom_domain": true }]
+  // www serves the same site; the page's canonical link points search engines at airupt.dev
+  "routes": [
+    { "pattern": "airupt.dev", "custom_domain": true },
+    { "pattern": "www.airupt.dev", "custom_domain": true }
+  ]
 }
